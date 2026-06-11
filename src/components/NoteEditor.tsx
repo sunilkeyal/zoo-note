@@ -137,6 +137,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
 
         <Select
           size="small"
+          disabled={editor.isActive('heading')}
           value={editor.getAttributes('textStyle').fontSize?.replace('px', '') || '16'}
           onChange={(e) => editor.chain().focus().setFontSize(e.target.value + 'px').run()}
           sx={{ minWidth: 80, height: 32, fontSize: '0.85rem' }}
