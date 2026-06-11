@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { AppProps } from 'next/app';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import '@/styles/globals.css';
 import { NoteProvider } from '@/contexts/NoteContext';
 import { TabProvider } from '@/contexts/TabContext';
 import { ThemeContextProvider, useTheme } from '@/contexts/ThemeContext';

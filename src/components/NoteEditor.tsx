@@ -123,10 +123,11 @@ export default function NoteEditor({ note, onUpdate }: Props) {
           }
           onChange={(e) => {
             const val = e.target.value;
-            editor.chain().focus().setParagraph().run();
-            if (val === 'h1') editor.chain().focus().unsetFontFamily().unsetFontSize().toggleHeading({ level: 1 }).run();
-            if (val === 'h2') editor.chain().focus().unsetFontFamily().unsetFontSize().toggleHeading({ level: 2 }).run();
-            if (val === 'h3') editor.chain().focus().unsetFontFamily().unsetFontSize().toggleHeading({ level: 3 }).run();
+            const chain = editor.chain().focus().setParagraph();
+            if (val === 'h1') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 1 });
+            else if (val === 'h2') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 2 });
+            else if (val === 'h3') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 3 });
+            chain.run();
           }}
           sx={{ minWidth: 110, height: 32, fontSize: '0.85rem' }}
         >
@@ -163,15 +164,6 @@ export default function NoteEditor({ note, onUpdate }: Props) {
         <EditorContent editor={editor} />
       </Box>
 
-      <style jsx global>{`
-        .ProseMirror { outline: none; min-height: 200px; line-height: 1.4; }
-        .ProseMirror p { margin: 0 0 0.25rem 0; }
-        .ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
-        .ProseMirror li { margin: 0 0 0.15rem 0; }
-        .ProseMirror h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.25rem 0; }
-        .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.25rem 0; }
-        .ProseMirror h3 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem 0; }
-      `}</style>
     </Box>
   );
 }
