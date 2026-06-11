@@ -63,13 +63,36 @@ export default function NoteEditor({ note, onUpdate }: Props) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ p: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap', bgcolor: 'background.paper' }}>
+      <Box sx={{ flex: 1 }}>
+        <EditorContent editor={editor} />
+      </Box>
+
+      <Box
+        sx={{
+          position: 'sticky',
+          bottom: 16,
+          alignSelf: 'center',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.3,
+          px: 1.5,
+          py: 0.5,
+          bgcolor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 3,
+          boxShadow: (theme: any) => `0 2px 12px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`,
+          mx: 'auto',
+          zIndex: 10,
+          transition: 'opacity 0.2s ease, transform 0.2s ease',
+        }}
+      >
         <ToggleButtonGroup size="small" exclusive={false}>
           <ToggleButton
             value="bold"
             selected={editor.isActive('bold')}
             onChange={() => editor.chain().focus().toggleBold().run()}
-            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+            sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
           >
             <FormatBoldIcon fontSize="small" />
           </ToggleButton>
@@ -77,7 +100,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
             value="italic"
             selected={editor.isActive('italic')}
             onChange={() => editor.chain().focus().toggleItalic().run()}
-            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+            sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
           >
             <FormatItalicIcon fontSize="small" />
           </ToggleButton>
@@ -85,20 +108,20 @@ export default function NoteEditor({ note, onUpdate }: Props) {
             value="underline"
             selected={editor.isActive('underline')}
             onChange={() => editor.chain().focus().toggleUnderline().run()}
-            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+            sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
           >
             <FormatUnderlinedIcon fontSize="small" />
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.3 }} />
 
         <ToggleButtonGroup size="small" exclusive={false}>
           <ToggleButton
             value="bulletList"
             selected={editor.isActive('bulletList')}
             onChange={() => editor.chain().focus().toggleBulletList().run()}
-            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+            sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
           >
             <FormatListBulletedIcon fontSize="small" />
           </ToggleButton>
@@ -106,13 +129,13 @@ export default function NoteEditor({ note, onUpdate }: Props) {
             value="orderedList"
             selected={editor.isActive('orderedList')}
             onChange={() => editor.chain().focus().toggleOrderedList().run()}
-            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+            sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
           >
             <FormatListNumberedIcon fontSize="small" />
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.3 }} />
 
         <Select
           size="small"
@@ -129,7 +152,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
             else if (val === 'h3') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 3 });
             chain.run();
           }}
-          sx={{ minWidth: 110, height: 32, fontSize: '0.85rem' }}
+          sx={{ minWidth: 100, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
         >
           {HEADINGS.map((h) => (
             <MenuItem key={h.value} value={h.value}>{h.label}</MenuItem>
@@ -141,7 +164,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
           disabled={editor.isActive('heading')}
           value={editor.getAttributes('textStyle').fontSize?.replace('px', '') || '16'}
           onChange={(e) => editor.chain().focus().setFontSize(e.target.value + 'px').run()}
-          sx={{ minWidth: 80, height: 32, fontSize: '0.85rem' }}
+          sx={{ minWidth: 70, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
         >
           {FONT_SIZES.map((s) => (
             <MenuItem key={s} value={s}>{s}</MenuItem>
@@ -152,18 +175,13 @@ export default function NoteEditor({ note, onUpdate }: Props) {
           size="small"
           value={editor.getAttributes('textStyle').fontFamily || 'Arial'}
           onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
-          sx={{ minWidth: 120, height: 32, fontSize: '0.85rem' }}
+          sx={{ minWidth: 100, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
         >
           {FONTS.map((f) => (
             <MenuItem key={f} value={f} style={{ fontFamily: f }}>{f}</MenuItem>
           ))}
         </Select>
       </Box>
-
-      <Box sx={{ flex: 1, px: 2, py: 2, pl: 4, overflow: 'auto' }}>
-        <EditorContent editor={editor} />
-      </Box>
-
     </Box>
   );
 }

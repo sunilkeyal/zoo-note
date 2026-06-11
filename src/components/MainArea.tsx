@@ -1,14 +1,10 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { Box, Typography, Divider, TextField } from '@mui/material';
 import { useNotes } from '@/contexts/NoteContext';
-import { useTabs } from '@/contexts/TabContext';
-import TabBar from './TabBar';
 import NoteEditor from './NoteEditor';
 
 export default function MainArea() {
-  const { notes, updateNote } = useNotes();
-  const { activeTabId, updateTabTitle } = useTabs();
-  const activeNote = notes.find((n) => n._id === activeTabId);
+  const { activeNote, activeNoteId, updateNote } = useNotes();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingUpdate = useRef<{ id: string; content: string } | null>(null);
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -34,16 +30,14 @@ export default function MainArea() {
     if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
     titleDebounceRef.current = setTimeout(() => {
       updateNote(id, { title: value });
-      updateTabTitle(id, value);
     }, 600);
-  }, [updateNote, updateTabTitle]);
+  }, [updateNote]);
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <TabBar />
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default' }}>
       {activeNote ? (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <Box sx={{ px: 2, pt: 2, pb: 0 }}>
+          <Box sx={{ px: '40px', pt: 3, pb: 0, maxWidth: 720, mx: 'auto', width: '100%' }}>
             <TextField
               fullWidth
               variant="standard"
@@ -52,8 +46,8 @@ export default function MainArea() {
               slotProps={{
                 input: {
                   sx: {
-                    fontSize: '1.5rem',
-                    fontWeight: 600,
+                    fontSize: '1.35rem',
+                    fontWeight: 700,
                     '&:before': { borderBottom: 'none' },
                     '&:hover:not(.Mui-disabled, .Mui-error):before': { borderBottom: 'none' },
                     '&:after': { borderBottom: '2px solid' },
@@ -61,12 +55,12 @@ export default function MainArea() {
                 },
               }}
             />
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
               Last updated: {new Date(activeNote.updatedAt).toLocaleString()}
             </Typography>
             <Divider sx={{ mt: 1, mb: 0 }} />
           </Box>
-          <Box sx={{ flex: 1, overflow: 'auto' }}>
+          <Box sx={{ flex: 1, overflow: 'auto', px: '40px', maxWidth: 720, mx: 'auto', width: '100%', py: 2 }}>
             <NoteEditor note={activeNote} onUpdate={handleUpdate} />
           </Box>
         </Box>
