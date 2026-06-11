@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
+import { FontSize } from '@/extensions/FontSize';
 import { Box, ToggleButtonGroup, ToggleButton, Select, MenuItem, Divider } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 const FONTS = ['Arial', 'Georgia', 'Courier New', 'Times New Roman', 'Verdana'];
+const FONT_SIZES = ['12', '14', '16', '18', '24', '32'];
 const HEADINGS = [
   { label: 'Paragraph', value: 'paragraph' },
   { label: 'Heading 1', value: 'h1' },
@@ -35,6 +37,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
       Underline,
       TextStyle,
       FontFamily,
+      FontSize,
     ],
     content: note.content || '<p></p>',
     editorProps: {
@@ -119,6 +122,17 @@ export default function NoteEditor({ note, onUpdate }: Props) {
         >
           {HEADINGS.map((h) => (
             <MenuItem key={h.value} value={h.value}>{h.label}</MenuItem>
+          ))}
+        </Select>
+
+        <Select
+          size="small"
+          value={editor.getAttributes('textStyle').fontSize?.replace('px', '') || '16'}
+          onChange={(e) => editor.chain().focus().setFontSize(e.target.value + 'px').run()}
+          sx={{ minWidth: 80, height: 32, fontSize: '0.85rem' }}
+        >
+          {FONT_SIZES.map((s) => (
+            <MenuItem key={s} value={s}>{s}</MenuItem>
           ))}
         </Select>
 
