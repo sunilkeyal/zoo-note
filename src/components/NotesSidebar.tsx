@@ -100,11 +100,6 @@ export default function NotesSidebar() {
               >
                 <ListItemText
                   primary={note.title}
-                  secondary={
-                    <Typography variant="caption" color="text.secondary" noWrap component="span">
-                      {note.content?.replace(/<[^>]*>/g, '').slice(0, 80) || 'Empty note'}
-                    </Typography>
-                  }
                   slotProps={{
                     primary: {
                       noWrap: true,
