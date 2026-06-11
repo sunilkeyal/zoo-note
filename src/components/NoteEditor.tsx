@@ -8,6 +8,8 @@ import { Box, ToggleButtonGroup, ToggleButton, Select, MenuItem, Divider } from 
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import { Note } from '@/types';
 
 interface Props {
@@ -20,6 +22,7 @@ const HEADINGS = [
   { label: 'Paragraph', value: 'paragraph' },
   { label: 'Heading 1', value: 'h1' },
   { label: 'Heading 2', value: 'h2' },
+  { label: 'Heading 3', value: 'h3' },
 ];
 
 export default function NoteEditor({ note, onUpdate }: Props) {
@@ -28,7 +31,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2] } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       TextStyle,
       FontFamily,
@@ -78,6 +81,22 @@ export default function NoteEditor({ note, onUpdate }: Props) {
           >
             <FormatUnderlinedIcon fontSize="small" />
           </ToggleButton>
+          <ToggleButton
+            value="bulletList"
+            selected={editor.isActive('bulletList')}
+            onChange={() => editor.chain().focus().toggleBulletList().run()}
+            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+          >
+            <FormatListBulletedIcon fontSize="small" />
+          </ToggleButton>
+          <ToggleButton
+            value="orderedList"
+            selected={editor.isActive('orderedList')}
+            onChange={() => editor.chain().focus().toggleOrderedList().run()}
+            sx={{ border: 1, borderColor: 'divider', p: 0.5, minWidth: 32 }}
+          >
+            <FormatListNumberedIcon fontSize="small" />
+          </ToggleButton>
         </ToggleButtonGroup>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
@@ -86,13 +105,15 @@ export default function NoteEditor({ note, onUpdate }: Props) {
           size="small"
           value={
             editor.isActive('heading', { level: 1 }) ? 'h1' :
-            editor.isActive('heading', { level: 2 }) ? 'h2' : 'paragraph'
+            editor.isActive('heading', { level: 2 }) ? 'h2' :
+            editor.isActive('heading', { level: 3 }) ? 'h3' : 'paragraph'
           }
           onChange={(e) => {
             const val = e.target.value;
             editor.chain().focus().setParagraph().run();
             if (val === 'h1') editor.chain().focus().toggleHeading({ level: 1 }).run();
             if (val === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
+            if (val === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
           }}
           sx={{ minWidth: 110, height: 32, fontSize: '0.85rem' }}
         >
@@ -123,6 +144,7 @@ export default function NoteEditor({ note, onUpdate }: Props) {
         .ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
         .ProseMirror h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.5rem 0; }
         .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0; }
+        .ProseMirror h3 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem 0; }
       `}</style>
     </Box>
   );
