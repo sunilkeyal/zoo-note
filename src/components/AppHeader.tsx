@@ -9,7 +9,7 @@ export default function AppHeader() {
   const { mode, toggleTheme } = useTheme();
 
   return (
-    <AppBar position="static" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar position="static" color="default" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: (theme) => theme.palette.mode === 'light' ? '#ffffff' : undefined, boxShadow: 'none', borderBottom: 1, borderColor: 'divider' }}>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
           <NoteAltIcon />
