@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -31,6 +31,8 @@ export default function NoteEditor({ note, onUpdate }: Props) {
   const noteIdRef = useRef(note._id);
   noteIdRef.current = note._id;
 
+  const [, setSelectionVersion] = useState(0);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -45,6 +47,9 @@ export default function NoteEditor({ note, onUpdate }: Props) {
     },
     onUpdate: ({ editor: ed }) => {
       onUpdate(noteIdRef.current, ed.getHTML());
+    },
+    onSelectionUpdate: () => {
+      setSelectionVersion((v) => v + 1);
     },
   });
 
