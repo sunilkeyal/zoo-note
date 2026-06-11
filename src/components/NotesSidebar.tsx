@@ -1,33 +1,34 @@
 import React, { useState } from 'react';
 import {
   Drawer, List, ListItem, ListItemButton, ListItemText,
-  Box, Typography, IconButton, Tooltip,
+  Box, Typography, IconButton, Tooltip, TextField, InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
 import { useNotes } from '@/contexts/NoteContext';
-import { useTabs } from '@/contexts/TabContext';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 280;
 
 export default function NotesSidebar() {
-  const { notes, createNote, deleteNote } = useNotes();
-  const { openTab, activeTabId, closeTab } = useTabs();
+  const { notes, createNote, deleteNote, activeNoteId, setActiveNoteId } = useNotes();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const filtered = search
+    ? notes.filter((n) => n.title.toLowerCase().includes(search.toLowerCase()))
+    : notes;
 
   const handleCreate = async () => {
     const note = await createNote({ title: 'Untitled Note' });
-    if (note) openTab(note);
+    if (note) setActiveNoteId(note._id);
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    const note = notes.find((n) => n._id === deleteTarget);
-    if (note && activeTabId === deleteTarget) {
-      closeTab(deleteTarget);
-    }
     await deleteNote(deleteTarget);
+    if (activeNoteId === deleteTarget) setActiveNoteId(null);
     setDeleteTarget(null);
   };
 
@@ -41,22 +42,34 @@ export default function NotesSidebar() {
           '& .MuiDrawer-paper': {
             width: DRAWER_WIDTH,
             boxSizing: 'border-box',
-            top: ['48px', '56px', '64px'],
+            top: ['40px', '40px', '40px'],
             height: 'auto',
             bottom: 0,
           },
         }}
       >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle2" color="text.secondary">My Notes</Typography>
-          <Tooltip title="New Note">
-            <IconButton size="small" onClick={handleCreate}>
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
+        <Box sx={{ p: 1.5 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search notes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                sx: { fontSize: '0.85rem', borderRadius: 2, bgcolor: 'action.hover' },
+              },
+            }}
+          />
         </Box>
+
         <List dense sx={{ overflow: 'auto', flex: 1, px: 1 }}>
-          {notes.map((note) => (
+          {filtered.map((note) => (
             <ListItem
               key={note._id}
               disablePadding
@@ -65,24 +78,39 @@ export default function NotesSidebar() {
                   edge="end"
                   size="small"
                   onClick={(e) => { e.stopPropagation(); setDeleteTarget(note._id); }}
-                  sx={{ opacity: 0.4, '&:hover': { opacity: 1 } }}
+                  sx={{ opacity: 0, '&:hover': { opacity: 1 } }}
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               }
             >
               <ListItemButton
-                selected={activeTabId === note._id}
-                onClick={() => openTab(note)}
+                selected={activeNoteId === note._id}
+                onClick={() => setActiveNoteId(note._id)}
+                sx={{
+                  borderRadius: 1.5,
+                  mx: 0.5,
+                  borderLeft: 3,
+                  borderColor: activeNoteId === note._id ? 'primary.main' : 'transparent',
+                  transition: 'background-color 0.15s ease',
+                  '&:hover .MuiListItemSecondaryAction-root .MuiIconButton-root': {
+                    opacity: 0.4,
+                  },
+                }}
               >
                 <ListItemText
                   primary={note.title}
+                  secondary={
+                    <Typography variant="caption" color="text.secondary" noWrap component="span">
+                      {note.content?.replace(/<[^>]*>/g, '').slice(0, 80) || 'Empty note'}
+                    </Typography>
+                  }
                   slotProps={{
                     primary: {
                       noWrap: true,
                       sx: {
-                        fontSize: '0.9rem',
-                        fontWeight: activeTabId === note._id ? 600 : 400,
+                        fontSize: '0.85rem',
+                        fontWeight: activeNoteId === note._id ? 600 : 400,
                       },
                     },
                   }}
@@ -91,7 +119,16 @@ export default function NotesSidebar() {
             </ListItem>
           ))}
         </List>
+
+        <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider' }}>
+          <Tooltip title="New Note">
+            <IconButton size="small" onClick={handleCreate} sx={{ width: '100%', borderRadius: 1 }}>
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Drawer>
+
       <DeleteConfirmDialog
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
