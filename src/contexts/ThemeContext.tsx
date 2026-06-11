@@ -39,10 +39,12 @@ export function ThemeContextProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     hasManuallyToggled.current = true;
-    const next = mode === 'light' ? 'dark' : 'light';
-    localStorage.setItem('theme-mode', next);
-    setMode(next);
-  }, [mode]);
+    setMode((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme-mode', next);
+      return next;
+    });
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>
