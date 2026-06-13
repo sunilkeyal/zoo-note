@@ -1,19 +1,20 @@
-import React from 'react';
+import React from "react"
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
-interface DeleteFolderDialogProps {
-  open: boolean;
-  folderName: string;
-  notesCount: number;
-  onClose: () => void;
-  onConfirm: () => void;
+interface Props {
+  open: boolean
+  folderName: string
+  notesCount: number
+  onClose: () => void
+  onConfirm: () => void
 }
 
 export default function DeleteFolderDialog({
@@ -22,27 +23,25 @@ export default function DeleteFolderDialog({
   notesCount,
   onClose,
   onConfirm,
-}: DeleteFolderDialogProps) {
+}: Props) {
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Delete folder?</DialogTitle>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogContentText>
-          This will permanently delete the folder <strong>"{folderName}"</strong>
-          {notesCount > 0 && (
-            <> and all <strong>{notesCount}</strong> notes inside it</>
-          )}.
-          This action cannot be undone.
-        </DialogContentText>
+        <DialogHeader>
+          <DialogTitle>Delete folder?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete the folder <strong>&quot;{folderName}&quot;</strong>
+            {notesCount > 0 && (
+              <> and all <strong>{notesCount}</strong> notes inside it</>
+            )}.
+            This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button onClick={onConfirm} color="error" variant="contained">
-          Delete
-        </Button>
-      </DialogActions>
     </Dialog>
-  );
+  )
 }
