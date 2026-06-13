@@ -92,7 +92,7 @@ export default function MainArea() {
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Toolbar — now above the title */}
           {editor && (
-            <Box sx={{ px: '40px', pt: 2 }}>
+            <Box sx={{ px: '40px', pt: 2, maxWidth: 1140, width: '100%' }}>
               <Box
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 0.3,
@@ -224,7 +224,7 @@ export default function MainArea() {
 
           {/* Editor content */}
           <Box sx={{ flex: 1, overflow: 'auto', px: '40px', maxWidth: 1140, width: '100%', py: 2 }}>
-            <NoteEditor note={activeNote} editor={editor} onUpdate={handleUpdate} />
+            <NoteEditor note={activeNote} editor={editor} />
           </Box>
         </Box>
       ) : (
