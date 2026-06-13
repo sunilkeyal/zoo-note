@@ -18,7 +18,7 @@ import { useNotes } from '@/contexts/NoteContext';
 import NoteEditor from './NoteEditor';
 
 const FONTS = ['Arial', 'Georgia', 'Courier New', 'Times New Roman', 'Verdana'];
-const FONT_SIZES = ['10', '11', '12', '13', '14', '15', '16', '17', '18', '20', '24'];
+const FONT_SIZES = ['13', '14', '15', '16', '17', '18', '20', '24'];
 const HEADINGS = [
   { label: 'Paragraph', value: 'paragraph' },
   { label: 'Heading 1', value: 'h1' },
@@ -174,7 +174,14 @@ export default function MainArea() {
 
                 <Select
                   size="small"
-                  value={editor.getAttributes('textStyle').fontSize?.replace('px', '') || '15'}
+                  value={(() => {
+                    const explicit = editor.getAttributes('textStyle').fontSize?.replace('px', '');
+                    if (explicit) return explicit;
+                    if (editor.isActive('heading', { level: 1 })) return '24';
+                    if (editor.isActive('heading', { level: 2 })) return '20';
+                    if (editor.isActive('heading', { level: 3 })) return '17';
+                    return '15';
+                  })()}
                   onChange={(e) => editor.chain().focus().setFontSize(e.target.value + 'px').run()}
                   sx={{ minWidth: 70, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
                 >

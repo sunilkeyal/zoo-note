@@ -12,7 +12,7 @@
   max-width: 1140px;
   color: inherit;
 }
-.ProseMirror p { margin: 0 0 0.3rem 0; }
+.ProseMirror p { margin: 0 0 0.5rem 0; }
 .ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; }
 .ProseMirror li { margin: 0 0 0.15rem 0; }
 .ProseMirror h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 0.3rem 0; }
