@@ -5,7 +5,6 @@ import { useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import { TextStyle } from "@tiptap/extension-text-style"
-import FontFamily from "@tiptap/extension-font-family"
 import { FontSize } from "@/extensions/FontSize"
 import { useNotes } from "@/contexts/NoteContext"
 import NoteEditor from "./NoteEditor"
@@ -27,8 +26,7 @@ import {
   ListOrdered,
 } from "lucide-react"
 
-const FONTS = ["Arial", "Georgia", "Courier New", "Times New Roman", "Verdana"]
-const FONT_SIZES = ["13", "14", "15", "16", "17", "18", "20", "24"]
+const FONT_SIZES = ["13", "14", "15", "16", "17", "18", "20", "24", "30"]
 const HEADINGS = [
   { label: "Paragraph", value: "paragraph" },
   { label: "Heading 1", value: "h1" },
@@ -42,7 +40,9 @@ export default function MainArea() {
   const pendingUpdate = useRef<{ id: string; content: string } | null>(null)
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const activeNoteIdRef = useRef(activeNoteId)
-  activeNoteIdRef.current = activeNoteId
+  useEffect(() => {
+    activeNoteIdRef.current = activeNoteId
+  }, [activeNoteId])
   const [title, setTitle] = useState("")
   const [, setSelectionVersion] = useState(0)
 
@@ -62,7 +62,6 @@ export default function MainArea() {
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       TextStyle,
-      FontFamily,
       FontSize,
     ],
     content: activeNote?.content || "<p></p>",
@@ -85,6 +84,7 @@ export default function MainArea() {
   }, [activeNote?._id])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (activeNote) setTitle(activeNote.title)
   }, [activeNote?._id])
 
@@ -167,18 +167,18 @@ export default function MainArea() {
               }
               onValueChange={(val) => {
                 const chain = editor.chain().focus().setParagraph()
-                if (val === "h1") chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 1 })
-                else if (val === "h2") chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 2 })
-                else if (val === "h3") chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 3 })
+                if (val === "h1") chain.unsetFontSize().toggleHeading({ level: 1 })
+                else if (val === "h2") chain.unsetFontSize().toggleHeading({ level: 2 })
+                else if (val === "h3") chain.unsetFontSize().toggleHeading({ level: 3 })
                 chain.run()
               }}
             >
-              <SelectTrigger className="h-7 w-[110px] text-xs">
+              <SelectTrigger className="h-7 w-[110px] text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {HEADINGS.map((h) => (
-                  <SelectItem key={h.value} value={h.value} className="text-xs">{h.label}</SelectItem>
+                  <SelectItem key={h.value} value={h.value} className="text-sm">{h.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -187,36 +187,23 @@ export default function MainArea() {
               value={(() => {
                 const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
                 if (explicit) return explicit
-                if (editor.isActive("heading", { level: 1 })) return "24"
-                if (editor.isActive("heading", { level: 2 })) return "20"
-                if (editor.isActive("heading", { level: 3 })) return "17"
-                return "15"
+                if (editor.isActive("heading", { level: 1 })) return "30"
+                if (editor.isActive("heading", { level: 2 })) return "24"
+                if (editor.isActive("heading", { level: 3 })) return "20"
+                return "16"
               })()}
               onValueChange={(val) => editor.chain().focus().setFontSize(val + "px").run()}
             >
-              <SelectTrigger className="h-7 w-[70px] text-xs">
+              <SelectTrigger className="h-7 w-[70px] text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {FONT_SIZES.map((s) => (
-                  <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                  <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select
-              value={editor.getAttributes("textStyle").fontFamily || "Arial"}
-              onValueChange={(val) => editor.chain().focus().setFontFamily(val).run()}
-            >
-              <SelectTrigger className="h-7 w-[110px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FONTS.map((f) => (
-                  <SelectItem key={f} value={f} className="text-xs" style={{ fontFamily: f }}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       )}
@@ -225,7 +212,7 @@ export default function MainArea() {
         <Input
           value={title}
           onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
-          className="text-2xl font-bold border-0 shadow-none px-0 h-auto focus-visible:ring-0"
+          className="text-3xl md:text-3xl font-semibold tracking-tight leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0"
           placeholder="Untitled"
         />
         <p className="text-xs text-muted-foreground mt-1">

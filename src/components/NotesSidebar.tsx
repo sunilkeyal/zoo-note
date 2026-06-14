@@ -7,31 +7,105 @@ import DeleteFolderDialog from "./DeleteFolderDialog"
 import { Folder, Note } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInput,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from "@/components/ui/sidebar"
 import {
   Plus,
   Folder as FolderIcon,
-  FolderOpen,
-  ChevronRight,
-  ChevronDown,
-  Search,
   ChevronsUpDown,
   ChevronsDownUp,
   Trash2,
   Pencil,
+  Briefcase,
+  User,
+  GraduationCap,
+  Music,
+  Image,
+  Video,
+  FileText,
+  Download,
+  Code2,
+  Utensils,
+  Heart,
+  StickyNote,
+  Lightbulb,
+  Star,
+  Dumbbell,
+  DollarSign,
+  Plane,
+  ShoppingCart,
+  HeartPulse,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+
+const folderIcons: Record<string, typeof FolderIcon> = {
+  work: Briefcase,
+  office: Briefcase,
+  business: Briefcase,
+  personal: User,
+  private: User,
+  school: GraduationCap,
+  study: GraduationCap,
+  education: GraduationCap,
+  music: Music,
+  songs: Music,
+  audio: Music,
+  photos: Image,
+  images: Image,
+  pictures: Image,
+  videos: Video,
+  movies: Video,
+  films: Video,
+  documents: FileText,
+  docs: FileText,
+  files: FileText,
+  downloads: Download,
+  projects: Code2,
+  software: Code2,
+  recipes: Utensils,
+  cooking: Utensils,
+  health: Heart,
+  fitness: Heart,
+  sports: Dumbbell,
+  finance: DollarSign,
+  money: DollarSign,
+  budget: DollarSign,
+  travel: Plane,
+  trips: Plane,
+  vacation: Plane,
+  shopping: ShoppingCart,
+  medical: HeartPulse,
+  notes: StickyNote,
+  ideas: Lightbulb,
+  starred: Star,
+  favorites: Star,
+}
+
+function getFolderIcon(name: string) {
+  const key = name.toLowerCase().trim()
+  if (folderIcons[key]) return folderIcons[key]
+  for (const word of key.split(/[\s-_]+/)) {
+    if (folderIcons[word]) return folderIcons[word]
+  }
+  return FolderIcon
+}
 
 export default function NotesSidebar() {
   const {
@@ -57,8 +131,6 @@ export default function NotesSidebar() {
   const filtered = search
     ? notes.filter((n) => n.title.toLowerCase().includes(search.toLowerCase()))
     : notes
-
-  const quickNotes = filtered.filter((n) => !n.folderId)
 
   const handleCreate = async () => {
     let targetFolderId = activeFolderId ?? undefined
@@ -158,61 +230,48 @@ export default function NotesSidebar() {
   const handleDragEnd = () => { setDropTarget(null); setDragActive(false) }
 
   const renderNoteItem = (note: Note, noteIndex: number, parentFolderId: string | null) => (
-    <div
-      key={note._id}
-      draggable
-      onDragStart={(e) => handleDragStart(e, note._id)}
-      onDragEnd={handleDragEnd}
-      className="relative group"
-    >
-      {dropTarget?.folderId === parentFolderId && dropTarget.noteIndex === noteIndex && (
-        <div className="absolute top-0 left-9 right-3 h-0.5 bg-primary rounded z-10" />
+    <SidebarMenuSubItem key={note._id}>
+      {renamingId === note._id ? (
+        <Input
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onBlur={() => finishRename(note._id)}
+          onKeyDown={(e) => { if (e.key === "Enter") finishRename(note._id); if (e.key === "Escape") cancelRename() }}
+          autoFocus
+          className="h-6 text-xs px-1 mx-2 my-0.5"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <div className="relative group/menu-sub-item">
+          <SidebarMenuSubButton
+            isActive={activeNoteId === note._id}
+            onClick={() => setActiveNoteId(note._id)}
+            onDoubleClick={() => startRenaming(note._id, note.title)}
+            className="pr-8"
+            draggable
+            onDragStart={(e) => handleDragStart(e, note._id)}
+            onDragEnd={handleDragEnd}
+            onDragOver={(e) => handleNoteDragOver(e, noteIndex, parentFolderId)}
+          >
+            <span className="truncate">{note.title}</span>
+          </SidebarMenuSubButton>
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity pointer-events-none opacity-0 group-hover/menu-sub-item:pointer-events-auto group-hover/menu-sub-item:opacity-100">
+            <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); startRenaming(note._id, note.title) }}>
+              <Pencil />
+            </Button>
+            <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
+              <Trash2 />
+            </Button>
+          </div>
+        </div>
       )}
-      <div
-        className={cn(
-          "flex items-center gap-1 rounded-lg px-2 py-1 cursor-pointer text-sm ml-7 mr-1",
-          activeNoteId === note._id ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
-        )}
-        onClick={() => setActiveNoteId(note._id)}
-        onDoubleClick={() => startRenaming(note._id, note.title)}
-        onDragOver={(e) => handleNoteDragOver(e, noteIndex, parentFolderId)}
-      >
-        {renamingId === note._id ? (
-          <Input
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            onBlur={() => finishRename(note._id)}
-            onKeyDown={(e) => { if (e.key === "Enter") finishRename(note._id); if (e.key === "Escape") cancelRename() }}
-            autoFocus className="h-6 text-xs px-1"
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <>
-            <span className="flex-1 truncate text-sm">{note.title}</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => startRenaming(note._id, note.title)}>
-                  <Pencil className="h-3 w-3 mr-2" /> Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setDeleteNoteTarget(note._id)}>
-                  <Trash2 className="h-3 w-3 mr-2" /> Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        )}
-      </div>
-    </div>
+    </SidebarMenuSubItem>
   )
 
   const renderFolder = (folder: Folder) => {
     const folderNotes = filtered.filter((n) => n.folderId === folder._id)
     const isExpanded = expandedFolders.has(folder._id)
+    const FolderIconForFolder = getFolderIcon(folder.name)
 
     return (
       <Collapsible
@@ -220,120 +279,88 @@ export default function NotesSidebar() {
         open={isExpanded}
         onOpenChange={() => { toggleFolder(folder._id); setActiveFolderId(folder._id) }}
       >
-        <div
-          onDragOver={(e) => { handleDragOver(e); setDropTarget((prev) => prev?.folderId === folder._id ? prev : null) }}
-          onDrop={(e) => handleDrop(e, folder._id)}
-        >
-          <CollapsibleTrigger className="flex w-full items-center gap-1 rounded-lg px-2 py-1 hover:bg-accent/50">
-            {isExpanded
-              ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-              : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            }
-            {isExpanded
-              ? <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-              : <FolderIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-            }
-            {renamingId === folder._id ? (
-              <Input
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onBlur={() => finishRename(folder._id)}
-                onKeyDown={(e) => { if (e.key === "Enter") finishRename(folder._id); if (e.key === "Escape") cancelRename() }}
-                autoFocus className="h-6 text-xs px-1"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span className="flex-1 truncate text-sm font-semibold">{folder.name}</span>
-            )}
-            <Badge variant="secondary" className="h-4 text-[10px] px-1">{folderNotes.length}</Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-5 w-5">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => startRenaming(folder._id, folder.name)}>
-                  <Pencil className="h-3 w-3 mr-2" /> Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setDeleteFolderTarget(folder)}>
-                  <Trash2 className="h-3 w-3 mr-2" /> Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            {folderNotes.length === 0 && dragActive && (
-              <div className="h-0 relative mx-3">
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded" />
-              </div>
-            )}
-            {folderNotes.map((note, noteIndex) => renderNoteItem(note, noteIndex, folder._id))}
-            {dropTarget?.folderId === folder._id && dropTarget.noteIndex === folderNotes.length && folderNotes.length > 0 && (
-              <div className="h-0 relative">
-                <div className="absolute top-0 left-9 right-3 h-0.5 bg-primary rounded z-10" />
-              </div>
-            )}
-          </CollapsibleContent>
-        </div>
+        <SidebarGroup className="py-0">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} />}>
+                  <FolderIconForFolder />
+                  {renamingId === folder._id ? (
+                    <Input
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => finishRename(folder._id)}
+                      onKeyDown={(e) => { if (e.key === "Enter") finishRename(folder._id); if (e.key === "Escape") cancelRename() }}
+                      autoFocus
+                      className="h-6 text-xs px-1"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="flex-1 truncate text-left">{folder.name}</span>
+                  )}
+                  <SidebarMenuBadge className="transition-opacity group-hover/menu-item:opacity-0">{folderNotes.length}</SidebarMenuBadge>
+                </CollapsibleTrigger>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity pointer-events-none opacity-0 group-hover/menu-item:pointer-events-auto group-hover/menu-item:opacity-100 z-10">
+                  <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); startRenaming(folder._id, folder.name) }}>
+                    <Pencil />
+                  </Button>
+                  <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); setDeleteFolderTarget(folder) }}>
+                    <Trash2 />
+                  </Button>
+                </div>
+              </SidebarMenuItem>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {folderNotes.length === 0 && (
+                    <SidebarMenuSubItem>
+                      <span className="block px-2 py-1 text-xs text-sidebar-foreground/50">No notes</span>
+                    </SidebarMenuSubItem>
+                  )}
+                  {folderNotes.map((note, noteIndex) => renderNoteItem(note, noteIndex, folder._id))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </Collapsible>
     )
   }
 
   return (
     <>
-      <aside className="w-[280px] h-full flex flex-col border-r bg-background">
-        <div className="flex items-center justify-end gap-0.5 px-2 py-1 border-b">
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={() => folders.forEach((f) => { if (!expandedFolders.has(f._id)) toggleFolder(f._id) })}>
-            <ChevronsDownUp className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={() => folders.forEach((f) => { if (expandedFolders.has(f._id)) toggleFolder(f._id) })}>
-            <ChevronsUpDown className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCreate}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCreateFolder}>
-            <FolderIcon className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="px-3 py-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search notes..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-7 text-sm" />
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <div className="flex items-center gap-0.5 px-1 py-1">
+            <Button variant="ghost" size="icon"
+              onClick={() => folders.forEach((f) => { if (!expandedFolders.has(f._id)) toggleFolder(f._id) })}>
+              <ChevronsDownUp />
+            </Button>
+            <Button variant="ghost" size="icon"
+              onClick={() => folders.forEach((f) => { if (expandedFolders.has(f._id)) toggleFolder(f._id) })}>
+              <ChevronsUpDown />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCreate}>
+              <Plus />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCreateFolder}>
+              <FolderIcon />
+            </Button>
           </div>
-        </div>
+          <div className="px-1 pb-2">
+            <form onSubmit={(e) => e.preventDefault()}>
+              <SidebarInput
+                placeholder="Search notes..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </form>
+          </div>
+        </SidebarHeader>
 
-        <div className="flex-1 overflow-auto px-2">
+        <SidebarContent>
           {folders.map(renderFolder)}
-
-          <div
-            onDragOver={(e) => { handleDragOver(e); setDropTarget((prev) => prev?.folderId === null ? prev : null) }}
-            onDrop={(e) => handleDrop(e, null)}
-          >
-            <div className="flex items-center gap-1 rounded-lg px-2 py-1 cursor-pointer hover:bg-accent/50"
-              onClick={() => setActiveFolderId(null)}>
-              <FolderIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate text-sm font-semibold">Quick Notes</span>
-              <Badge variant="secondary" className="h-4 text-[10px] px-1">{quickNotes.length}</Badge>
-            </div>
-            {quickNotes.length === 0 && dragActive && (
-              <div className="h-0 relative mx-3">
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded" />
-              </div>
-            )}
-            {quickNotes.map((note, noteIndex) => renderNoteItem(note, noteIndex, null))}
-            {dropTarget?.folderId === null && dropTarget.noteIndex === quickNotes.length && quickNotes.length > 0 && (
-              <div className="h-0 relative">
-                <div className="absolute top-0 left-9 right-3 h-0.5 bg-primary rounded z-10" />
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
+        </SidebarContent>
+      </Sidebar>
 
       <DeleteConfirmDialog open={deleteNoteTarget !== null} onClose={() => setDeleteNoteTarget(null)} onConfirm={handleDeleteNote} />
       <DeleteFolderDialog open={deleteFolderTarget !== null} folderName={deleteFolderTarget?.name || ""}
