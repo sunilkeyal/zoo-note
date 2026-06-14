@@ -1,246 +1,229 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
-import { useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import { TextStyle } from '@tiptap/extension-text-style';
-import FontFamily from '@tiptap/extension-font-family';
-import { FontSize } from '@/extensions/FontSize';
-import {
-  Box, Typography, Divider, TextField,
-  ToggleButtonGroup, ToggleButton, Select, MenuItem,
-} from '@mui/material';
-import FormatBoldIcon from '@mui/icons-material/FormatBold';
-import FormatItalicIcon from '@mui/icons-material/FormatItalic';
-import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
-import { useNotes } from '@/contexts/NoteContext';
-import NoteEditor from './NoteEditor';
+"use client"
 
-const FONTS = ['Arial', 'Georgia', 'Courier New', 'Times New Roman', 'Verdana'];
-const FONT_SIZES = ['13', '14', '15', '16', '17', '18', '20', '24'];
+import React, { useCallback, useRef, useState, useEffect } from "react"
+import { useEditor } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Underline from "@tiptap/extension-underline"
+import { TextStyle } from "@tiptap/extension-text-style"
+import { FontSize } from "@/extensions/FontSize"
+import { useNotes } from "@/contexts/NoteContext"
+import NoteEditor from "./NoteEditor"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Separator } from "@/components/ui/separator"
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  List,
+  ListOrdered,
+} from "lucide-react"
+
+const FONT_SIZES = ["13", "14", "15", "16", "17", "18", "20", "24", "30"]
 const HEADINGS = [
-  { label: 'Paragraph', value: 'paragraph' },
-  { label: 'Heading 1', value: 'h1' },
-  { label: 'Heading 2', value: 'h2' },
-  { label: 'Heading 3', value: 'h3' },
-];
+  { label: "Paragraph", value: "paragraph" },
+  { label: "Heading 1", value: "h1" },
+  { label: "Heading 2", value: "h2" },
+  { label: "Heading 3", value: "h3" },
+]
 
 export default function MainArea() {
-  const { activeNote, activeNoteId, updateNote } = useNotes();
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const pendingUpdate = useRef<{ id: string; content: string } | null>(null);
-  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const activeNoteIdRef = useRef(activeNoteId);
-  activeNoteIdRef.current = activeNoteId;
-  const [title, setTitle] = useState('');
-  const [, setSelectionVersion] = useState(0);
+  const { activeNote, activeNoteId, updateNote } = useNotes()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const pendingUpdate = useRef<{ id: string; content: string } | null>(null)
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const activeNoteIdRef = useRef(activeNoteId)
+  useEffect(() => {
+    activeNoteIdRef.current = activeNoteId
+  }, [activeNoteId])
+  const [title, setTitle] = useState("")
+  const [, setSelectionVersion] = useState(0)
 
   const handleUpdate = useCallback((id: string, content: string) => {
-    pendingUpdate.current = { id, content };
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    pendingUpdate.current = { id, content }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       if (pendingUpdate.current) {
-        updateNote(pendingUpdate.current.id, { content: pendingUpdate.current.content });
-        pendingUpdate.current = null;
+        updateNote(pendingUpdate.current.id, { content: pendingUpdate.current.content })
+        pendingUpdate.current = null
       }
-    }, 1000);
-  }, [updateNote]);
+    }, 1000)
+  }, [updateNote])
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       TextStyle,
-      FontFamily,
       FontSize,
     ],
-    content: activeNote?.content || '<p></p>',
+    content: activeNote?.content || "<p></p>",
     editorProps: {
-      attributes: { class: 'note-editor' },
+      attributes: { class: "note-editor" },
     },
     onUpdate: ({ editor: ed }) => {
-      const id = activeNoteIdRef.current;
-      if (id) handleUpdate(id, ed.getHTML());
+      const id = activeNoteIdRef.current
+      if (id) handleUpdate(id, ed.getHTML())
     },
     onSelectionUpdate: () => {
-      setSelectionVersion((v) => v + 1);
+      setSelectionVersion((v) => v + 1)
     },
-  });
+  })
 
   useEffect(() => {
     if (editor && activeNote && activeNote.content !== editor.getHTML()) {
-      editor.commands.setContent(activeNote.content || '<p></p>');
+      editor.commands.setContent(activeNote.content || "<p></p>")
     }
-  }, [activeNote?._id]);
+  }, [activeNote?._id])
 
   useEffect(() => {
-    if (activeNote) setTitle(activeNote.title);
-  }, [activeNote?._id]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (activeNote) setTitle(activeNote.title)
+  }, [activeNote?._id])
 
   const handleTitleChange = useCallback((id: string, value: string) => {
-    setTitle(value);
-    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+    setTitle(value)
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current)
     titleDebounceRef.current = setTimeout(() => {
-      updateNote(id, { title: value });
-    }, 600);
-  }, [updateNote]);
+      updateNote(id, { title: value })
+    }, 600)
+  }, [updateNote])
+
+  if (!activeNote) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Select a note or create a new one</p>
+      </div>
+    )
+  }
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default' }}>
-      {activeNote ? (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Toolbar — now above the title */}
-          {editor && (
-            <Box sx={{ px: '40px', pt: 2, maxWidth: 1140, width: '100%' }}>
-              <Box
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 0.3,
-                  px: 1.5, py: 0.5, bgcolor: 'background.paper',
-                  border: 1, borderColor: 'divider', borderRadius: 1,
-                }}
+    <div className="flex-1 flex flex-col overflow-hidden bg-background">
+      {editor && (
+        <div className="px-10 pt-2 max-w-[1140px] w-full">
+          <div className="flex items-center gap-1 px-3 py-1 border rounded-lg bg-card">
+            <ToggleGroup type="multiple" size="sm">
+              <ToggleGroupItem
+                value="bold"
+                pressed={editor.isActive("bold")}
+                onPressedChange={() => editor.chain().focus().toggleBold().run()}
+                className="h-8 w-8"
               >
-                <ToggleButtonGroup size="small" exclusive={false}>
-                  <ToggleButton
-                    value="bold"
-                    selected={editor.isActive('bold')}
-                    onChange={() => editor.chain().focus().toggleBold().run()}
-                    sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
-                  >
-                    <FormatBoldIcon fontSize="small" />
-                  </ToggleButton>
-                  <ToggleButton
-                    value="italic"
-                    selected={editor.isActive('italic')}
-                    onChange={() => editor.chain().focus().toggleItalic().run()}
-                    sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
-                  >
-                    <FormatItalicIcon fontSize="small" />
-                  </ToggleButton>
-                  <ToggleButton
-                    value="underline"
-                    selected={editor.isActive('underline')}
-                    onChange={() => editor.chain().focus().toggleUnderline().run()}
-                    sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
-                  >
-                    <FormatUnderlinedIcon fontSize="small" />
-                  </ToggleButton>
-                </ToggleButtonGroup>
+                <Bold className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="italic"
+                pressed={editor.isActive("italic")}
+                onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+                className="h-8 w-8"
+              >
+                <Italic className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="underline"
+                pressed={editor.isActive("underline")}
+                onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
+                className="h-8 w-8"
+              >
+                <UnderlineIcon className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
 
-                <Divider orientation="vertical" flexItem sx={{ mx: 0.3 }} />
+            <Separator orientation="vertical" className="mx-1 h-6" />
 
-                <ToggleButtonGroup size="small" exclusive={false}>
-                  <ToggleButton
-                    value="bulletList"
-                    selected={editor.isActive('bulletList')}
-                    onChange={() => editor.chain().focus().toggleBulletList().run()}
-                    sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
-                  >
-                    <FormatListBulletedIcon fontSize="small" />
-                  </ToggleButton>
-                  <ToggleButton
-                    value="orderedList"
-                    selected={editor.isActive('orderedList')}
-                    onChange={() => editor.chain().focus().toggleOrderedList().run()}
-                    sx={{ border: 0, p: 0.5, minWidth: 30, borderRadius: 1 }}
-                  >
-                    <FormatListNumberedIcon fontSize="small" />
-                  </ToggleButton>
-                </ToggleButtonGroup>
+            <ToggleGroup type="multiple" size="sm">
+              <ToggleGroupItem
+                value="bulletList"
+                pressed={editor.isActive("bulletList")}
+                onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
+                className="h-8 w-8"
+              >
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="orderedList"
+                pressed={editor.isActive("orderedList")}
+                onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
+                className="h-8 w-8"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
 
-                <Divider orientation="vertical" flexItem sx={{ mx: 0.3 }} />
+            <Separator orientation="vertical" className="mx-1 h-6" />
 
-                <Select
-                  size="small"
-                  value={
-                    editor.isActive('heading', { level: 1 }) ? 'h1' :
-                    editor.isActive('heading', { level: 2 }) ? 'h2' :
-                    editor.isActive('heading', { level: 3 }) ? 'h3' : 'paragraph'
-                  }
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const chain = editor.chain().focus().setParagraph();
-                    if (val === 'h1') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 1 });
-                    else if (val === 'h2') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 2 });
-                    else if (val === 'h3') chain.unsetFontFamily().unsetFontSize().toggleHeading({ level: 3 });
-                    chain.run();
-                  }}
-                  sx={{ minWidth: 100, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
-                >
-                  {HEADINGS.map((h) => (
-                    <MenuItem key={h.value} value={h.value}>{h.label}</MenuItem>
-                  ))}
-                </Select>
-
-                <Select
-                  size="small"
-                  value={(() => {
-                    const explicit = editor.getAttributes('textStyle').fontSize?.replace('px', '');
-                    if (explicit) return explicit;
-                    if (editor.isActive('heading', { level: 1 })) return '24';
-                    if (editor.isActive('heading', { level: 2 })) return '20';
-                    if (editor.isActive('heading', { level: 3 })) return '17';
-                    return '15';
-                  })()}
-                  onChange={(e) => editor.chain().focus().setFontSize(e.target.value + 'px').run()}
-                  sx={{ minWidth: 70, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
-                >
-                  {FONT_SIZES.map((s) => (
-                    <MenuItem key={s} value={s}>{s}</MenuItem>
-                  ))}
-                </Select>
-
-                <Select
-                  size="small"
-                  value={editor.getAttributes('textStyle').fontFamily || 'Arial'}
-                  onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
-                  sx={{ minWidth: 100, height: 30, fontSize: '0.8rem', '& .MuiSelect-select': { py: 0.3 } }}
-                >
-                  {FONTS.map((f) => (
-                    <MenuItem key={f} value={f} style={{ fontFamily: f }}>{f}</MenuItem>
-                  ))}
-                </Select>
-              </Box>
-            </Box>
-          )}
-
-          {/* Title */}
-          <Box sx={{ px: '40px', pt: 3, pb: 0, maxWidth: 1140, width: '100%' }}>
-            <TextField
-              fullWidth
-              variant="standard"
-              value={title}
-              onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
-              slotProps={{
-                input: {
-                  sx: {
-                    fontSize: '1.6rem',
-                    fontWeight: 700,
-                    '&:before': { borderBottom: 'none' },
-                    '&:hover:not(.Mui-disabled, .Mui-error):before': { borderBottom: 'none' },
-                    '&:after': { borderBottom: '2px solid' },
-                  },
-                },
+            <Select
+              value={
+                editor.isActive("heading", { level: 1 }) ? "h1" :
+                editor.isActive("heading", { level: 2 }) ? "h2" :
+                editor.isActive("heading", { level: 3 }) ? "h3" : "paragraph"
+              }
+              onValueChange={(val) => {
+                const chain = editor.chain().focus().setParagraph()
+                if (val === "h1") chain.unsetFontSize().toggleHeading({ level: 1 })
+                else if (val === "h2") chain.unsetFontSize().toggleHeading({ level: 2 })
+                else if (val === "h3") chain.unsetFontSize().toggleHeading({ level: 3 })
+                chain.run()
               }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-              Last updated: {new Date(activeNote.updatedAt).toLocaleString()}
-            </Typography>
-            <Divider sx={{ mt: 1, mb: 0 }} />
-          </Box>
+            >
+              <SelectTrigger className="h-7 w-[110px] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HEADINGS.map((h) => (
+                  <SelectItem key={h.value} value={h.value} className="text-sm">{h.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {/* Editor content */}
-          <Box sx={{ flex: 1, overflow: 'auto', px: '40px', maxWidth: 1140, width: '100%', py: 2 }}>
-            <NoteEditor note={activeNote} editor={editor} />
-          </Box>
-        </Box>
-      ) : (
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
-            Select a note or create a new one
-          </Typography>
-        </Box>
+            <Select
+              value={(() => {
+                const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
+                if (explicit) return explicit
+                if (editor.isActive("heading", { level: 1 })) return "30"
+                if (editor.isActive("heading", { level: 2 })) return "24"
+                if (editor.isActive("heading", { level: 3 })) return "20"
+                return "16"
+              })()}
+              onValueChange={(val) => editor.chain().focus().setFontSize(val + "px").run()}
+            >
+              <SelectTrigger className="h-7 w-[70px] text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_SIZES.map((s) => (
+                  <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+          </div>
+        </div>
       )}
-    </Box>
-  );
+
+      <div className="px-10 pt-3 pb-0 max-w-[1140px] w-full">
+        <Input
+          value={title}
+          onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
+          className="text-3xl md:text-3xl font-semibold tracking-tight leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0"
+          placeholder="Untitled"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Last updated: {new Date(activeNote.updatedAt).toLocaleString()}
+        </p>
+        <Separator className="mt-2" />
+      </div>
+
+      <div className="flex-1 overflow-auto px-10 max-w-[1140px] w-full py-4">
+        <NoteEditor note={activeNote} editor={editor} />
+      </div>
+    </div>
+  )
 }

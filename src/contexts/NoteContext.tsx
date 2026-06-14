@@ -36,7 +36,18 @@ function sortByPosition(notes: Note[]): Note[] {
 export function NoteProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('expandedFolders');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+    return new Set();
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -53,20 +64,6 @@ export function NoteProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
-  }, []);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('expandedFolders');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setExpandedFolders(new Set(parsed));
-        }
-      }
-    } catch {
-      // localStorage unavailable
-    }
   }, []);
 
   useEffect(() => {
@@ -235,6 +232,7 @@ export function NoteProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotes();
     fetchFolders();
   }, [fetchNotes, fetchFolders]);
