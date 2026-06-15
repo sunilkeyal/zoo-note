@@ -63,6 +63,14 @@ const FONTS = [
   "Verdana",
 ]
 
+const TEXT_COLORS = [
+  "#000000", "#434343", "#666666", "#999999", "#b7b7b7", "#cccccc", "#d9d9d9", "#efefef",
+  "#c62828", "#e53935", "#ef5350", "#e57373", "#ef9a9a", "#e65100", "#ef6c00", "#f57c00",
+  "#ff9800", "#f9a825", "#fdd835", "#ffe082", "#fff9c4", "#2e7d32", "#43a047", "#66bb6a",
+  "#81c784", "#a5d6a7", "#1565c0", "#1e88e5", "#42a5f5", "#64b5f6", "#90caf9",
+  "#6a1b9a", "#8e24aa", "#ab47bc", "#ce93d8", "#e1bee7", "#00838f", "#00acc1", "#26c6da", "#80deea",
+]
+
 export default function MainArea() {
   const { activeNote, activeNoteId, updateNote } = useNotes()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -262,6 +270,51 @@ export default function MainArea() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Popover>
+              <PopoverTrigger
+                className="h-8 w-8 flex items-center justify-center rounded-md border border-input hover:bg-accent relative"
+                title="Text color"
+              >
+                <Palette className="h-4 w-4" />
+                <span
+                  className="absolute bottom-1 h-[3px] w-3 rounded-full"
+                  style={{ backgroundColor: editor.getAttributes("textStyle").color || "currentColor" }}
+                />
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-3" align="start">
+                <div className="text-sm font-medium mb-2">Text Color</div>
+                <div className="grid grid-cols-8 gap-1.5 mb-2">
+                  {TEXT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      className="h-7 w-7 rounded-md border border-input hover:scale-110 transition-transform"
+                      style={{ backgroundColor: c }}
+                      onClick={() => editor.chain().focus().setColor(c).run()}
+                      title={c}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t border-border">
+                  <input
+                    type="text"
+                    placeholder="#hex"
+                    className="flex-1 h-7 px-2 text-xs rounded-md border border-input bg-background font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        editor.chain().focus().setColor((e.target as HTMLInputElement).value).run()
+                      }
+                    }}
+                  />
+                  <button
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => editor.chain().focus().unsetColor().run()}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
 
           </div>
         </div>
