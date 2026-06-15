@@ -71,6 +71,12 @@ const TEXT_COLORS = [
   "#6a1b9a", "#8e24aa", "#ab47bc", "#ce93d8", "#e1bee7", "#00838f", "#00acc1", "#26c6da", "#80deea",
 ]
 
+const HIGHLIGHT_COLORS = [
+  "#fff9c4", "#fff3e0", "#fce4ec", "#f3e5f5", "#e8eaf6", "#e1f5fe", "#e0f2f1", "#e8f5e9",
+  "#fff176", "#ffcc80", "#ef9a9a", "#ce93d8", "#9fa8da", "#81d4fa", "#80cbc4", "#a5d6a7",
+  "#ffee58", "#ffab40", "#f48fb1", "#ea80fc",
+]
+
 export default function MainArea() {
   const { activeNote, activeNoteId, updateNote } = useNotes()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -309,6 +315,47 @@ export default function MainArea() {
                   <button
                     className="text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => editor.chain().focus().unsetColor().run()}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger
+                className="h-8 w-8 flex items-center justify-center rounded-md border border-input hover:bg-accent"
+                title="Highlight color"
+              >
+                <Highlighter className="h-4 w-4" />
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-3" align="start">
+                <div className="text-sm font-medium mb-2">Highlight Color</div>
+                <div className="grid grid-cols-5 gap-1.5 mb-2">
+                  {HIGHLIGHT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      className="h-8 w-full rounded-md border border-input hover:scale-110 transition-transform"
+                      style={{ backgroundColor: c }}
+                      onClick={() => editor.chain().focus().toggleHighlight({ color: c }).run()}
+                      title={c}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t border-border">
+                  <input
+                    type="text"
+                    placeholder="#hex"
+                    className="flex-1 h-7 px-2 text-xs rounded-md border border-input bg-background font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        editor.chain().focus().toggleHighlight({ color: (e.target as HTMLInputElement).value }).run()
+                      }
+                    }}
+                  />
+                  <button
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => editor.chain().focus().unsetHighlight().run()}
                   >
                     Clear
                   </button>
