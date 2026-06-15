@@ -167,6 +167,14 @@ export default function MainArea() {
               >
                 <UnderlineIcon className="h-4 w-4" />
               </ToggleGroupItem>
+              <ToggleGroupItem
+                value="strike"
+                pressed={editor.isActive("strike")}
+                onPressedChange={() => editor.chain().focus().toggleStrike().run()}
+                className="h-8 w-8"
+              >
+                <Strikethrough className="h-4 w-4" />
+              </ToggleGroupItem>
             </ToggleGroup>
 
             <Separator orientation="vertical" className="mx-1 h-6" />
@@ -233,6 +241,24 @@ export default function MainArea() {
               <SelectContent>
                 {FONT_SIZES.map((s) => (
                   <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={editor.getAttributes("textStyle").fontFamily || ""}
+              onValueChange={(val) => {
+                if (val === "default") editor.chain().focus().unsetFontFamily().run()
+                else editor.chain().focus().setFontFamily(val).run()
+              }}
+            >
+              <SelectTrigger className="h-7 w-[130px] text-sm">
+                <SelectValue placeholder="Font" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default" className="text-sm">Default</SelectItem>
+                {FONTS.map((f) => (
+                  <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
