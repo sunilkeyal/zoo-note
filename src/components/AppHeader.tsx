@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Pen, Moon, Sun } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 
 export default function AppHeader() {
   const { theme, setTheme } = useTheme()
@@ -21,8 +21,6 @@ export default function AppHeader() {
       <div className="flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
-          <Pen />
-          <span>Notes</span>
         </div>
         <TooltipProvider>
           <Tooltip>

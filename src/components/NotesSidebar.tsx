@@ -21,7 +21,6 @@ import {
   SidebarHeader,
   SidebarInput,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -35,6 +34,8 @@ import {
   ChevronsDownUp,
   Trash2,
   Pencil,
+  Pen,
+  Search,
   Briefcase,
   User,
   GraduationCap,
@@ -127,6 +128,7 @@ export default function NotesSidebar() {
   } = useNotes()
 
   const [search, setSearch] = useState("")
+  const [searchOpen, setSearchOpen] = useState(false)
   const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null)
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
@@ -164,7 +166,12 @@ export default function NotesSidebar() {
       }
     }
     const note = await createNote({ title: "Untitled Note", folderId: targetFolderId, position })
-    if (note) setActiveNoteId(note._id)
+    if (note) {
+      if (targetFolderId && !expandedFolders.has(targetFolderId)) {
+        toggleFolder(targetFolderId)
+      }
+      setActiveNoteId(note._id)
+    }
   }
 
   const handleCreateFolder = async () => {
@@ -312,7 +319,6 @@ export default function NotesSidebar() {
                   ) : (
                     <span className="flex-1 truncate text-left">{folder.name}</span>
                   )}
-                  <SidebarMenuBadge className="transition-opacity group-hover/menu-item:opacity-0">{folderNotes.length}</SidebarMenuBadge>
                 </CollapsibleTrigger>
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity pointer-events-none opacity-0 group-hover/menu-item:pointer-events-auto group-hover/menu-item:opacity-100 z-10">
                   <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); startRenaming(folder._id, folder.name) }}>
@@ -344,7 +350,11 @@ export default function NotesSidebar() {
     <>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-0.5 px-1 py-1">
+          <div className="flex items-center gap-2 px-1 py-1">
+            <Pen className="size-5" />
+            <span className="text-sm font-semibold">Notes</span>
+          </div>
+          <div className="flex items-center gap-0.5 px-1 pb-1">
             <Button variant="ghost" size="icon"
               onClick={() => folders.forEach((f) => { if (!expandedFolders.has(f._id)) toggleFolder(f._id) })}>
               <ChevronsDownUp />
@@ -359,16 +369,24 @@ export default function NotesSidebar() {
             <Button variant="ghost" size="icon" onClick={handleCreateFolder}>
               <FolderIcon />
             </Button>
+            <Button variant="ghost" size="icon"
+              onClick={() => setSearchOpen(!searchOpen)}
+              className={searchOpen ? "text-sidebar-accent-foreground" : ""}>
+              <Search />
+            </Button>
           </div>
-          <div className="px-1 pb-2">
-            <form onSubmit={(e) => e.preventDefault()}>
-              <SidebarInput
-                placeholder="Search notes..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </form>
-          </div>
+          {searchOpen && (
+            <div className="px-1 pb-2">
+              <form onSubmit={(e) => e.preventDefault()}>
+                <SidebarInput
+                  placeholder="Search notes..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+                />
+              </form>
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent>
