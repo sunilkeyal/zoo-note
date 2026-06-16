@@ -149,9 +149,11 @@ export default function NotesSidebar() {
     : notes
 
   const handleCreate = async () => {
-    let targetFolderId = activeFolderId ?? undefined
+    let targetFolderId: string | undefined
     let position: number | undefined
-    if (activeNoteId) {
+    if (activeFolderId) {
+      targetFolderId = activeFolderId
+    } else if (activeNoteId) {
       const selectedNote = notes.find((n) => n._id === activeNoteId)
       if (selectedNote) {
         targetFolderId = selectedNote.folderId
@@ -266,7 +268,7 @@ export default function NotesSidebar() {
         <div className="relative group/menu-sub-item">
           <SidebarMenuSubButton
             isActive={activeNoteId === note._id}
-            onClick={() => setActiveNoteId(note._id)}
+            onClick={() => { setActiveNoteId(note._id); setActiveFolderId(null) }}
             onDoubleClick={() => startRenaming(note._id, note.title)}
             className="pr-8"
             draggable

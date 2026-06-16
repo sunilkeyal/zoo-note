@@ -136,18 +136,18 @@
   color: inherit;
   font-family: inherit;
 }
-.ProseMirror p { margin: 0 0 1rem 0; }
-.ProseMirror ul { padding-left: 1.75rem; list-style-type: disc; margin: 0.3rem 0; }
-.ProseMirror ol { padding-left: 1.75rem; list-style-type: decimal; margin: 0.3rem 0; }
-.ProseMirror li { margin: 0.2rem 0; }
+.ProseMirror p { margin: 0 0 10px 0; }
+.ProseMirror ul { padding-left: 1.75rem; list-style-type: disc; margin: 8px 0; }
+.ProseMirror ol { padding-left: 1.75rem; list-style-type: decimal; margin: 8px 0; }
+.ProseMirror li { margin: 4px 0; }
 .ProseMirror li p { margin: 0; }
 .ProseMirror ul ul,
 .ProseMirror ol ul { list-style-type: circle; }
 .ProseMirror ul ul ul,
 .ProseMirror ol ul ul { list-style-type: square; }
-.ProseMirror h1 { font-size: 20px; font-weight: 600; line-height: 1.25; margin: 0 0 0.5rem 0; }
-.ProseMirror h2 { font-size: 18px; font-weight: 600; line-height: 1.25; margin: 0 0 0.4rem 0; }
-.ProseMirror h3 { font-size: 16px; font-weight: 600; line-height: 1.25; margin: 0 0 0.3rem 0; }
+.ProseMirror h1 { font-size: 20px; font-weight: 600; line-height: 1.25; margin: 0 0 12px 0; }
+.ProseMirror h2 { font-size: 18px; font-weight: 600; line-height: 1.25; margin: 0 0 10px 0; }
+.ProseMirror h3 { font-size: 16px; font-weight: 600; line-height: 1.25; margin: 0 0 8px 0; }
 .ProseMirror mark {
   border-radius: 2px;
   padding: 0 2px;

@@ -79,7 +79,7 @@ const HIGHLIGHT_COLORS = [
 const SPACING_PRESETS = [
   { label: "Tight", value: "4px" },
   { label: "Compact", value: "8px" },
-  { label: "Normal", value: "16px" },
+  { label: "Normal", value: "10px" },
   { label: "Relaxed", value: "24px" },
   { label: "Loose", value: "32px" },
 ]
@@ -319,7 +319,7 @@ export default function MainArea() {
                 <div className="flex flex-col gap-2">
                   {SPACING_PRESETS.map((p) => {
                     const currentSpacing = editor.getAttributes("paragraph").paragraphSpacing
-                    const isActive = currentSpacing === p.value || (!currentSpacing && p.value === "16px")
+                    const isActive = currentSpacing === p.value || (!currentSpacing && p.value === "10px")
                     return (
                       <button
                         key={p.value}
@@ -386,10 +386,10 @@ export default function MainArea() {
               value={(() => {
                 const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
                 if (explicit) return explicit
-                if (editor.isActive("heading", { level: 1 })) return "30"
-                if (editor.isActive("heading", { level: 2 })) return "24"
-                if (editor.isActive("heading", { level: 3 })) return "20"
-                return "16"
+                if (editor.isActive("heading", { level: 1 })) return "20"
+                if (editor.isActive("heading", { level: 2 })) return "18"
+                if (editor.isActive("heading", { level: 3 })) return "16"
+                return "14"
               })()}
               onValueChange={(val) => editor.chain().focus().setFontSize(val + "px").run()}
             >
@@ -411,7 +411,8 @@ export default function MainArea() {
         <Input
           value={title}
           onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
-          className="text-[21px] font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0"
+          className="font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0"
+          style={{ fontSize: "21px" }}
           placeholder="Untitled"
         />
         <p className="text-xs text-muted-foreground mt-1">
