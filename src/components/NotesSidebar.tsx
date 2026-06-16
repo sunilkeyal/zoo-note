@@ -26,6 +26,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import {
   Plus,
@@ -66,7 +67,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings, User as UserIcon, Rocket } from "lucide-react"
+import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, Shield, ScrollText, FileUp, BarChart3 } from "lucide-react"
+
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 
 const folderIcons: Record<string, typeof FolderIcon> = {
   work: Briefcase,
@@ -120,6 +124,18 @@ function getFolderIcon(name: string) {
   return FolderIcon
 }
 
+const adminItems = [
+  { route: "/admin",            label: "Dashboard",        icon: LayoutDashboard },
+  { route: "/admin/trash",      label: "Trash",            icon: Trash2 },
+  { route: "/admin/import-export", label: "Import / Export", icon: FileUp },
+  { route: "/admin/analytics",  label: "Analytics",        icon: BarChart3 },
+  { route: "/admin/backup",     label: "Backup & Restore", icon: Database },
+  { route: "/admin/users",      label: "User Management",  icon: Users },
+  { route: "/admin/roles",      label: "Role Management",  icon: Shield },
+  { route: "/admin/audit",      label: "Audit Logs",       icon: ScrollText },
+  { route: "/admin/settings",   label: "System Settings",  icon: Settings },
+]
+
 export default function NotesSidebar() {
   const {
     notes, folders, expandedFolders, createNote, deleteNote, updateNote,
@@ -137,6 +153,7 @@ export default function NotesSidebar() {
   const [renameValue, setRenameValue] = useState("")
 
   const { data: session } = useSession()
+  const pathname = usePathname()
 
   const [dragActive, setDragActive] = useState(false)
   const [dropTarget, setDropTarget] = useState<{
@@ -392,7 +409,33 @@ export default function NotesSidebar() {
         </SidebarHeader>
 
         <SidebarContent>
+          <div className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+            Notes
+          </div>
           {folders.map(renderFolder)}
+
+          {session?.user?.role === "admin" && (
+            <>
+              <SidebarSeparator className="my-2" />
+              <div className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                Admin
+              </div>
+              <SidebarGroup className="py-0">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {adminItems.map((item) => (
+                      <SidebarMenuItem key={item.route}>
+                        <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </>
+          )}
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
