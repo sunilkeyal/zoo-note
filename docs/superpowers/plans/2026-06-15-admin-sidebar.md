@@ -152,6 +152,7 @@ Commit: `feat: add Notes section label and Admin nav items to sidebar`
 - `SidebarMenuButton` doesn't support `asChild` — use `render` prop instead
 - Active state must handle Dashboard exact match vs. other items prefix match
 - Middleware must not import Node.js modules (extract `auth.config.ts`)
+- Clicking a sidebar note from an admin route must call `router.push("/")` to navigate back to the home page where the note editor renders
 
 **Seed users (`src/lib/seed.ts`):**
 Replace single admin seed with looped seeding of 3 users:

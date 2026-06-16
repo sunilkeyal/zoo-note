@@ -111,10 +111,10 @@ The seed script (`src/lib/seed.ts`) creates three default accounts on first run:
 
 Password environment variable overrides: `ADMIN_PASSWORD`, `USER_PASSWORD`, `VIEWER_PASSWORD`.
 
-## Constraints
+## Edge Cases
 
+- Clicking a note in the sidebar while on an admin page navigates back to `/` (the home page) and sets the active note
 - Admin section does NOT appear when sidebar is collapsed (icon-only mode)
 - No actual admin functionality is implemented — all admin pages show sample data
-- Navigation to admin pages replaces the note editor; user returns to notes by clicking a note/folder in the sidebar
 - The `role` field on the session is populated by JWT callback in `auth.config.ts` (already implemented)
 - Direct URL access to `/admin/*` is guarded by middleware — non-admin users are redirected to login
