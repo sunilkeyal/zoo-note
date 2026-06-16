@@ -45,6 +45,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    async authorized({ request, auth }) {
+      const { pathname } = request.nextUrl
+      if (pathname === "/login" || pathname.startsWith("/api/auth")) {
+        return true
+      }
+      if (pathname.startsWith("/admin")) {
+        return auth?.user?.role === "admin"
+      }
+      return !!auth
+    },
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as { role: string }).role
