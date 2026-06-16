@@ -69,7 +69,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, Shield, ScrollText, FileUp, BarChart3 } from "lucide-react"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 
 const folderIcons: Record<string, typeof FolderIcon> = {
@@ -154,6 +154,7 @@ export default function NotesSidebar() {
 
   const { data: session } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
 
   const [dragActive, setDragActive] = useState(false)
   const [dropTarget, setDropTarget] = useState<{
@@ -285,7 +286,7 @@ export default function NotesSidebar() {
         <div className="relative group/menu-sub-item">
           <SidebarMenuSubButton
             isActive={activeNoteId === note._id}
-            onClick={() => { setActiveNoteId(note._id); setActiveFolderId(null) }}
+            onClick={() => { setActiveNoteId(note._id); setActiveFolderId(null); if (pathname !== "/") router.push("/") }}
             onDoubleClick={() => startRenaming(note._id, note.title)}
             className="pr-8"
             draggable
