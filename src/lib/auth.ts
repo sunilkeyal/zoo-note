@@ -3,11 +3,13 @@ import Credentials from "next-auth/providers/credentials"
 import { connectToDatabase } from "@/lib/mongodb"
 import bcrypt from "bcryptjs"
 import { ensureAdmin } from "@/lib/seed"
+import { authConfig } from "@/lib/auth.config"
 
 // Trigger seed on first module load (non-blocking)
 ensureAdmin()
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       name: "credentials",
@@ -44,36 +46,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async authorized({ request, auth }) {
-      const { pathname } = request.nextUrl
-      if (pathname === "/login" || pathname.startsWith("/api/auth")) {
-        return true
-      }
-      if (pathname.startsWith("/admin")) {
-        return auth?.user?.role === "admin"
-      }
-      return !!auth
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as { role: string }).role
-        token.id = user.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as string
-        session.user.id = token.id as string
-      }
-      return session
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
 })
