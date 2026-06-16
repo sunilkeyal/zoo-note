@@ -13,8 +13,10 @@ services:
     container_name: notes-app
     ports:
       - "3000:3000"
+    env_file: .env.local
     environment:
       - MONGODB_URI=mongodb://mongo:27017/notes-app
+      - AUTH_URL=http://localhost:3000
     depends_on:
       - mongo
     restart: unless-stopped

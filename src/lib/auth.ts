@@ -27,6 +27,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const db = await connectToDatabase()
 
+        await ensureAdmin()
+
         const user = await db.collection("users").findOne({ username })
         if (!user) return null
 
