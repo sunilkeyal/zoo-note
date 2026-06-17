@@ -11,7 +11,7 @@ export const authConfig = {
   callbacks: {
     async authorized({ request, auth }) {
       const { pathname } = request.nextUrl
-      if (pathname === "/login" || pathname.startsWith("/api/auth")) {
+      if (pathname === "/login" || pathname === "/forgot-password" || pathname === "/reset-password" || pathname.startsWith("/api/auth")) {
         return true
       }
       if (pathname.startsWith("/admin")) {

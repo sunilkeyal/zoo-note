@@ -13,6 +13,11 @@ export async function connectToDatabase(): Promise<Db> {
   cachedClient = client;
   cachedDb = client.db();
 
+  await cachedDb.collection("passwordResetTokens").createIndex(
+    { expiresAt: 1 },
+    { expireAfterSeconds: 0 }
+  ).catch(() => {});
+
   return cachedDb;
 }
 

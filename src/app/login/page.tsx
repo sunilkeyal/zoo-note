@@ -72,10 +72,8 @@ export default function LoginPage() {
                   Password
                 </label>
                 <a
-                  href="#"
+                  href="/forgot-password"
                   className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  onClick={(e) => e.preventDefault()}
-                  tabIndex={-1}
                 >
                   Forgot your password?
                 </a>
