@@ -18,6 +18,26 @@ export async function connectToDatabase(): Promise<Db> {
     { expireAfterSeconds: 0 }
   ).catch(() => {});
 
+  await cachedDb.collection("notes").createIndex(
+    { deletedAt: 1 },
+    { expireAfterSeconds: 604800, background: true }
+  ).catch(() => {});
+
+  await cachedDb.collection("folders").createIndex(
+    { deletedAt: 1 },
+    { expireAfterSeconds: 604800, background: true }
+  ).catch(() => {});
+
+  await cachedDb.collection("notes").createIndex(
+    { userId: 1, isDeleted: 1 },
+    { background: true }
+  ).catch(() => {});
+
+  await cachedDb.collection("folders").createIndex(
+    { userId: 1, isDeleted: 1 },
+    { background: true }
+  ).catch(() => {});
+
   return cachedDb;
 }
 
