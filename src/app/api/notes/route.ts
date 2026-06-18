@@ -13,8 +13,8 @@ export async function GET() {
   const collection = db.collection("notes")
 
   const notes = await collection
-    .find({})
-    .project({ title: 1, content: 1, folderId: 1, position: 1, createdAt: 1, updatedAt: 1 })
+    .find({ userId: session.user.id })
+    .project({ title: 1, content: 1, folderId: 1, position: 1, createdAt: 1, updatedAt: 1, userId: 1 })
     .sort({ position: 1, updatedAt: -1 })
     .toArray()
 
@@ -23,6 +23,7 @@ export async function GET() {
     title: n.title,
     content: n.content || "",
     folderId: n.folderId || undefined,
+    userId: n.userId || undefined,
     position: n.position ?? 0,
     createdAt: n.createdAt.toISOString(),
     updatedAt: n.updatedAt.toISOString(),
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
     title: title.trim(),
     content: "",
     position: position ?? 0,
+    userId: session.user.id,
     createdAt: now,
     updatedAt: now,
   }

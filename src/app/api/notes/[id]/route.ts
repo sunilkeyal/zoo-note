@@ -34,7 +34,7 @@ export async function PUT(
   if (position !== undefined) update.position = position
 
   const result = await collection.findOneAndUpdate(
-    { _id: objectId },
+    { _id: objectId, userId: session.user.id },
     { $set: update },
     { returnDocument: "after" }
   )
@@ -76,7 +76,7 @@ export async function DELETE(
 
   const db = await connectToDatabase()
   const collection = db.collection("notes")
-  const result = await collection.deleteOne({ _id: objectId })
+  const result = await collection.deleteOne({ _id: objectId, userId: session.user.id })
 
   if (result.deletedCount === 0) {
     return NextResponse.json({ success: false, error: "Note not found" }, { status: 404 })
