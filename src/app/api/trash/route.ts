@@ -25,11 +25,25 @@ export async function GET() {
       .toArray(),
   ])
 
+  const uniqueFolderIds = [...new Set(deletedNotes.map((n) => n.folderId?.toString()).filter(Boolean))]
+
+  let folderNameMap: Record<string, string> = {}
+  if (uniqueFolderIds.length > 0) {
+    const folderDocs = await foldersCollection
+      .find({ userId: session.user.id, _id: { $in: uniqueFolderIds.map((id) => new ObjectId(id)) } })
+      .project({ name: 1 })
+      .toArray()
+    for (const f of folderDocs) {
+      folderNameMap[f._id.toString()] = f.name
+    }
+  }
+
   const notes: Note[] = deletedNotes.map((n) => ({
     _id: n._id.toString(),
     title: n.title,
     content: n.content || "",
     folderId: n.folderId || undefined,
+    folderName: n.folderId ? folderNameMap[n.folderId.toString()] || undefined : undefined,
     userId: n.userId || undefined,
     position: n.position ?? 0,
     createdAt: n.createdAt.toISOString(),

@@ -13,6 +13,7 @@ export interface Note {
   title: string;
   content: string;
   folderId?: string;
+  folderName?: string;
   userId?: string;
   position: number;
   createdAt: string;

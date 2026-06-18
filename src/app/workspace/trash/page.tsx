@@ -25,7 +25,7 @@ export default function TrashPage() {
       title: note.title,
       type: "note" as const,
       folderId: note.folderId,
-      folderName: trashItems.folders.find((f) => f._id === note.folderId)?.name,
+      folderName: note.folderName,
       userId: note.userId,
       deletedAt: note.deletedAt || "",
     })),
