@@ -2,6 +2,14 @@
 
 import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 
 function FolderIcon() {
@@ -79,6 +87,7 @@ function Checkbox({
 export default function TrashTable({ items, isAdmin, loading, error, onRestore, onPermanentDelete, onRetry }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [locked, setLocked] = useState<Set<string>>(new Set())
+  const [confirmDelete, setConfirmDelete] = useState<{ noteIds: string[]; folderIds: string[] } | null>(null)
 
   const notesByFolder = new Map<string, TrashItem[]>()
   for (const item of items) {
@@ -221,7 +230,7 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
           <Button variant="outline" size="sm" onClick={() => onRestore(selectedNoteIds, selectedFolderIds)}>
             Restore Selected
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => { onPermanentDelete(selectedNoteIds, selectedFolderIds); setSelected(new Set()); setLocked(new Set()) }}>
+          <Button variant="destructive" size="sm" onClick={() => setConfirmDelete({ noteIds: selectedNoteIds, folderIds: selectedFolderIds })}>
             Delete Forever
           </Button>
         </div>
@@ -296,10 +305,10 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                         item.type === "note" ? [item.id] : [],
                         item.type === "folder" ? [item.id] : []
                       )}>Restore</Button>
-                      <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive" onClick={() => onPermanentDelete(
-                        item.type === "note" ? [item.id] : [],
-                        item.type === "folder" ? [item.id] : []
-                      )}>Delete</Button>
+                      <Button variant="ghost" size="xs" className="text-destructive hover:text-destructive" onClick={() => setConfirmDelete({
+                        noteIds: item.type === "note" ? [item.id] : [],
+                        folderIds: item.type === "folder" ? [item.id] : []
+                      })}>Delete</Button>
                     </div>
                   </td>
                 </tr>
@@ -308,6 +317,33 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
           </tbody>
         </table>
       </div>
+
+      <Dialog open={confirmDelete !== null} onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete forever?</DialogTitle>
+            <DialogDescription>
+              {confirmDelete && (() => {
+                const a: string[] = []
+                if (confirmDelete.folderIds.length > 0) a.push(`${confirmDelete.folderIds.length} folder${confirmDelete.folderIds.length > 1 ? "s" : ""}`)
+                if (confirmDelete.noteIds.length > 0) a.push(`${confirmDelete.noteIds.length} note${confirmDelete.noteIds.length > 1 ? "s" : ""}`)
+                return <>This will permanently delete {a.join(" and ")}. This action cannot be undone.</>
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => {
+              if (confirmDelete) {
+                onPermanentDelete(confirmDelete.noteIds, confirmDelete.folderIds)
+                setSelected(new Set())
+                setLocked(new Set())
+                setConfirmDelete(null)
+              }
+            }}>Delete Forever</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
