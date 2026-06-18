@@ -67,7 +67,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, Shield, ScrollText, FileUp, BarChart3 } from "lucide-react"
+import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, ScrollText, FileUp, BarChart3 } from "lucide-react"
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -124,16 +124,18 @@ function getFolderIcon(name: string) {
   return FolderIcon
 }
 
+const workspaceItems = [
+  { route: "/workspace/trash",          label: "Trash",            icon: Trash2 },
+  { route: "/workspace/import-export",  label: "Import / Export",  icon: FileUp },
+]
+
 const adminItems = [
-  { route: "/admin",            label: "Dashboard",        icon: LayoutDashboard },
-  { route: "/admin/trash",      label: "Trash",            icon: Trash2 },
-  { route: "/admin/import-export", label: "Import / Export", icon: FileUp },
-  { route: "/admin/analytics",  label: "Analytics",        icon: BarChart3 },
-  { route: "/admin/backup",     label: "Backup & Restore", icon: Database },
-  { route: "/admin/users",      label: "User Management",  icon: Users },
-  { route: "/admin/roles",      label: "Role Management",  icon: Shield },
-  { route: "/admin/audit",      label: "Audit Logs",       icon: ScrollText },
-  { route: "/admin/settings",   label: "System Settings",  icon: Settings },
+  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard },
+  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3 },
+  { route: "/admin/backup",    label: "Backup & Restore", icon: Database },
+  { route: "/admin/users",     label: "User Management",  icon: Users },
+  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText },
+  { route: "/admin/settings",  label: "System Settings",  icon: Settings },
 ]
 
 export default function NotesSidebar() {
@@ -415,6 +417,27 @@ export default function NotesSidebar() {
           </div>
           {folders.map(renderFolder)}
 
+          {/* Workspace section — visible to all authenticated users */}
+          <SidebarSeparator className="my-2" />
+          <div className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+            Workspace
+          </div>
+          <SidebarGroup className="py-0">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {workspaceItems.map((item) => (
+                  <SidebarMenuItem key={item.route}>
+                    <SidebarMenuButton render={<Link href={item.route} />} isActive={pathname.startsWith(item.route)}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Admin section — admin users only */}
           {session?.user?.role === "admin" && (
             <>
               <SidebarSeparator className="my-2" />

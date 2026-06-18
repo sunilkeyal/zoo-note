@@ -9,7 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
   }
 
@@ -31,7 +31,7 @@ export async function PUT(
   }
 
   const result = await foldersCollection.findOneAndUpdate(
-    { _id: objectId },
+    { _id: objectId, userId: session.user.id },
     { $set: { name: name.trim(), updatedAt: new Date() } },
     { returnDocument: "after" }
   )
@@ -55,7 +55,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
   }
 
@@ -72,13 +72,13 @@ export async function DELETE(
   const foldersCollection = db.collection("folders")
   const notesCollection = db.collection("notes")
 
-  const deleteResult = await foldersCollection.deleteOne({ _id: objectId })
+  const deleteResult = await foldersCollection.deleteOne({ _id: objectId, userId: session.user.id })
 
   if (deleteResult.deletedCount === 0) {
     return NextResponse.json({ success: false, error: "Folder not found" }, { status: 404 })
   }
 
-  const notesDelete = await notesCollection.deleteMany({ folderId: id })
+  const notesDelete = await notesCollection.deleteMany({ folderId: id, userId: session.user.id })
 
   return NextResponse.json({
     success: true,

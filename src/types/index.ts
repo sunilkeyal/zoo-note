@@ -1,6 +1,7 @@
 export interface Folder {
   _id: string;
   name: string;
+  userId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -10,6 +11,7 @@ export interface Note {
   title: string;
   content: string;
   folderId?: string;
+  userId?: string;
   position: number;
   createdAt: string;
   updatedAt: string;
