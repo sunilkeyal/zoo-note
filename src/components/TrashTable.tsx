@@ -324,10 +324,14 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
             <DialogTitle>Delete forever?</DialogTitle>
             <DialogDescription>
               {confirmDelete && (() => {
-                const a: string[] = []
-                if (confirmDelete.folderIds.length > 0) a.push(`${confirmDelete.folderIds.length} folder${confirmDelete.folderIds.length > 1 ? "s" : ""}`)
-                if (confirmDelete.noteIds.length > 0) a.push(`${confirmDelete.noteIds.length} note${confirmDelete.noteIds.length > 1 ? "s" : ""}`)
-                return <>This will permanently delete {a.join(" and ")}. This action cannot be undone.</>
+                const parts: string[] = []
+                if (confirmDelete.folderIds.length > 0) {
+                  const folderNotes = items.filter((i) => i.type === "note" && confirmDelete.folderIds.includes(i.folderId || "")).length
+                  parts.push(`${confirmDelete.folderIds.length} folder${confirmDelete.folderIds.length > 1 ? "s" : ""}`)
+                  if (folderNotes > 0) parts[parts.length - 1] += ` with ${folderNotes} note${folderNotes > 1 ? "s" : ""} inside`
+                }
+                if (confirmDelete.noteIds.length > 0) parts.push(`${confirmDelete.noteIds.length} note${confirmDelete.noteIds.length > 1 ? "s" : ""}`)
+                return <>This will permanently delete {parts.join(" and ")}. This action cannot be undone.</>
               })()}
             </DialogDescription>
           </DialogHeader>
