@@ -39,6 +39,13 @@ export async function POST(request: NextRequest) {
       { $unset: { isDeleted: "", deletedAt: "" } }
     )
     restoredFolders = result.modifiedCount
+
+    // Also restore notes inside these folders
+    const noteResult = await notesCollection.updateMany(
+      { folderId: { $in: folderIds }, userId: session.user.id, isDeleted: true },
+      { $unset: { isDeleted: "", deletedAt: "" } }
+    )
+    restoredNotes += noteResult.modifiedCount
   }
 
   return NextResponse.json({

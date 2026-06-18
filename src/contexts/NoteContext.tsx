@@ -240,7 +240,7 @@ export function NoteProvider({ children }: { children: ReactNode }) {
     const json: ApiResponse<{ restoredNotes: number; restoredFolders: number }> = await res.json();
     if (json.success) {
       setTrashItems((prev) => ({
-        notes: prev.notes.filter((n) => !noteIds.includes(n._id)),
+        notes: prev.notes.filter((n) => !noteIds.includes(n._id) && !(n.folderId && folderIds.includes(n.folderId))),
         folders: prev.folders.filter((f) => !folderIds.includes(f._id)),
       }));
       fetchNotes();
