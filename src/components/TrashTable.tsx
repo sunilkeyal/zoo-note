@@ -116,6 +116,13 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
             lock.delete(item.folderId)
           }
         }
+        if (item.type === "folder") {
+          const folderNotes = notesByFolder.get(item.id) || []
+          for (const n of folderNotes) {
+            next.delete(n.id)
+            lock.delete(n.id)
+          }
+        }
       } else {
         next.add(id)
         if (item.type === "note" && item.folderId) {
@@ -123,6 +130,12 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
           if (folder) {
             next.add(item.folderId)
             lock.add(item.folderId)
+          }
+        }
+        if (item.type === "folder") {
+          const folderNotes = notesByFolder.get(item.id) || []
+          for (const n of folderNotes) {
+            next.add(n.id)
           }
         }
       }
