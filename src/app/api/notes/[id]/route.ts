@@ -66,19 +66,22 @@ export async function DELETE(
   }
 
   const { id } = await params
-
   let objectId: ObjectId
   try {
     objectId = new ObjectId(id)
   } catch {
-    return NextResponse.json({ success: false, error: "Invalid note ID format" }, { status: 400 })
+    return NextResponse.json({ success: false, error: "Invalid ID" }, { status: 400 })
   }
 
   const db = await connectToDatabase()
   const collection = db.collection("notes")
-  const result = await collection.deleteOne({ _id: objectId, userId: session.user.id })
 
-  if (result.deletedCount === 0) {
+  const result = await collection.updateOne(
+    { _id: objectId, userId: session.user.id },
+    { $set: { isDeleted: true, deletedAt: new Date() } }
+  )
+
+  if (result.matchedCount === 0) {
     return NextResponse.json({ success: false, error: "Note not found" }, { status: 404 })
   }
 
