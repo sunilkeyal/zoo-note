@@ -5,7 +5,7 @@ import { Folder } from "@/types"
 
 export async function GET() {
   const session = await auth()
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
   }
 
@@ -13,13 +13,14 @@ export async function GET() {
   const collection = db.collection("folders")
 
   const folders = await collection
-    .find({})
+    .find({ userId: session.user.id })
     .sort({ createdAt: -1 })
     .toArray()
 
   const mapped: Folder[] = folders.map((f) => ({
     _id: f._id.toString(),
     name: f.name,
+    userId: f.userId || undefined,
     createdAt: f.createdAt.toISOString(),
     updatedAt: f.updatedAt.toISOString(),
   }))
@@ -29,7 +30,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await auth()
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
   }
 
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
   const now = new Date()
   const result = await collection.insertOne({
     name: name.trim(),
+    userId: session.user.id,
     createdAt: now,
     updatedAt: now,
   })
