@@ -268,7 +268,9 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                         <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{item.notesCount} notes</span>
                       )}
                       {item.type === "note" && item.folderName && (
-                        <span className="text-xs text-muted-foreground">in {item.folderName}</span>
+                        <span className="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800">
+                          {item.folderName}
+                        </span>
                       )}
                     </div>
                   </td>
