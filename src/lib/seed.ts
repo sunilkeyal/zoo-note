@@ -7,7 +7,6 @@ let seedingPromise: Promise<void> | null = null
 const seedUsers = [
   { username: "admin",  email: "admin@example.com",   displayName: "Admin User", password: process.env.ADMIN_PASSWORD || "admin123",   role: "admin" },
   { username: "user",   email: "user@example.com",    displayName: "Regular User", password: process.env.USER_PASSWORD || "user123",  role: "user" },
-  { username: "viewer", email: "viewer@example.com",  displayName: "Viewer User", password: process.env.VIEWER_PASSWORD || "viewer123", role: "viewer" },
 ]
 
 export async function ensureAdmin() {
@@ -32,6 +31,21 @@ export async function ensureAdmin() {
           })
         }
       }
+
+      // Migrate existing notes/folders without userId to the admin user
+      const adminUser = await db.collection("users").findOne({ username: "admin" })
+      if (adminUser) {
+        const adminId = adminUser._id.toString()
+        await db.collection("notes").updateMany(
+          { userId: { $exists: false } },
+          { $set: { userId: adminId } }
+        )
+        await db.collection("folders").updateMany(
+          { userId: { $exists: false } },
+          { $set: { userId: adminId } }
+        )
+      }
+
       seedingDone = true
     } catch (err) {
       seedingPromise = null
