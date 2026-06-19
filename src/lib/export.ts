@@ -21,6 +21,10 @@ export function generateFrontMatter(title: string, folderName?: string): string 
   return "---\n" + yaml.dump(data) + "---\n\n"
 }
 
+function sanitizeFilename(name: string): string {
+  return name.replace(/[/\\:*?"<>|]/g, "_").trim() || "untitled"
+}
+
 export async function generateExportZip(
   notes: Note[],
   folders: Folder[]
@@ -35,14 +39,28 @@ export async function generateExportZip(
     archive.on("end", () => resolve(Buffer.concat(chunks)))
     archive.on("error", reject)
 
+    const usedFilenames = new Set<string>()
+
     for (const note of notes) {
       const folderName = note.folderId ? folderMap.get(note.folderId) : undefined
       const frontMatter = generateFrontMatter(note.title, folderName)
       const markdownBody = convertHtmlToMarkdown(note.content)
       const content = frontMatter + markdownBody
-      const filename = folderName
-        ? `${folderName}/${note.title}.md`
-        : `${note.title}.md`
+
+      const sanitizedTitle = sanitizeFilename(note.title)
+      const baseName = folderName
+        ? `${sanitizeFilename(folderName)}/${sanitizedTitle}.md`
+        : `${sanitizedTitle}.md`
+
+      let filename = baseName
+      let counter = 1
+      while (usedFilenames.has(filename)) {
+        filename = folderName
+          ? `${sanitizeFilename(folderName)}/${sanitizedTitle}-${counter}.md`
+          : `${sanitizedTitle}-${counter}.md`
+        counter++
+      }
+      usedFilenames.add(filename)
 
       archive.append(content, { name: filename })
     }
