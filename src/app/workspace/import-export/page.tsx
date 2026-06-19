@@ -129,14 +129,14 @@ export default function ImportExportPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Export Card */}
-        <Card>
+        <Card className="h-full flex flex-col">
           <CardHeader>
             <CardTitle className="text-lg">Export</CardTitle>
             <CardDescription>
               Download all your notes as Markdown files. Folder structure is preserved and each file includes title &amp; folder metadata for re-import.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1">
             <Button
               className="w-full"
               onClick={handleExport}
@@ -149,19 +149,18 @@ export default function ImportExportPage() {
               )}
               {exporting ? "Exporting..." : "Export All Notes (.zip)"}
             </Button>
-
           </CardContent>
         </Card>
 
         {/* Import Card */}
-        <Card>
+        <Card className="h-full flex flex-col">
           <CardHeader>
             <CardTitle className="text-lg">Import</CardTitle>
             <CardDescription>
               Upload Markdown (.md) files or a ZIP archive containing .md files. Front matter (title, folder) is used to recreate your note structure.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1">
             <div
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
