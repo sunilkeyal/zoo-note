@@ -4,6 +4,7 @@ import React, { useState, DragEvent } from "react"
 import { useNotes } from "@/contexts/NoteContext"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
+import ExportNotePopover from "./ExportNotePopover"
 import { Folder, Note } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -299,6 +300,11 @@ export default function NotesSidebar() {
             <span className="truncate">{note.title}</span>
           </SidebarMenuSubButton>
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity pointer-events-none opacity-0 group-hover/menu-sub-item:pointer-events-auto group-hover/menu-sub-item:opacity-100">
+            <ExportNotePopover note={note}>
+              <Button variant="ghost" size="icon-xs" onClick={(e) => e.stopPropagation()}>
+                <Download />
+              </Button>
+            </ExportNotePopover>
             <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); startRenaming(note._id, note.title) }}>
               <Pencil />
             </Button>
