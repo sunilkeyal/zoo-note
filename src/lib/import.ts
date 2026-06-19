@@ -4,6 +4,7 @@ export interface ParsedNote {
   title: string
   folder?: string
   content: string
+  sourceFilename?: string
 }
 
 export interface ProcessedFile {
@@ -47,6 +48,7 @@ export async function processImportFile(
 
   if (lower.endsWith(".md")) {
     const parsed = parseMarkdownFile(buffer.toString())
+    parsed.sourceFilename = filename
     return {
       originalFilename: filename,
       notes: [parsed],
@@ -63,6 +65,7 @@ export async function processImportFile(
       if (!entry.entryName.toLowerCase().endsWith(".md") || entry.isDirectory) continue
       const content = entry.getData().toString()
       const parsed = parseMarkdownFile(content)
+      parsed.sourceFilename = entry.entryName
       notes.push(parsed)
     }
 

@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
 import { processImportFile } from "@/lib/import"
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
 export async function POST(request: NextRequest) {
   const session = await auth()
   if (!session?.user) {
@@ -16,6 +18,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "No files provided" }, { status: 400 })
   }
 
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({
+        success: false,
+        error: `File "${file.name}" exceeds maximum size of 50 MB`,
+      }, { status: 413 })
+    }
+  }
+
   const db = await connectToDatabase()
   const notesCollection = db.collection("notes")
   const foldersCollection = db.collection("folders")
@@ -25,11 +36,17 @@ export async function POST(request: NextRequest) {
   const errors: string[] = []
 
   for (const file of files) {
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const result = await processImportFile(buffer, file.name)
+    let result
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer())
+      result = await processImportFile(buffer, file.name)
+    } catch (err) {
+      errors.push(`Failed to process "${file.name}": ${err instanceof Error ? err.message : "Unknown error"}`)
+      continue
+    }
 
     if (result.error) {
-      errors.push(result.error)
+      errors.push(`${file.name}: ${result.error}`)
       continue
     }
 
@@ -60,7 +77,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const title = parsed.title || file.name.replace(/\.md$/i, "")
+      const sourceName = parsed.sourceFilename
+        ? parsed.sourceFilename.replace(/.*[/\\]/, "").replace(/\.md$/i, "")
+        : ""
+      const title = parsed.title || sourceName || file.name.replace(/\.md$/i, "")
 
       const now = new Date()
       const doc: Record<string, unknown> = {
@@ -81,5 +101,5 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     success: true,
     data: { imported, skipped, errors },
-  })
+  }, { status: 201 })
 }
