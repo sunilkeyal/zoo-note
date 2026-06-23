@@ -7,7 +7,7 @@ export default function SettingsPage() {
         <div className="rounded-lg border p-4">
           <h3 className="font-semibold mb-1">Application Name</h3>
           <p className="text-sm text-muted-foreground mb-2">The name displayed throughout the app.</p>
-          <div className="rounded border px-3 py-2 text-sm bg-muted/30 w-full max-w-xs">Notes App</div>
+          <div className="rounded border px-3 py-2 text-sm bg-muted/30 w-full max-w-xs">VertexNote</div>
         </div>
         <div className="rounded-lg border p-4">
           <h3 className="font-semibold mb-1">Default Note Visibility</h3>
