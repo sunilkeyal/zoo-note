@@ -38,6 +38,11 @@ export async function connectToDatabase(): Promise<Db> {
     { background: true }
   ).catch(() => {});
 
+  await cachedDb.collection("users").createIndex(
+    { email: 1 },
+    { unique: true, background: true }
+  ).catch(() => {});
+
   return cachedDb;
 }
 

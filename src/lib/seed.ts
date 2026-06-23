@@ -8,8 +8,8 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
 const USER_PASSWORD = process.env.USER_PASSWORD
 
 const seedUsers = [
-  { username: "admin",  email: "admin@example.com",   displayName: "Admin User", password: ADMIN_PASSWORD || "admin123",   role: "admin" },
-  { username: "user",   email: "user@example.com",    displayName: "Regular User", password: USER_PASSWORD || "user123",  role: "user" },
+  { email: "admin@example.com",   displayName: "Admin User", password: ADMIN_PASSWORD || "admin123",   role: "admin" },
+  { email: "user@example.com",    displayName: "Regular User", password: USER_PASSWORD || "user123",  role: "user" },
 ]
 
 export async function ensureAdmin() {
@@ -27,11 +27,10 @@ export async function ensureAdmin() {
 
       const db = await connectToDatabase()
       for (const u of seedUsers) {
-        const existing = await db.collection("users").findOne({ username: u.username })
+        const existing = await db.collection("users").findOne({ email: u.email })
         if (!existing) {
           const hash = await bcrypt.hash(u.password, 12)
           await db.collection("users").insertOne({
-            username: u.username,
             email: u.email,
             displayName: u.displayName,
             passwordHash: hash,
@@ -43,7 +42,7 @@ export async function ensureAdmin() {
       }
 
       // Migrate existing notes/folders without userId to the admin user
-      const adminUser = await db.collection("users").findOne({ username: "admin" })
+      const adminUser = await db.collection("users").findOne({ email: "admin@example.com" })
       if (adminUser) {
         const adminId = adminUser._id.toString()
         await db.collection("notes").updateMany(

@@ -14,24 +14,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: "credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
+        if (!credentials?.email || !credentials?.password) {
           return null
         }
 
-        const { username, password } = credentials as {
-          username: string
+        const { email: rawEmail, password } = credentials as {
+          email: string
           password: string
         }
+        const email = rawEmail.toLowerCase().trim()
 
         const db = await connectToDatabase()
 
         await ensureAdmin()
 
-        const user = await db.collection("users").findOne({ username })
+        const user = await db.collection("users").findOne({ email })
         if (!user) return null
 
         const valid = await bcrypt.compare(password, user.passwordHash)

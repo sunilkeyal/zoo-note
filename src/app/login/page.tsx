@@ -1,16 +1,20 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter } from "@/components/ui/card"
 
-export default function LoginPage() {
-  const [username, setUsername] = useState("")
+function LoginForm() {
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const signupSuccess = searchParams.get("signup") === "success"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,13 +22,13 @@ export default function LoginPage() {
     setError(null)
 
     const result = await signIn("credentials", {
-      username,
+      email,
       password,
       redirect: false,
     })
 
     if (result?.error) {
-      setError("Invalid username or password")
+      setError("Invalid email or password")
       setLoading(false)
     } else {
       window.location.href = "/"
@@ -38,30 +42,35 @@ export default function LoginPage() {
           <CardHeader>
             <div>
               <CardTitle>Login to your account</CardTitle>
-              <CardDescription>Enter your username below to login to your account</CardDescription>
+              <CardDescription>Enter your email below to login to your account</CardDescription>
             </div>
             <CardAction>
-              <Button variant="outline" size="sm" type="button" disabled>
-                Sign Up
-              </Button>
+              <Link href="/signup">
+                <Button variant="outline" size="sm" type="button">Sign Up</Button>
+              </Link>
             </CardAction>
           </CardHeader>
           <CardContent className="grid gap-4">
+            {signupSuccess && (
+              <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-600">
+                Account created successfully! Please sign in.
+              </div>
+            )}
             {error && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
               </div>
             )}
             <div className="grid gap-2">
-              <label htmlFor="username" className="text-sm font-medium">
-                Username
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
               </label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
               />
@@ -99,5 +108,13 @@ export default function LoginPage() {
         </form>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-svh items-center justify-center p-4">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
