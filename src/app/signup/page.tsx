@@ -27,12 +27,12 @@ export default function SignupPage() {
         body: JSON.stringify({ email, password, name }),
       })
 
+      setLoading(false)
       if (res.ok) {
         router.push("/login?signup=success")
       } else {
         const data = await res.json()
         setError(data.error || "Something went wrong")
-        setLoading(false)
       }
     } catch {
       setError("Unable to connect. Please try again.")
