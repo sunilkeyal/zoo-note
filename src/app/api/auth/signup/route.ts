@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import bcrypt from "bcryptjs"
+import { MongoServerError } from "mongodb"
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json()
+    const { email: rawEmail, password, name: rawName } = await request.json()
+
+    const email = typeof rawEmail === "string" ? rawEmail.toLowerCase().trim() : ""
+    const name = typeof rawName === "string" ? rawName.trim() : ""
 
     // Validation
     if (!email || !password || !name) {
@@ -22,16 +26,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (password.length < 8) {
+    if (typeof password !== "string" || password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      )
-    }
-
-    if (name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Name is required" },
         { status: 400 }
       )
     }
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     await db.collection("users").insertOne({
       email,
-      displayName: name.trim(),
+      displayName: name,
       passwordHash,
       role: "user",
       createdAt: new Date(),
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
     // Handle MongoDB duplicate key error (race condition)
-    if ((error as { code?: number }).code === 11000) {
+    if (error instanceof MongoServerError && error.code === 11000) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 }
