@@ -73,3 +73,83 @@ describe('sendPasswordResetEmail', () => {
     ).rejects.toThrow('Rate limit exceeded')
   })
 })
+
+describe('sendUserWelcomeEmail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.resetModules()
+
+    mockResendConstructor.mockImplementation(function() {
+      return { emails: { send: mockResendSend } }
+    })
+    mockResendSend.mockResolvedValue({ error: null })
+  })
+
+  it('sends welcome email with temporary password', async () => {
+    const { sendUserWelcomeEmail } = await import('@/lib/email')
+    await expect(sendUserWelcomeEmail('test@test.com', 'TempPass123!')).resolves.not.toThrow()
+  })
+
+  it('logs welcome info to console when no RESEND_API_KEY is set', async () => {
+    delete process.env.RESEND_API_KEY
+    delete process.env.EMAIL_FROM
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const { sendUserWelcomeEmail } = await import('@/lib/email')
+    await sendUserWelcomeEmail('test@test.com', 'TempPass123!')
+
+    expect(logSpy).toHaveBeenCalledWith('[Welcome] Email: test@test.com, Temporary password: TempPass123!')
+    logSpy.mockRestore()
+  })
+
+  it('throws on Resend error for welcome email', async () => {
+    process.env.RESEND_API_KEY = 're_abc123'
+    mockResendSend.mockResolvedValue({ error: { message: 'Rate limit exceeded' } })
+
+    const { sendUserWelcomeEmail } = await import('@/lib/email')
+    await expect(
+      sendUserWelcomeEmail('test@test.com', 'TempPass123!')
+    ).rejects.toThrow('Rate limit exceeded')
+  })
+})
+
+describe('sendPasswordResetByAdminEmail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.resetModules()
+
+    mockResendConstructor.mockImplementation(function() {
+      return { emails: { send: mockResendSend } }
+    })
+    mockResendSend.mockResolvedValue({ error: null })
+  })
+
+  it('sends reset email with temporary password', async () => {
+    const { sendPasswordResetByAdminEmail } = await import('@/lib/email')
+    await expect(sendPasswordResetByAdminEmail('test@test.com', 'NewPass456!')).resolves.not.toThrow()
+  })
+
+  it('logs admin reset info to console when no RESEND_API_KEY is set', async () => {
+    delete process.env.RESEND_API_KEY
+    delete process.env.EMAIL_FROM
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const { sendPasswordResetByAdminEmail } = await import('@/lib/email')
+    await sendPasswordResetByAdminEmail('test@test.com', 'NewPass456!')
+
+    expect(logSpy).toHaveBeenCalledWith('[Admin Password Reset] Email: test@test.com, Temporary password: NewPass456!')
+    logSpy.mockRestore()
+  })
+
+  it('throws on Resend error for admin reset email', async () => {
+    process.env.RESEND_API_KEY = 're_abc123'
+    mockResendSend.mockResolvedValue({ error: { message: 'Rate limit exceeded' } })
+
+    const { sendPasswordResetByAdminEmail } = await import('@/lib/email')
+    await expect(
+      sendPasswordResetByAdminEmail('test@test.com', 'NewPass456!')
+    ).rejects.toThrow('Rate limit exceeded')
+  })
+})
