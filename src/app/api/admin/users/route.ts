@@ -34,7 +34,13 @@ export async function GET(request: NextRequest) {
   }
 
   if (status === "active") {
-    filter.$or = [{ isActive: { $exists: false } }, { isActive: true }]
+    const activeFilter = [{ isActive: { $exists: false } }, { isActive: true }]
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, { $or: activeFilter }]
+      delete filter.$or
+    } else {
+      filter.$or = activeFilter
+    }
   } else if (status === "disabled") {
     filter.isActive = false
   }
