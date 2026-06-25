@@ -12,16 +12,17 @@ vi.mock('resend', () => ({
   Resend: mockResendConstructor,
 }))
 
-describe('sendPasswordResetEmail', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.resetModules()
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.resetModules()
 
-    mockResendConstructor.mockImplementation(function() {
-      return { emails: { send: mockResendSend } }
-    })
-    mockResendSend.mockResolvedValue({ error: null })
+  mockResendConstructor.mockImplementation(function() {
+    return { emails: { send: mockResendSend } }
   })
+  mockResendSend.mockResolvedValue({ error: null })
+})
+
+describe('sendPasswordResetEmail', () => {
 
   it('logs reset link to console when no RESEND_API_KEY is set', async () => {
     delete process.env.RESEND_API_KEY
@@ -75,19 +76,20 @@ describe('sendPasswordResetEmail', () => {
 })
 
 describe('sendUserWelcomeEmail', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.resetModules()
-
-    mockResendConstructor.mockImplementation(function() {
-      return { emails: { send: mockResendSend } }
-    })
-    mockResendSend.mockResolvedValue({ error: null })
-  })
 
   it('sends welcome email with temporary password', async () => {
+    process.env.RESEND_API_KEY = 're_abc123'
+    process.env.EMAIL_FROM = 'noreply@test.com'
+
     const { sendUserWelcomeEmail } = await import('@/lib/email')
     await expect(sendUserWelcomeEmail('test@test.com', 'TempPass123!')).resolves.not.toThrow()
+
+    expect(mockResendSend).toHaveBeenCalledWith({
+      from: 'noreply@test.com',
+      to: 'test@test.com',
+      subject: 'Your ZooNoteBar account has been created',
+      html: expect.stringContaining('TempPass123!'),
+    })
   })
 
   it('logs welcome info to console when no RESEND_API_KEY is set', async () => {
@@ -112,22 +114,35 @@ describe('sendUserWelcomeEmail', () => {
       sendUserWelcomeEmail('test@test.com', 'TempPass123!')
     ).rejects.toThrow('Rate limit exceeded')
   })
+
+  it('uses default EMAIL_FROM for welcome email when env var is not set', async () => {
+    process.env.RESEND_API_KEY = 're_abc123'
+    delete process.env.EMAIL_FROM
+
+    const { sendUserWelcomeEmail } = await import('@/lib/email')
+    await sendUserWelcomeEmail('test@test.com', 'TempPass123!')
+
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 'noreply@mylaunch.top' })
+    )
+  })
 })
 
 describe('sendPasswordResetByAdminEmail', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.resetModules()
-
-    mockResendConstructor.mockImplementation(function() {
-      return { emails: { send: mockResendSend } }
-    })
-    mockResendSend.mockResolvedValue({ error: null })
-  })
 
   it('sends reset email with temporary password', async () => {
+    process.env.RESEND_API_KEY = 're_abc123'
+    process.env.EMAIL_FROM = 'noreply@test.com'
+
     const { sendPasswordResetByAdminEmail } = await import('@/lib/email')
     await expect(sendPasswordResetByAdminEmail('test@test.com', 'NewPass456!')).resolves.not.toThrow()
+
+    expect(mockResendSend).toHaveBeenCalledWith({
+      from: 'noreply@test.com',
+      to: 'test@test.com',
+      subject: 'Your ZooNoteBar password has been reset',
+      html: expect.stringContaining('NewPass456!'),
+    })
   })
 
   it('logs admin reset info to console when no RESEND_API_KEY is set', async () => {
@@ -151,5 +166,17 @@ describe('sendPasswordResetByAdminEmail', () => {
     await expect(
       sendPasswordResetByAdminEmail('test@test.com', 'NewPass456!')
     ).rejects.toThrow('Rate limit exceeded')
+  })
+
+  it('uses default EMAIL_FROM for admin reset email when env var is not set', async () => {
+    process.env.RESEND_API_KEY = 're_abc123'
+    delete process.env.EMAIL_FROM
+
+    const { sendPasswordResetByAdminEmail } = await import('@/lib/email')
+    await sendPasswordResetByAdminEmail('test@test.com', 'NewPass456!')
+
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 'noreply@mylaunch.top' })
+    )
   })
 })
