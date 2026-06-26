@@ -86,8 +86,8 @@ export default function UsersPage() {
     setTotal((t) => t + 1)
   }
 
-  function handleUserUpdated(user: any) {
-    setUsers((prev) => prev.map((u) => (u._id === user._id ? { ...u, ...user } : u)))
+  function handleUserUpdated() {
+    fetchUsers()
   }
 
   function handleUserDeleted(userId: string) {

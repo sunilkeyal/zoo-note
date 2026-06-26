@@ -137,10 +137,14 @@ export async function PUT(
 
   update.updatedAt = new Date()
 
-  await db.collection("users").updateOne(
+  const result = await db.collection("users").updateOne(
     { _id: objectId },
     { $set: update }
   )
+
+  if (result.matchedCount === 0) {
+    return NextResponse.json({ success: false, error: "User not found" }, { status: 404 })
+  }
 
   const updated = await db.collection("users").findOne({ _id: objectId })
 
