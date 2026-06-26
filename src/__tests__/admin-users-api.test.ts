@@ -448,6 +448,22 @@ describe("PUT /api/admin/users/[id]", () => {
     const body = await res.json()
     expect(body.error).toContain("last admin")
   })
+
+  it("prevents modifying your own account", async () => {
+    const { auth } = await import("@/lib/auth")
+    vi.mocked(auth).mockResolvedValue({ user: { id: "self1", role: "admin" } } as any)
+
+    const { PUT } = await import("@/app/api/admin/users/[id]/route")
+    const req = new Request("http://localhost/api/admin/users/self1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "Hacker" }),
+    })
+    const res = await PUT(req, { params: { id: "self1" } })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toContain("Cannot modify your own account")
+  })
 })
 
 describe("POST /api/admin/users/[id]/reset-password", () => {
@@ -528,5 +544,17 @@ describe("DELETE /api/admin/users/[id]", () => {
     const req = new Request("http://localhost/api/admin/users/000000000000000000000001", { method: "DELETE" })
     const res = await DELETE(req, { params: { id: "000000000000000000000001" } })
     expect(res.status).toBe(400)
+  })
+
+  it("prevents deleting your own account", async () => {
+    const { auth } = await import("@/lib/auth")
+    vi.mocked(auth).mockResolvedValue({ user: { id: "self1", role: "admin" } } as any)
+
+    const { DELETE } = await import("@/app/api/admin/users/[id]/route")
+    const req = new Request("http://localhost/api/admin/users/self1", { method: "DELETE" })
+    const res = await DELETE(req, { params: { id: "self1" } })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toContain("Cannot delete your own account")
   })
 })

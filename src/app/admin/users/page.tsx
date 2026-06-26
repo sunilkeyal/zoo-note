@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { useSession } from "next-auth/react"
 import { Plus } from "lucide-react"
 import UsersTable, { type UserRow } from "./users-table"
 import CreateUserDialog from "./create-user-dialog"
@@ -10,6 +11,8 @@ import DeleteUserDialog from "./delete-user-dialog"
 import ResetPasswordDialog from "./reset-password-dialog"
 
 export default function UsersPage() {
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id
   const [users, setUsers] = useState<UserRow[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -111,6 +114,7 @@ export default function UsersPage() {
         page={page}
         limit={limit}
         loading={loading}
+        currentUserId={currentUserId}
         search={search}
         roleFilter={roleFilter}
         statusFilter={statusFilter}

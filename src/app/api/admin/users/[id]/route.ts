@@ -60,6 +60,11 @@ export async function PUT(
 
   const { id } = await params
 
+  const currentUserId = session?.user?.id
+  if (currentUserId && currentUserId === id) {
+    return NextResponse.json({ success: false, error: "Cannot modify your own account" }, { status: 400 })
+  }
+
   let objectId: ObjectId
   try {
     objectId = new ObjectId(id)
@@ -148,6 +153,11 @@ export async function DELETE(
   }
 
   const { id } = await params
+
+  const currentUserId = session?.user?.id
+  if (currentUserId && currentUserId === id) {
+    return NextResponse.json({ success: false, error: "Cannot delete your own account" }, { status: 400 })
+  }
 
   let objectId: ObjectId
   try {

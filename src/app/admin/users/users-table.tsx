@@ -29,6 +29,7 @@ interface Props {
   page: number
   limit: number
   loading: boolean
+  currentUserId?: string
   search: string
   roleFilter: string
   statusFilter: string
@@ -44,7 +45,7 @@ interface Props {
 }
 
 export default function UsersTable({
-  users, total, page, limit, loading,
+  users, total, page, limit, loading, currentUserId,
   search, roleFilter, statusFilter,
   onSearchChange, onRoleFilterChange, onStatusFilterChange,
   onPageChange, onLimitChange,
@@ -111,9 +112,14 @@ export default function UsersTable({
                 </td>
               </tr>
             ) : (
-              users.map((u) => (
+              users.map((u) => {
+                const isCurrentUser = currentUserId === u._id
+                return (
                 <tr key={u._id} className="border-b last:border-0">
-                  <td className="p-3 font-medium">{u.displayName}</td>
+                  <td className="p-3 font-medium">
+                    {u.displayName}
+                    {isCurrentUser && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}
+                  </td>
                   <td className="p-3 text-muted-foreground">{u.email}</td>
                   <td className="p-3">
                     <Badge variant="secondary">{u.role}</Badge>
@@ -122,6 +128,7 @@ export default function UsersTable({
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={u.isActive}
+                        disabled={isCurrentUser}
                         onCheckedChange={() => onToggleActive(u)}
                       />
                       <span className={u.isActive ? "text-green-600" : "text-red-600"}>
@@ -133,6 +140,7 @@ export default function UsersTable({
                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
                   </td>
                   <td className="p-3 text-right">
+                    {!isCurrentUser && (
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => onEdit(u)}>
                         Edit
@@ -144,9 +152,11 @@ export default function UsersTable({
                         Delete
                       </Button>
                     </div>
+                    )}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>
