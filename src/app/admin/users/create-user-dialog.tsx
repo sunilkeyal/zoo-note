@@ -118,7 +118,7 @@ export default function CreateUserDialog({ open, onClose, onCreated }: Props) {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={setRole}>
+                <Select value={role} onValueChange={(value) => { if (value !== null) setRole(value) }}>
                   <SelectTrigger id="role">
                     <SelectValue />
                   </SelectTrigger>

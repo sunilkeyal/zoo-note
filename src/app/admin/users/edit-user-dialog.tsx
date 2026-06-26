@@ -94,7 +94,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: Props
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-role">Role</Label>
-              <Select value={role} onValueChange={setRole}>
+              <Select value={role} onValueChange={(value) => { if (value !== null) setRole(value) }}>
                 <SelectTrigger id="edit-role">
                   <SelectValue />
                 </SelectTrigger>
