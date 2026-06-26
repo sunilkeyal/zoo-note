@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  let compressed: Buffer
+  let compressed: Buffer | undefined
   try {
     const metadata = await sharp(buffer).metadata()
     const width = metadata.width || 1200

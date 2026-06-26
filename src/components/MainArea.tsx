@@ -12,6 +12,7 @@ import FontFamily from "@tiptap/extension-font-family"
 import { ParagraphSpacing } from "@/extensions/ParagraphSpacing"
 import TaskList from "@tiptap/extension-task-list"
 import { CustomTaskItem } from "@/extensions/TaskItem"
+import { ImageNode } from "@/extensions/ImageNode"
 import {
   Tooltip,
   TooltipContent,
@@ -49,6 +50,7 @@ import {
   List,
   ListOrdered,
   ListChecks,
+  Image,
 } from "lucide-react"
 
 const FONT_SIZES = ["13", "14", "15", "16", "17", "18", "20", "24", "30"]
@@ -128,10 +130,35 @@ export default function MainArea() {
       ParagraphSpacing,
       TaskList,
       CustomTaskItem.configure({ nested: true }),
+      ImageNode,
     ],
     content: activeNote?.content || "<p></p>",
     editorProps: {
       attributes: { class: "note-editor" },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.files
+        if (items && items.length > 0) {
+          const imageFile = Array.from(items).find(f => f.type.startsWith('image/'))
+          if (imageFile) {
+            event.preventDefault()
+            uploadImage(imageFile)
+            return true
+          }
+        }
+        return false
+      },
+      handleDrop: (view, event) => {
+        const items = event.dataTransfer?.files
+        if (items && items.length > 0) {
+          const imageFile = Array.from(items).find(f => f.type.startsWith('image/'))
+          if (imageFile) {
+            event.preventDefault()
+            uploadImage(imageFile)
+            return true
+          }
+        }
+        return false
+      },
     },
     onUpdate: ({ editor: ed }) => {
       const id = activeNoteIdRef.current
@@ -160,6 +187,25 @@ export default function MainArea() {
       updateNote(id, { title: value })
     }, 600)
   }, [updateNote])
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const uploadImage = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const json = await res.json()
+      if (json.success && json.data) {
+        editor?.chain().focus().setImage({ src: json.data.url }).run()
+      }
+    } catch {
+      // silent
+    }
+  }, [editor])
 
   if (!activeNote) {
     return (
@@ -415,6 +461,34 @@ export default function MainArea() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Separator orientation="vertical" className="mx-1 h-6" />
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    className="h-8 w-8 flex items-center justify-center rounded-md border border-input hover:bg-accent"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Image className="h-4 w-4" />
+                  </button>
+                }
+              >
+                <TooltipContent>Insert image</TooltipContent>
+              </TooltipTrigger>
+            </Tooltip>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) uploadImage(file)
+                e.target.value = ''
+              }}
+            />
 
           </div>
           </TooltipProvider>
