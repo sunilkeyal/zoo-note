@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
 import { NoteUpdate } from "@/types"
 import { ObjectId } from "mongodb"
+import { getBucket } from "@/lib/gridfs"
 
 export async function PUT(
   request: NextRequest,
@@ -41,6 +42,15 @@ export async function PUT(
   if (folderId !== undefined) update.folderId = folderId || null
   if (position !== undefined) update.position = position
 
+  let oldContent: string | undefined
+  if (content !== undefined) {
+    const oldNote = await collection.findOne(
+      { _id: objectId, userId: session.user.id },
+      { projection: { content: 1 } }
+    )
+    oldContent = oldNote?.content
+  }
+
   const result = await collection.findOneAndUpdate(
     { _id: objectId, userId: session.user.id },
     { $set: update },
@@ -49,6 +59,21 @@ export async function PUT(
 
   if (!result) {
     return NextResponse.json({ success: false, error: "Note not found" }, { status: 404 })
+  }
+
+  if (oldContent !== undefined) {
+    const imageIdRegex = /\/api\/images\/([a-f0-9]+)/g
+    const oldIds = new Set(
+      (oldContent.match(imageIdRegex) || []).map((m) => m.split("/").pop()!)
+    )
+    const newIds = new Set(
+      (content!.match(imageIdRegex) || []).map((m) => m.split("/").pop()!)
+    )
+    const orphanIds = [...oldIds].filter((id) => !newIds.has(id))
+    if (orphanIds.length > 0) {
+      const bucket = await getBucket()
+      await Promise.allSettled(orphanIds.map((id) => bucket.delete(new ObjectId(id))))
+    }
   }
 
   const note = {

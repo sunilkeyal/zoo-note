@@ -7,6 +7,7 @@ const mockPage = {
   evaluate: vi.fn(),
   pdf: vi.fn(),
   close: vi.fn(),
+  waitForSelector: vi.fn().mockResolvedValue(undefined),
 }
 const mockBrowser = { newPage: mockNewPage }
 const mockChromium = {
@@ -25,6 +26,7 @@ function setupMocks() {
   mockPuppeteerLaunch.mockResolvedValue(mockBrowser)
   mockNewPage.mockResolvedValue(mockPage)
   mockPage.pdf.mockResolvedValue(Buffer.from('pdf-content'))
+  mockPage.waitForSelector.mockResolvedValue(undefined)
 }
 
 describe('generatePdf', () => {
@@ -42,13 +44,13 @@ describe('generatePdf', () => {
     expect(mockNewPage).toHaveBeenCalled()
   })
 
-  it('sets page content with HTML skeleton', async () => {
+  it('sets page content with HTML skeleton containing the note html', async () => {
     const { generatePdf } = await import('@/lib/pdf')
     await generatePdf('<p>Hello</p>')
 
     expect(mockPage.setContent).toHaveBeenCalledWith(
-      expect.stringContaining('<!DOCTYPE html>'),
-      { waitUntil: 'load' }
+      expect.stringContaining('<p>Hello</p>'),
+      { waitUntil: 'networkidle0', timeout: 30000 }
     )
     expect(mockPage.setContent).toHaveBeenCalledWith(
       expect.stringContaining('pdf-content'),
@@ -56,12 +58,14 @@ describe('generatePdf', () => {
     )
   })
 
-  it('evaluates the HTML into the page', async () => {
+  it('resolves relative image URLs when baseUrl is provided', async () => {
     const { generatePdf } = await import('@/lib/pdf')
-    const html = '<h1>Test</h1>'
-    await generatePdf(html)
+    await generatePdf('<img src="/api/images/abc">', 'http://example.com')
 
-    expect(mockPage.evaluate).toHaveBeenCalledWith(expect.any(Function), html)
+    expect(mockPage.setContent).toHaveBeenCalledWith(
+      expect.stringContaining('src="http://example.com/api/images/abc"'),
+      expect.any(Object)
+    )
   })
 
   it('generates PDF with correct options', async () => {

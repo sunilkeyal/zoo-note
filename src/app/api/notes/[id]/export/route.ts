@@ -53,7 +53,7 @@ export async function GET(
   }
 
   if (format === "pdf") {
-    const pdfBuffer = await generatePdf(note.content || "<p></p>")
+    const pdfBuffer = await generatePdf(note.content || "<p></p>", request.nextUrl.origin)
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",

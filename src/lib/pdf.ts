@@ -1,6 +1,10 @@
 import puppeteer, { Browser } from "puppeteer-core"
 import chromium from "@sparticuz/chromium"
 
+function log(...args: unknown[]) {
+  console.log("[pdf]", ...args)
+}
+
 const EDITOR_STYLES = `
   body {
     font-family: system-ui, -apple-system, sans-serif;
@@ -34,6 +38,7 @@ const EDITOR_STYLES = `
     padding: 12px;
     overflow-x: auto;
   }
+  img { max-width: 100%; height: auto; }
 `
 
 let browserPromise: Promise<Browser> | null = null
@@ -42,24 +47,38 @@ async function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
     const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_VERSION
 
+    const commonArgs = [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-gpu",
+      "--window-position=-9999,-9999",
+    ]
+
     if (isServerless) {
+      log("launching in serverless mode")
       browserPromise = puppeteer.launch({
-        args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+        args: [...chromium.args, ...commonArgs],
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
         headless: true,
       })
     } else {
-      // Locally, prefer full puppeteer (devDep) which bundles Chromium
       let chromePath: string | undefined
       try {
         const { executablePath } = await import("puppeteer")
         chromePath = await executablePath()
+        log("using puppeteer-bundled Chromium at", chromePath)
       } catch {
         chromePath = process.env.CHROME_PATH
+        if (chromePath) {
+          log("using CHROME_PATH env:", chromePath)
+        } else {
+          log("no Chromium path found, puppeteer will use default")
+        }
       }
       browserPromise = puppeteer.launch({
         executablePath: chromePath,
+        args: commonArgs,
         headless: true,
       })
     }
@@ -76,23 +95,59 @@ const SKELETON = `<!DOCTYPE html>
 <body id="pdf-content"></body>
 </html>`
 
-export async function generatePdf(html: string): Promise<Buffer> {
+function resolveRelativeImages(html: string, baseUrl: string): string {
+  const before = (html.match(/src="\//g) || []).length
+  const result = html.replace(/(\bsrc=")\/(?!\/)/g, `$1${baseUrl}/`)
+  const after = (result.match(/src="/g) || []).length
+  log(`resolveRelativeImages: ${before} relative img URLs found, ${after} total img URLs`)
+  return result
+}
+
+export async function generatePdf(html: string, baseUrl?: string): Promise<Buffer> {
+  const imgCount = (html.match(/<img[^>]*>/gi) || []).length
+  log(`generatePdf called: html length=${html.length}, img tags=${imgCount}, baseUrl=${baseUrl}`)
+
   const browser = await getBrowser()
   const page = await browser.newPage()
   try {
-    await page.setContent(SKELETON, { waitUntil: "load" })
-    await page.evaluate((content) => {
-      document.getElementById("pdf-content")!.innerHTML = content
-    }, html)
+    const processedHtml = baseUrl ? resolveRelativeImages(html, baseUrl) : html
+    const content = SKELETON.replace(
+      '<body id="pdf-content">',
+      `<body id="pdf-content">${processedHtml}`
+    )
 
+    log("setting page content, waiting for network idle...")
+    await page.setContent(content, { waitUntil: "networkidle0", timeout: 30000 })
+    log("page content set successfully")
+
+    log("checking for img elements...")
+    const foundImgs = await page.evaluate(() => document.querySelectorAll("img").length)
+    log(`found ${foundImgs} img elements in the page`)
+
+    if (foundImgs > 0) {
+      log("waiting for images to finish loading...")
+      await page.evaluate(() => Promise.all(
+        Array.from(document.querySelectorAll("img"))
+          .filter((img) => !img.complete)
+          .map((img) => new Promise((r) => { img.onload = r; img.onerror = r }))
+      ))
+      log("all images finished loading (or errored)")
+    }
+
+    log("generating PDF...")
     const pdf = await page.pdf({
       format: "A4",
       margin: { top: "40px", bottom: "40px", left: "40px", right: "40px" },
       printBackground: true,
     })
+    log(`PDF generated: ${pdf.length} bytes`)
 
     return Buffer.from(pdf)
+  } catch (err) {
+    log("ERROR during PDF generation:", err)
+    throw err
   } finally {
     await page.close()
+    log("page closed")
   }
 }

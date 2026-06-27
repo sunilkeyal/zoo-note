@@ -58,6 +58,7 @@ vi.mock('lucide-react', () => ({
   List: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-List', ...props }),
   ListOrdered: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-ListOrdered', ...props }),
   ListChecks: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-ListChecks', ...props }),
+  Image: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Image', ...props }),
 }))
 
 vi.mock('@/components/NoteEditor', () => ({
