@@ -117,7 +117,7 @@ export async function generatePdf(html: string, baseUrl?: string): Promise<Buffe
     )
 
     log("setting page content, waiting for network idle...")
-    await page.setContent(content, { waitUntil: "networkidle0", timeout: 30000 })
+    await page.setContent(content, { waitUntil: "load", timeout: 30000 })
     log("page content set successfully")
 
     log("checking for img elements...")
