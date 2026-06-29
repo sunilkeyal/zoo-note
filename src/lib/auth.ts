@@ -1,9 +1,13 @@
-import NextAuth from "next-auth"
+import NextAuth, { CredentialsSignin } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { connectToDatabase } from "@/lib/mongodb"
 import bcrypt from "bcryptjs"
 import { ensureAdmin } from "@/lib/seed"
 import { authConfig } from "@/lib/auth.config"
+
+class AccountDisabledError extends CredentialsSignin {
+  code = "AccountDisabled" as const
+}
 
 // Trigger seed on first module load (non-blocking)
 ensureAdmin()
@@ -35,7 +39,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = await db.collection("users").findOne({ email })
         if (!user) return null
 
-        if (user.isActive === false) return null
+        if (user.isActive === false) throw new AccountDisabledError()
 
         const valid = await bcrypt.compare(password, user.passwordHash)
         if (!valid) return null

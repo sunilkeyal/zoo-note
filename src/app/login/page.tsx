@@ -28,7 +28,12 @@ function LoginForm() {
     })
 
     if (result?.error) {
-      setError("Invalid email or password")
+      const code = (result as any).code
+      setError(
+        code === "AccountDisabled"
+          ? "Your account has been disabled. Please contact an administrator."
+          : "Invalid email or password"
+      )
       setLoading(false)
     } else {
       window.location.href = "/"

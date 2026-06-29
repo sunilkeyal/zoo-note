@@ -22,6 +22,9 @@ vi.mock('next-auth', () => ({
     signOut: vi.fn(),
     auth: vi.fn(),
   })),
+  CredentialsSignin: class CredentialsSignin extends Error {
+    code: string = 'CredentialsSignin'
+  },
 }))
 vi.mock('next-auth/providers/credentials', () => ({ default: mockCredentials }))
 
@@ -117,7 +120,7 @@ describe('auth', () => {
       expect(result).toBeNull()
     })
 
-    it('returns null if user is disabled (isActive === false)', async () => {
+    it('throws AccountDisabledError when user is disabled (isActive === false)', async () => {
       mockConnectToDatabase.mockResolvedValue({
         collection: vi.fn().mockReturnThis(),
         findOne: vi.fn().mockResolvedValue({
@@ -131,8 +134,9 @@ describe('auth', () => {
       })
       mockBcryptCompare.mockResolvedValue(true)
 
-      const result = await authorize({ email: 'disabled@test.com', password: 'correct' })
-      expect(result).toBeNull()
+      await expect(
+        authorize({ email: 'disabled@test.com', password: 'correct' })
+      ).rejects.toMatchObject({ code: 'AccountDisabled' })
     })
 
     it('allows login when isActive is true', async () => {
