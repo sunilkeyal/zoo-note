@@ -594,7 +594,7 @@ git commit -m "feat: hash and email new password when admin sets it via PUT"
 
 **Interfaces:**
 - Admins can now PUT their own record but cannot change role from admin → user
-- Edit pencil icon is visible for current user in the table; Delete trash icon remains hidden
+- Edit pencil icon is visible for current user in the table; Delete trash icon is shown but disabled for self
 - Edit dialog disables the Role dropdown when editing self
 
 - [ ] **Step 0: Create branch**
@@ -626,7 +626,7 @@ if (currentUserId && currentUserId === id && user.role === "admin" && body.role 
 
 - [ ] **Step 2: Update UI table — show edit for self, keep delete hidden**
 
-In `src/app/admin/users/users-table.tsx`, change the actions cell:
+In `src/app/admin/users/users-table.tsx`, change the actions cell to always render both buttons. The Edit button is always enabled. The Delete button has `disabled={isCurrentUser}` and its tooltip changes to "Cannot delete yourself" for the current user. This keeps both buttons in consistent alignment across all rows.
 
 ```tsx
 <td className="p-3 text-right">
@@ -638,14 +638,12 @@ In `src/app/admin/users/users-table.tsx`, change the actions cell:
         </TooltipTrigger>
         <TooltipContent>Edit user</TooltipContent>
       </Tooltip>
-      {!isCurrentUser && (
-        <Tooltip>
-          <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(u)} />}>
-            <Trash2 className="h-4 w-4" />
-          </TooltipTrigger>
-          <TooltipContent>Delete user</TooltipContent>
-        </Tooltip>
-      )}
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" disabled={isCurrentUser} onClick={() => onDelete(u)} />}>
+          <Trash2 className="h-4 w-4" />
+        </TooltipTrigger>
+        <TooltipContent>{isCurrentUser ? "Cannot delete yourself" : "Delete user"}</TooltipContent>
+      </Tooltip>
     </div>
   </TooltipProvider>
 </td>

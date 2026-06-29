@@ -15,7 +15,7 @@ Improve the admin user management table with better action button visuals, conso
 5. Replace the text ghost-buttons (Edit / Reset PW / Delete) with icon buttons: pencil icon for Edit, trash icon for Delete. Each button has a tooltip. Edit highlights blue on hover, Delete highlights red on hover.
 6. Allow an admin user to edit their own profile (email, display name, password) via the Edit dialog.
 7. Forbid an admin user from changing their own role from "admin" to "user" — both in the API and in the UI.
-8. Forbid an admin user from deleting their own account — in both API and UI.
+8. Forbid an admin user from deleting their own account — in both API and UI. The Delete button is shown but disabled for the current user with a tooltip reading "Cannot delete yourself".
 
 ## Architecture
 
@@ -72,7 +72,7 @@ No new files are added. Two files are deleted. Four files are modified.
 
 #### `src/app/admin/users/users-table.tsx`
 
-- Show the Edit (pencil) icon button even for the current user. Only the Delete (trash) icon button remains hidden behind `!isCurrentUser`.
+- Show the Edit (pencil) icon button even for the current user. The Delete (trash) icon button is always rendered but disabled for self with `disabled={isCurrentUser}` and tooltip "Cannot delete yourself", keeping both buttons in consistent alignment across all rows.
 
 #### `src/app/admin/users/edit-user-dialog.tsx`
 
@@ -107,7 +107,7 @@ Email arrives in user's inbox with new password
 - Input is validated at the API boundary: password must be a string; no minimum length is enforced by this spec (existing create-user flow sets no minimum either).
 - Admins can now edit their own profile, but the API explicitly rejects any attempt to change role from "admin" to "user" when editing self.
 - The Edit dialog disables the Role dropdown when editing your own account, preventing accidental role change at the UI level.
-- Self-deletion is always rejected by the API, and the Delete button is hidden in the table for the current user.
+- Self-deletion is always rejected by the API, and the Delete button is disabled in the table for the current user (grayed out, non-clickable) with the tooltip "Cannot delete yourself".
 
 ## Testing
 
