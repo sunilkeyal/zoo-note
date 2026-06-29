@@ -8,7 +8,9 @@ let cachedDb: Db | null = null;
 export async function connectToDatabase(): Promise<Db> {
   if (cachedDb) return cachedDb;
 
-  const client = new MongoClient(MONGODB_URI);
+  const client = new MongoClient(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+  });
   await client.connect();
   cachedClient = client;
   cachedDb = client.db();

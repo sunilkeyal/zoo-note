@@ -36,7 +36,7 @@ describe('connectToDatabase', () => {
 
     await connectToDatabase()
 
-    expect(mockMongoClient).toHaveBeenCalledWith(expect.stringMatching(/^mongodb:\/\//))
+    expect(mockMongoClient).toHaveBeenCalledWith(expect.stringMatching(/^mongodb:\/\//), { serverSelectionTimeoutMS: 5000 })
   })
 
   it('connects the client and gets the database', async () => {
