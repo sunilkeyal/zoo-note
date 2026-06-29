@@ -133,6 +133,7 @@ vi.mock('lucide-react', () => ({
   Video: () => <span>Video</span>,
   FileText: () => <span>FileText</span>,
   File: () => <span>File</span>,
+  FilePlus: () => <span>FilePlus</span>,
   Download: () => <span>Download</span>,
   Code2: () => <span>Code</span>,
   Utensils: () => <span>Utensils</span>,
@@ -258,10 +259,10 @@ describe('NotesSidebar', () => {
     expect(screen.getByText('Beta Note')).toBeInTheDocument()
   })
 
-  it('does not render standalone notes without a folder', () => {
+  it('renders standalone notes without a folder in the root notes section', () => {
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
-    expect(screen.queryByText('Standalone Note')).not.toBeInTheDocument()
+    expect(screen.getByText('Standalone Note')).toBeInTheDocument()
   })
 
   it('shows admin section when user has admin role', () => {

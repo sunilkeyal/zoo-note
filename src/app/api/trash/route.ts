@@ -56,6 +56,7 @@ export async function GET() {
     _id: f._id.toString(),
     name: f.name,
     userId: f.userId || undefined,
+    position: f.position ?? 0,
     createdAt: f.createdAt.toISOString(),
     updatedAt: f.updatedAt.toISOString(),
     isDeleted: true,

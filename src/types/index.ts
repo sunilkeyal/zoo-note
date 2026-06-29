@@ -2,6 +2,7 @@ export interface Folder {
   _id: string;
   name: string;
   userId?: string;
+  position: number;
   createdAt: string;
   updatedAt: string;
   isDeleted?: boolean;
