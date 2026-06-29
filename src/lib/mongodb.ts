@@ -9,7 +9,7 @@ export async function connectToDatabase(): Promise<Db> {
   if (cachedDb) return cachedDb;
 
   const client = new MongoClient(MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 2000,
   });
   await client.connect();
   cachedClient = client;
