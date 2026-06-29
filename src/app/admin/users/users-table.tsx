@@ -150,28 +150,14 @@ export default function UsersTable({
                       <TooltipProvider>
                         <div className="flex justify-end gap-1">
                           <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50"
-                                onClick={() => onEdit(u)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                            <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(u)} />}>
+                              <Pencil className="h-4 w-4" />
                             </TooltipTrigger>
                             <TooltipContent>Edit user</TooltipContent>
                           </Tooltip>
                           <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:text-red-600 hover:bg-red-50"
-                                onClick={() => onDelete(u)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <TooltipTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(u)} />}>
+                              <Trash2 className="h-4 w-4" />
                             </TooltipTrigger>
                             <TooltipContent>Delete user</TooltipContent>
                           </Tooltip>
