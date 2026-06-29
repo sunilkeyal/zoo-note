@@ -274,6 +274,21 @@ export function NoteProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const moveNote = useCallback(async (noteId: string, folderId: string | null, position?: number): Promise<Note | null> => {
+    // Optimistic update for instant visual feedback
+    setNotes((prev) =>
+      sortByPosition(
+        prev.map((n) => {
+          if (n._id !== noteId) return n
+          const updated = { ...n, position: position ?? n.position }
+          if (folderId !== null) {
+            updated.folderId = folderId
+          } else {
+            delete updated.folderId
+          }
+          return updated
+        })
+      )
+    )
     try {
       const body: Record<string, unknown> = {};
       if (folderId !== null) {
@@ -301,6 +316,12 @@ export function NoteProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const moveFolder = useCallback(async (folderId: string, position: number): Promise<Folder | null> => {
+    // Optimistic update for instant visual feedback
+    setFolders((prev) =>
+      sortFoldersByPosition(
+        prev.map((f) => (f._id === folderId ? { ...f, position } : f))
+      )
+    )
     try {
       const res = await fetch(`/api/folders/${folderId}`, {
         method: 'PUT',

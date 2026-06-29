@@ -133,6 +133,7 @@ vi.mock('lucide-react', () => ({
   Video: () => <span>Video</span>,
   FileText: () => <span>FileText</span>,
   File: () => <span>File</span>,
+  FilePlus: () => <span>FilePlus</span>,
   Download: () => <span>Download</span>,
   Code2: () => <span>Code</span>,
   Utensils: () => <span>Utensils</span>,
