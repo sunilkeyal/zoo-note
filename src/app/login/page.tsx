@@ -28,11 +28,12 @@ function LoginForm() {
     })
 
     if (result?.error) {
-      const code = (result as any).code
       setError(
-        code === "AccountDisabled"
+        result.error === "AccountDisabled"
           ? "Your account has been disabled. Please contact an administrator."
-          : "Invalid email or password"
+          : result.error === "Configuration"
+            ? "A system error occurred. Please try again later."
+            : "Invalid email or password"
       )
       setLoading(false)
     } else {
