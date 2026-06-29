@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Folder name is required" }, { status: 400 })
   }
 
+  if (position !== undefined && (typeof position !== 'number' || !Number.isFinite(position))) {
+    return NextResponse.json({ success: false, error: "Position must be a finite number" }, { status: 400 })
+  }
+
   const now = new Date()
 
   // Compute next position if not provided

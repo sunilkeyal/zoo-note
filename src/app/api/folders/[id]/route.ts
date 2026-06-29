@@ -30,6 +30,10 @@ export async function PUT(
     return NextResponse.json({ success: false, error: "At least one field (name or position) is required" }, { status: 400 })
   }
 
+  if (position !== undefined && (typeof position !== 'number' || !Number.isFinite(position))) {
+    return NextResponse.json({ success: false, error: "Position must be a finite number" }, { status: 400 })
+  }
+
   const updateFields: Record<string, unknown> = { updatedAt: new Date() }
   if (name?.trim()) updateFields.name = name.trim()
   if (position !== undefined) updateFields.position = position
