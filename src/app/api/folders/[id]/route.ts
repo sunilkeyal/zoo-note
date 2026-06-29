@@ -24,15 +24,19 @@ export async function PUT(
 
   const db = await connectToDatabase()
   const foldersCollection = db.collection("folders")
-  const { name } = await request.json()
+  const { name, position } = await request.json()
 
-  if (!name || !name.trim()) {
-    return NextResponse.json({ success: false, error: "Folder name is required" }, { status: 400 })
+  if (!name?.trim() && position === undefined) {
+    return NextResponse.json({ success: false, error: "At least one field (name or position) is required" }, { status: 400 })
   }
+
+  const updateFields: Record<string, unknown> = { updatedAt: new Date() }
+  if (name?.trim()) updateFields.name = name.trim()
+  if (position !== undefined) updateFields.position = position
 
   const result = await foldersCollection.findOneAndUpdate(
     { _id: objectId, userId: session.user.id },
-    { $set: { name: name.trim(), updatedAt: new Date() } },
+    { $set: updateFields },
     { returnDocument: "after" }
   )
 
@@ -43,6 +47,7 @@ export async function PUT(
   const folder: Folder = {
     _id: result._id.toString(),
     name: result.name,
+    position: result.position ?? 0,
     createdAt: result.createdAt.toISOString(),
     updatedAt: result.updatedAt.toISOString(),
   }
