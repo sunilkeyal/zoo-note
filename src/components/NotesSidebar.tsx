@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { flushSync } from "react-dom"
 import {
   DndContext,
   DragOverlay,
@@ -504,7 +505,9 @@ export default function NotesSidebar() {
   }
 
   const handleRenameFromContextMenu = (id: string, name: string) => {
-    startRenaming(id, name)
+    flushSync(() => {
+      startRenaming(id, name)
+    })
   }
 
 
@@ -537,7 +540,7 @@ export default function NotesSidebar() {
               </Button>
             } />
             <ContextMenuContent>
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleRenameFromContextMenu(note._id, note.title) }}>
+              <ContextMenuItem onSelect={() => handleRenameFromContextMenu(note._id, note.title)}>
                 <Pencil /> Rename
               </ContextMenuItem>
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
@@ -593,7 +596,7 @@ export default function NotesSidebar() {
                       <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleCreateInFolder(folder._id) }}>
                         <Plus /> Create new note
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleRenameFromContextMenu(folder._id, folder.name) }}>
+                      <ContextMenuItem onSelect={() => handleRenameFromContextMenu(folder._id, folder.name)}>
                         <Pencil /> Rename
                       </ContextMenuItem>
                       <ContextMenuSeparator />
