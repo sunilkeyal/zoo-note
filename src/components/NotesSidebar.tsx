@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { flushSync } from "react-dom"
 import {
   DndContext,
@@ -275,6 +275,8 @@ export default function NotesSidebar() {
 
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const renameInputRef = useRef<HTMLInputElement | null>(null)
+  const ignoreNextBlurRef = useRef(false)
 
   const { data: session } = useSession()
   const pathname = usePathname()
@@ -505,8 +507,13 @@ export default function NotesSidebar() {
   }
 
   const handleRenameFromContextMenu = (id: string, name: string) => {
+    ignoreNextBlurRef.current = true
     flushSync(() => {
       startRenaming(id, name)
+    })
+    requestAnimationFrame(() => {
+      ignoreNextBlurRef.current = false
+      renameInputRef.current?.focus()
     })
   }
 
@@ -519,9 +526,10 @@ export default function NotesSidebar() {
       <Item key={note._id}>
         {renamingId === note._id ? (
           <Input
+            ref={(el) => { renameInputRef.current = el }}
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
-            onBlur={() => finishRename(note._id)}
+            onBlur={() => { if (!ignoreNextBlurRef.current) finishRename(note._id) }}
             onKeyDown={(e) => { if (e.key === "Enter") finishRename(note._id); if (e.key === "Escape") cancelRename() }}
             autoFocus
             className={`h-6 text-xs px-1 ${asRootItem ? "" : "mx-2 my-0.5"}`}
@@ -540,7 +548,7 @@ export default function NotesSidebar() {
               </Button>
             } />
             <ContextMenuContent>
-              <ContextMenuItem onSelect={() => handleRenameFromContextMenu(note._id, note.title)}>
+              <ContextMenuItem onClick={() => handleRenameFromContextMenu(note._id, note.title)}>
                 <Pencil /> Rename
               </ContextMenuItem>
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
@@ -578,9 +586,10 @@ export default function NotesSidebar() {
                         <FolderIconForFolder />
                         {renamingId === folder._id ? (
                           <Input
+                            ref={(el) => { renameInputRef.current = el }}
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
-                            onBlur={() => finishRename(folder._id)}
+                            onBlur={() => { if (!ignoreNextBlurRef.current) finishRename(folder._id) }}
                             onKeyDown={(e) => { if (e.key === "Enter") finishRename(folder._id); if (e.key === "Escape") cancelRename() }}
                             autoFocus
                             className="h-6 text-xs px-1"
@@ -596,7 +605,7 @@ export default function NotesSidebar() {
                       <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleCreateInFolder(folder._id) }}>
                         <Plus /> Create new note
                       </ContextMenuItem>
-                      <ContextMenuItem onSelect={() => handleRenameFromContextMenu(folder._id, folder.name)}>
+                      <ContextMenuItem onClick={() => handleRenameFromContextMenu(folder._id, folder.name)}>
                         <Pencil /> Rename
                       </ContextMenuItem>
                       <ContextMenuSeparator />
