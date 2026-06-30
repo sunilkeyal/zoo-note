@@ -42,8 +42,8 @@ export async function sendUserWelcomeEmail(
   const { error } = await resendClient.emails.send({
     from: emailFrom,
     to,
-    subject: "Your ZooNoteBar account has been created",
-    html: `<p>An admin has created an account for you at ZooNoteBar.</p><p>Your temporary password is: <strong>${temporaryPassword}</strong></p><p>Please log in and change your password.</p>`,
+    subject: "Your ZooNote account has been created",
+    html: `<p>An admin has created an account for you at ZooNote.</p><p>Your temporary password is: <strong>${temporaryPassword}</strong></p><p>Please log in and change your password.</p>`,
   })
 
   if (error) {
@@ -64,8 +64,8 @@ export async function sendPasswordResetByAdminEmail(
   const { error } = await resendClient.emails.send({
     from: emailFrom,
     to,
-    subject: "Your ZooNoteBar password has been reset",
-    html: `<p>An admin has reset your ZooNoteBar password.</p><p>Your new temporary password is: <strong>${temporaryPassword}</strong></p><p>Please log in and change your password.</p>`,
+    subject: "Your ZooNote password has been reset",
+    html: `<p>An admin has reset your ZooNote password.</p><p>Your new temporary password is: <strong>${temporaryPassword}</strong></p><p>Please log in and change your password.</p>`,
   })
 
   if (error) {

@@ -44,7 +44,7 @@ function LoginForm() {
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-4">
-        <img src="/ZooNoteBar.png" alt="ZooNoteBar" className="size-16 rounded-xl" />
+        <img src="/ZooNote.png" alt="ZooNote" className="size-16 rounded-xl" />
       <Card className="w-full max-w-sm">
         <form onSubmit={handleSubmit}>
           <CardHeader>

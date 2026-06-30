@@ -646,8 +646,8 @@ export default function NotesSidebar() {
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2 px-1 py-1">
-            <img src="/ZooNoteBar.png" alt="ZooNoteBar" className="size-6 rounded-sm" />
-            <span className="text-sm font-semibold">ZooNoteBar</span>
+            <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
+            <span className="text-sm font-semibold">ZooNote</span>
           </div>
           <TooltipProvider delay={0}>
           <div className="flex items-center gap-0.5 px-1 pb-1">

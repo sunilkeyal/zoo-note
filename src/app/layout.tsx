@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "ZooNoteBar",
-  description: "ZooNoteBar — your personal notes workspace",
-  icons: { icon: '/ZooNoteBar.png' },
+  title: "ZooNote",
+  description: "ZooNote — your personal notes workspace",
+  icons: { icon: '/ZooNote.png' },
 }
 
 export default function RootLayout({

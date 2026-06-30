@@ -371,7 +371,7 @@ describe('NotesSidebar', () => {
   it('shows sidebar header with app name', () => {
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
-    expect(screen.getByText('ZooNoteBar')).toBeInTheDocument()
+    expect(screen.getByText('ZooNote')).toBeInTheDocument()
   })
 
   it('shows expand all and collapse all buttons', () => {

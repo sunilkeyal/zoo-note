@@ -87,7 +87,7 @@ describe('sendUserWelcomeEmail', () => {
     expect(mockResendSend).toHaveBeenCalledWith({
       from: 'noreply@test.com',
       to: 'test@test.com',
-      subject: 'Your ZooNoteBar account has been created',
+      subject: 'Your ZooNote account has been created',
       html: expect.stringContaining('TempPass123!'),
     })
   })
@@ -140,7 +140,7 @@ describe('sendPasswordResetByAdminEmail', () => {
     expect(mockResendSend).toHaveBeenCalledWith({
       from: 'noreply@test.com',
       to: 'test@test.com',
-      subject: 'Your ZooNoteBar password has been reset',
+      subject: 'Your ZooNote password has been reset',
       html: expect.stringContaining('NewPass456!'),
     })
   })
