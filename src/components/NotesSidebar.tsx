@@ -532,7 +532,7 @@ export default function NotesSidebar() {
             onBlur={() => { if (!ignoreNextBlurRef.current) finishRename(note._id) }}
             onKeyDown={(e) => { if (e.key === "Enter") finishRename(note._id); if (e.key === "Escape") cancelRename() }}
             autoFocus
-            className={`h-6 text-xs px-1 ${asRootItem ? "" : "mx-2 my-0.5"}`}
+            className={`h-6 text-xs px-1 ${asRootItem ? "my-1" : "mx-2 my-0.5"}`}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           />
