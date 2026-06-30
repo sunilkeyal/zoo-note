@@ -541,6 +541,7 @@ export default function NotesSidebar() {
             <ContextMenuTrigger render={
               <Button
                 isActive={activeNoteId === note._id}
+                className={asRootItem ? "data-active:font-normal" : undefined}
                 onClick={() => { setActiveNoteId(note._id); setActiveFolderId(null); if (pathname !== "/") router.push("/") }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
