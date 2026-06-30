@@ -32,9 +32,6 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
 } from "@/components/ui/context-menu"
 import { Folder, Note } from "@/types"
 import { Button } from "@/components/ui/button"
@@ -82,16 +79,18 @@ import {
   Download,
   Code2,
   Utensils,
-  Heart,
   StickyNote,
   FilePlus,
   Lightbulb,
   Star,
-  Dumbbell,
   DollarSign,
+  Dumbbell,
   Plane,
   ShoppingCart,
   HeartPulse,
+  Car,
+  BookOpen,
+  Info,
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
@@ -109,46 +108,95 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 
 const folderIcons: Record<string, typeof FolderIcon> = {
+  // Work
   work: Briefcase,
   office: Briefcase,
   business: Briefcase,
+  // Personal
   personal: User,
   private: User,
+  // School / Education
   school: GraduationCap,
   study: GraduationCap,
   education: GraduationCap,
+  // Learning
+  learning: BookOpen,
+  reading: BookOpen,
+  books: BookOpen,
+  book: BookOpen,
+  library: BookOpen,
+  courses: BookOpen,
+  course: BookOpen,
+  // Music
   music: Music,
   songs: Music,
   audio: Music,
+  // Photos
   photos: Image,
   images: Image,
   pictures: Image,
+  // Videos
   videos: Video,
   movies: Video,
   films: Video,
+  // Documents
   documents: FileText,
   docs: FileText,
   files: FileText,
+  notes: FileText,
+  // Downloads
   downloads: Download,
+  // Projects / Code
   projects: Code2,
   software: Code2,
+  // Recipes / Food
   recipes: Utensils,
   cooking: Utensils,
-  health: Heart,
-  fitness: Heart,
+  food: Utensils,
+  // Health / Medical
+  health: HeartPulse,
+  medical: HeartPulse,
+  doctor: HeartPulse,
+  // Fitness / Sports
+  fitness: Dumbbell,
   sports: Dumbbell,
+  gym: Dumbbell,
+  workout: Dumbbell,
+  // Finance
   finance: DollarSign,
   money: DollarSign,
   budget: DollarSign,
+  // Travel
   travel: Plane,
   trips: Plane,
   vacation: Plane,
+  itinerary: Plane,
+  // Shopping
   shopping: ShoppingCart,
-  medical: HeartPulse,
-  notes: StickyNote,
+  stores: ShoppingCart,
+  // Ideas
   ideas: Lightbulb,
+  // Starred
   starred: Star,
   favorites: Star,
+  // Automotive
+  auto: Car,
+  car: Car,
+  vehicle: Car,
+  garage: Car,
+  // Information
+  information: Info,
+  info: Info,
+  reference: Info,
+  faq: Info,
+  help: Info,
+  wiki: Info,
+  // Meetings
+  meetings: Users,
+  meeting: Users,
+  conference: Users,
+  agenda: Users,
+  team: Users,
 }
 
 function getFolderIcon(name: string) {
@@ -271,6 +319,8 @@ export default function NotesSidebar() {
     const note = await createNote({ title: "Untitled Note", position })
     if (note) {
       setActiveNoteId(note._id)
+      setRenamingId(note._id)
+      setRenameValue("Untitled Note")
     }
   }
 
@@ -287,6 +337,8 @@ export default function NotesSidebar() {
         toggleFolder(folderId)
       }
       setActiveNoteId(note._id)
+      setRenamingId(note._id)
+      setRenameValue("Untitled Note")
     }
   }
 
@@ -452,7 +504,7 @@ export default function NotesSidebar() {
   }
 
   const handleRenameFromContextMenu = (id: string, name: string) => {
-    setTimeout(() => startRenaming(id, name), 0)
+    startRenaming(id, name)
   }
 
 
@@ -471,6 +523,7 @@ export default function NotesSidebar() {
             autoFocus
             className={`h-6 text-xs px-1 ${asRootItem ? "" : "mx-2 my-0.5"}`}
             onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           />
         ) : (
           <ContextMenu>
@@ -487,19 +540,9 @@ export default function NotesSidebar() {
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleRenameFromContextMenu(note._id, note.title) }}>
                 <Pencil /> Rename
               </ContextMenuItem>
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>
-                  <Download /> Download
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent>
-                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "markdown") }}>
-                    <FileText /> Markdown
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
-                    <File /> PDF
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
+                <File /> Download PDF
+              </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
                 <Trash2 /> Move to trash
@@ -539,6 +582,7 @@ export default function NotesSidebar() {
                             autoFocus
                             className="h-6 text-xs px-1"
                             onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                           />
                         ) : (
                           <span className="flex-1 truncate text-left">{folder.name}</span>

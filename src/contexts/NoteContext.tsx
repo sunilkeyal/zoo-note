@@ -64,7 +64,16 @@ export function NoteProvider({ children }: { children: ReactNode }) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [activeNoteId, setActiveNoteIdState] = useState<string | null>(() => {
+    try { return localStorage.getItem('activeNoteId') } catch { return null }
+  });
+  const setActiveNoteId = useCallback((id: string | null) => {
+    setActiveNoteIdState(id);
+    try {
+      if (id) localStorage.setItem('activeNoteId', id);
+      else localStorage.removeItem('activeNoteId');
+    } catch { /* localStorage unavailable */ }
+  }, []);
   const [trashItems, setTrashItems] = useState<{ notes: Note[]; folders: Folder[] }>({ notes: [], folders: [] });
   const [trashLoading, setTrashLoading] = useState(false);
   const [trashError, setTrashError] = useState<string | null>(null);
@@ -344,6 +353,12 @@ export function NoteProvider({ children }: { children: ReactNode }) {
     fetchNotes();
     fetchFolders();
   }, [fetchNotes, fetchFolders]);
+
+  useEffect(() => {
+    if (!loading && activeNoteId && !notes.find(n => n._id === activeNoteId)) {
+      setActiveNoteId(null);
+    }
+  }, [loading, notes, activeNoteId, setActiveNoteId]);
 
   const value = useMemo<NoteContextValue>(() => ({
     notes,

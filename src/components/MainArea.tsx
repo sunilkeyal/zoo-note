@@ -181,7 +181,7 @@ export default function MainArea() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (activeNote) setTitle(activeNote.title)
-  }, [activeNote?._id])
+  }, [activeNote?._id, activeNote?.title])
 
   const handleTitleChange = useCallback((id: string, value: string) => {
     setTitle(value)
