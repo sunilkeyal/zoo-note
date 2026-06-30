@@ -497,12 +497,11 @@ export default function MainArea() {
         </div>
       )}
 
-      <div className="px-10 pt-3 pb-0 max-w-[1140px] w-full">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-3 pb-0 w-full md:max-w-[900px] lg:max-w-[1140px] mx-auto">
         <Input
           value={title}
           onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
-          className="font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0"
-          style={{ fontSize: "21px" }}
+          className="font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0 text-xl md:text-[21px]"
           placeholder="Untitled"
         />
         <p className="text-xs text-muted-foreground mt-1">
@@ -511,7 +510,7 @@ export default function MainArea() {
         <Separator className="mt-2" />
       </div>
 
-      <div className="flex-1 overflow-auto px-10 max-w-[1140px] w-full py-4">
+      <div className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 mx-auto pb-16 md:pb-4">
         <NoteEditor note={activeNote} editor={editor} />
       </div>
     </div>
