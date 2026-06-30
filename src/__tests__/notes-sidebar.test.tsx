@@ -158,6 +158,9 @@ vi.mock('lucide-react', () => ({
   ScrollText: () => <span>ScrollText</span>,
   BarChart3: () => <span>BarChart</span>,
   UserIcon: () => <span>UserIcon</span>,
+  House: () => <span>House</span>,
+  Clock: () => <span>Clock</span>,
+  CalendarDays: () => <span>CalendarDays</span>,
 }))
 
 import { useNotes } from '@/contexts/NoteContext'
@@ -235,13 +238,13 @@ describe('NotesSidebar', () => {
     expect(screen.getByTestId('sidebar')).toBeInTheDocument()
   })
 
-  it('renders Notes section', () => {
+  it('renders home navigation link', () => {
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
-    expect(screen.getByText('Notes')).toBeInTheDocument()
+    expect(screen.getByText('Home')).toBeInTheDocument()
   })
 
-  it('renders Trash link in footer', () => {
+  it('renders trash link', () => {
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
     expect(screen.getByText('Trash')).toBeInTheDocument()

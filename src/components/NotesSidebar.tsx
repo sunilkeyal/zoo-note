@@ -80,6 +80,9 @@ import {
   Download,
   Code2,
   Utensils,
+  House,
+  Clock,
+  CalendarDays,
   StickyNote,
   FilePlus,
   Lightbulb,
@@ -653,7 +656,7 @@ export default function NotesSidebar() {
           <div className="flex items-center gap-0.5 px-1 pb-1">
             <Tooltip>
               <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleCreateRootNote} />}>
-                <FilePlus />
+                <Plus />
               </TooltipTrigger>
               <TooltipContent>New note</TooltipContent>
             </Tooltip>
@@ -670,16 +673,16 @@ export default function NotesSidebar() {
               <TooltipContent>Search</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => folders.forEach((f) => { if (expandedFolders.has(f._id)) toggleFolder(f._id) })} />}>
-                <ChevronsUpDown />
-              </TooltipTrigger>
-              <TooltipContent>Collapse all</TooltipContent>
-            </Tooltip>
-            <Tooltip>
               <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => folders.forEach((f) => { if (!expandedFolders.has(f._id)) toggleFolder(f._id) })} />}>
                 <ChevronsDownUp />
               </TooltipTrigger>
               <TooltipContent>Expand all</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => folders.forEach((f) => { if (expandedFolders.has(f._id)) toggleFolder(f._id) })} />}>
+                <ChevronsUpDown />
+              </TooltipTrigger>
+              <TooltipContent>Collapse all</TooltipContent>
             </Tooltip>
           </div>
           </TooltipProvider>
@@ -698,15 +701,46 @@ export default function NotesSidebar() {
         </SidebarHeader>
 
         <SidebarContent>
+          {/* Primary navigation */}
+          <SidebarGroup className="py-0">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null) }}>
+                    <House />
+                    <span>Home</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")}>
+                    <Star />
+                    <span>Favorites</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")}>
+                    <Clock />
+                    <span>Recent</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")}>
+                    <CalendarDays />
+                    <span>Calendar</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator className="my-2" />
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={handleDragStartFn}
             onDragEnd={handleDragEndFn}
           >
-            <div className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-              Notes
-            </div>
             <SortableContext items={folders.map(f => f._id)} strategy={verticalListSortingStrategy}>
               {folders.map(renderFolder)}
             </SortableContext>
@@ -750,6 +784,24 @@ export default function NotesSidebar() {
             </DragOverlay>
           </DndContext>
 
+          {(folders.length > 0 || notes.length > 0) && (
+            <SidebarSeparator className="my-2" />
+          )}
+
+          {/* Trash */}
+          <SidebarGroup className="py-0">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")}>
+                    <Trash2 />
+                    <span>Trash</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
           {/* Admin section — admin users only */}
           {session?.user?.role === "admin" && (
             <>
@@ -775,16 +827,6 @@ export default function NotesSidebar() {
           )}
         </SidebarContent>
         <SidebarFooter>
-          {/* Trash — pinned above user footer */}
-          <SidebarSeparator />
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")}>
-                <Trash2 />
-                <span>Trash</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
           <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>

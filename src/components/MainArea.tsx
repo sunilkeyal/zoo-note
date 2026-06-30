@@ -477,9 +477,8 @@ export default function MainArea() {
                     <Image className="h-4 w-4" />
                   </button>
                 }
-              >
-                <TooltipContent>Insert image</TooltipContent>
-              </TooltipTrigger>
+              />
+              <TooltipContent>Insert image</TooltipContent>
             </Tooltip>
             <input
               ref={fileInputRef}
