@@ -182,7 +182,7 @@ export default function RecentPage() {
       {/* Hero card */}
       {hero && (
         <ContextMenu>
-          <ContextMenuTrigger asChild>
+          <ContextMenuTrigger>
             <div
               onClick={() => handleNoteClick(hero._id)}
               className="p-5 rounded-xl border-2 border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-900/10 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors cursor-pointer"
@@ -214,7 +214,7 @@ export default function RecentPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {rest.map(note => (
             <ContextMenu key={note._id}>
-              <ContextMenuTrigger asChild>
+              <ContextMenuTrigger>
                 <div
                   onClick={() => handleNoteClick(note._id)}
                   className="flex flex-col gap-2 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
