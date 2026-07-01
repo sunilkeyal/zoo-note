@@ -553,6 +553,11 @@ export default function NotesSidebar() {
                 onClick={() => { setActiveNoteId(note._id); setActiveFolderId(null); if (pathname !== "/") router.push("/") }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
+                {note.isFavorite && (
+                  <span className="flex items-center">
+                    <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                  </span>
+                )}
                 <span className="truncate">{note.title}</span>
               </Button>
             } />
