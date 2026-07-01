@@ -152,7 +152,7 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 overflow-auto bg-background">
-      <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 space-y-8 w-full md:max-w-[900px] lg:max-w-[1140px]">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-2 pb-4 sm:pt-3 sm:pb-6 space-y-8 w-full md:max-w-[900px] lg:max-w-[1140px]">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <Image
@@ -185,13 +185,27 @@ export default function HomePage() {
         {/* Sections - Mobile */}
         <div className="space-y-8 sm:hidden">
           <NoteSection
+            title="Favorites"
+            icon={<Star className="h-5 w-5 text-amber-500" />}
+            notes={favoriteNotes.slice(0, 5)}
+            viewAllHref="/favorites"
+            emptyMessage={searchQuery ? "No notes match your search" : "No favorite notes yet. Star notes to see them here!"}
+            onNoteClick={handleNoteClick}
+            onToggleFavorite={toggleFavorite}
+          />
+          <NoteSection
             title="Recent Notes"
             icon={<FileText className="h-5 w-5 text-primary" />}
             notes={filteredNotes.slice(0, 5)}
             viewAllHref="/recent"
             emptyMessage={searchQuery ? "No notes match your search" : "No recent notes yet. Create your first note!"}
             onNoteClick={handleNoteClick}
+            onToggleFavorite={toggleFavorite}
           />
+        </div>
+
+        {/* Sections - Desktop */}
+        <div className="hidden sm:grid sm:grid-cols-2 gap-6">
           <NoteSection
             title="Favorites"
             icon={<Star className="h-5 w-5 text-amber-500" />}
@@ -201,24 +215,12 @@ export default function HomePage() {
             onNoteClick={handleNoteClick}
             onToggleFavorite={toggleFavorite}
           />
-        </div>
-
-        {/* Sections - Desktop */}
-        <div className="hidden sm:grid sm:grid-cols-2 gap-6">
           <NoteSection
             title="Recent Notes"
             icon={<FileText className="h-5 w-5 text-primary" />}
             notes={filteredNotes.slice(0, 5)}
             viewAllHref="/recent"
             emptyMessage={searchQuery ? "No notes match your search" : "No recent notes yet. Create your first note!"}
-            onNoteClick={handleNoteClick}
-          />
-          <NoteSection
-            title="Favorites"
-            icon={<Star className="h-5 w-5 text-amber-500" />}
-            notes={favoriteNotes.slice(0, 5)}
-            viewAllHref="/favorites"
-            emptyMessage={searchQuery ? "No notes match your search" : "No favorite notes yet. Star notes to see them here!"}
             onNoteClick={handleNoteClick}
             onToggleFavorite={toggleFavorite}
           />

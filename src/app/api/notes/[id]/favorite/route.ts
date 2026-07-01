@@ -35,7 +35,6 @@ export async function PATCH(
   const isCurrentlyFavorite = !!note.isFavorite
   const update: Record<string, unknown> = {
     isFavorite: !isCurrentlyFavorite,
-    updatedAt: new Date(),
   }
   if (!isCurrentlyFavorite) {
     update.favoritedAt = new Date()

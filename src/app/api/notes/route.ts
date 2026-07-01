@@ -14,7 +14,7 @@ export async function GET() {
 
   const notes = await collection
     .find({ userId: session.user.id, isDeleted: { $ne: true } })
-    .project({ title: 1, content: 1, folderId: 1, position: 1, createdAt: 1, updatedAt: 1, userId: 1 })
+    .project({ title: 1, content: 1, folderId: 1, position: 1, isFavorite: 1, favoritedAt: 1, createdAt: 1, updatedAt: 1, userId: 1 })
     .sort({ position: 1, updatedAt: -1 })
     .toArray()
 
@@ -25,6 +25,8 @@ export async function GET() {
     folderId: n.folderId || undefined,
     userId: n.userId || undefined,
     position: n.position ?? 0,
+    isFavorite: n.isFavorite ?? false,
+    favoritedAt: n.favoritedAt?.toISOString?.() || n.favoritedAt || undefined,
     createdAt: n.createdAt.toISOString(),
     updatedAt: n.updatedAt.toISOString(),
   }))

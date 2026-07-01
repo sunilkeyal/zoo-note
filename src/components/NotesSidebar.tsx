@@ -858,6 +858,7 @@ export default function NotesSidebar() {
                     <span className="truncate font-semibold">{session?.user?.name || "User"}</span>
                     <span className="truncate text-xs">{(session?.user as { role?: string })?.role || ""}</span>
                   </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>} />
                 <DropdownMenuContent
                   className="min-w-56 rounded-lg"
