@@ -86,8 +86,8 @@ export function NoteProvider({ children }: { children: ReactNode }) {
     () => notes
       .filter((n) => n.isFavorite)
       .sort((a, b) => {
-        const aTime = a.favoritedAt ? new Date(a.favoritedAt).getTime() : 0
-        const bTime = b.favoritedAt ? new Date(b.favoritedAt).getTime() : 0
+        const aTime = a.favoritedAt ? new Date(a.favoritedAt).getTime() : new Date(a.updatedAt).getTime()
+        const bTime = b.favoritedAt ? new Date(b.favoritedAt).getTime() : new Date(b.updatedAt).getTime()
         return bTime - aTime
       }),
     [notes]
@@ -193,9 +193,12 @@ export function NoteProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleFavorite = useCallback(async (id: string): Promise<Note | null> => {
-    // Optimistic update
-    setNotes((prev) =>
-      prev.map((n) => {
+    // Save original note state for revert
+    let originalNote: Note | undefined
+    setNotes((prev) => {
+      const original = prev.find((n) => n._id === id)
+      if (original) originalNote = original
+      return prev.map((n) => {
         if (n._id !== id) return n
         const isCurrentlyFavorite = !!n.isFavorite
         return {
@@ -204,7 +207,7 @@ export function NoteProvider({ children }: { children: ReactNode }) {
           favoritedAt: !isCurrentlyFavorite ? new Date().toISOString() : undefined,
         }
       })
-    )
+    })
     try {
       const res = await fetch(`/api/notes/${id}/favorite`, { method: 'PATCH' })
       const json: ApiResponse<Note> = await res.json()
@@ -213,31 +216,15 @@ export function NoteProvider({ children }: { children: ReactNode }) {
         return json.data
       }
       // Revert on API failure
-      setNotes((prev) =>
-        prev.map((n) => {
-          if (n._id !== id) return n
-          const wasFavorite = !n.isFavorite
-          return {
-            ...n,
-            isFavorite: wasFavorite,
-            favoritedAt: wasFavorite ? new Date().toISOString() : undefined,
-          }
-        })
-      )
+      if (originalNote) {
+        setNotes((prev) => prev.map((n) => (n._id === id ? originalNote! : n)))
+      }
       return null
     } catch {
       // Revert on network error
-      setNotes((prev) =>
-        prev.map((n) => {
-          if (n._id !== id) return n
-          const wasFavorite = !n.isFavorite
-          return {
-            ...n,
-            isFavorite: wasFavorite,
-            favoritedAt: wasFavorite ? new Date().toISOString() : undefined,
-          }
-        })
-      )
+      if (originalNote) {
+        setNotes((prev) => prev.map((n) => (n._id === id ? originalNote! : n)))
+      }
       return null
     }
   }, [])
