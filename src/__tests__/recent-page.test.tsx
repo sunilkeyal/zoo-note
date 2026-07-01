@@ -29,6 +29,8 @@ import RecentPage from '@/app/recent/page'
 
 const mockUseNotes = useNotes as ReturnType<typeof vi.fn>
 
+const FOLDER_WORK = { _id: 'f1', name: 'Work', position: 0, createdAt: '', updatedAt: '' }
+
 const NOTE_A = {
   _id: '1', title: 'Alpha Note', content: '<p>Alpha content</p>',
   folderId: 'f1', folderName: 'Work',
@@ -45,6 +47,7 @@ const NOTE_B = {
 function baseContext(overrides = {}) {
   return {
     notes: [NOTE_B, NOTE_A], // intentionally unsorted — page must sort
+    folders: [FOLDER_WORK],
     loading: false,
     error: null,
     setActiveNoteId: vi.fn(),
@@ -76,6 +79,12 @@ describe('RecentPage', () => {
   it('shows remaining notes in the grid', () => {
     render(<RecentPage />)
     expect(screen.getByText('Beta Note')).toBeInTheDocument()
+  })
+
+  it('shows the folder name in the card footer', () => {
+    render(<RecentPage />)
+    // NOTE_A has folderId 'f1' which maps to 'Work'
+    expect(screen.getAllByText('Work').length).toBeGreaterThan(0)
   })
 
   it('strips HTML from content previews', () => {

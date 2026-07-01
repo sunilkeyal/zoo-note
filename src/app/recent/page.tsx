@@ -28,12 +28,13 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString()
 }
 
-function NoteFooter({ note }: { note: Note }) {
+function NoteFooter({ note, folderMap }: { note: Note; folderMap: Map<string, string> }) {
+  const folderName = note.folderId ? folderMap.get(note.folderId) : undefined
   return (
     <div className="flex items-center justify-between mt-3 pt-3 border-t">
-      {note.folderName ? (
+      {folderName ? (
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Folder className="h-3 w-3" />{note.folderName}
+          <Folder className="h-3 w-3" />{folderName}
         </span>
       ) : <span />}
       <span className="text-xs text-muted-foreground">{formatRelativeTime(note.updatedAt)}</span>
@@ -42,9 +43,14 @@ function NoteFooter({ note }: { note: Note }) {
 }
 
 export default function RecentPage() {
-  const { notes, loading, error, setActiveNoteId, expandedFolders, toggleFolder, fetchNotes } = useNotes()
+  const { notes, folders, loading, error, setActiveNoteId, expandedFolders, toggleFolder, fetchNotes } = useNotes()
   const [filter, setFilter] = useState("")
   const router = useRouter()
+
+  const folderMap = useMemo(
+    () => new Map(folders.map(f => [f._id, f.name])),
+    [folders]
+  )
 
   const sortedNotes = useMemo(
     () => [...notes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
@@ -130,7 +136,7 @@ export default function RecentPage() {
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
             {stripHtml(hero.content) || "No content"}
           </p>
-          <NoteFooter note={hero} />
+          <NoteFooter note={hero} folderMap={folderMap} />
         </div>
       )}
 
@@ -153,9 +159,9 @@ export default function RecentPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between pl-7">
-                {note.folderName ? (
+                {note.folderId && folderMap.get(note.folderId) ? (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Folder className="h-3 w-3" />{note.folderName}
+                    <Folder className="h-3 w-3" />{folderMap.get(note.folderId)}
                   </span>
                 ) : <span />}
                 <span className="text-xs text-muted-foreground">{formatRelativeTime(note.updatedAt)}</span>
