@@ -5,7 +5,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useNotes } from "@/contexts/NoteContext"
-import { cn } from "@/lib/utils"
+import { cn, stripHtml } from "@/lib/utils"
 import { FileText, Star, Search, Plus, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,10 +26,6 @@ function formatRelativeTime(dateStr: string): string {
   const diffWeeks = Math.floor(diffDays / 7)
   if (diffWeeks < 8) return `${diffWeeks}w ago`
   return new Date(dateStr).toLocaleDateString()
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim()
 }
 
 interface NoteSectionProps {
@@ -127,6 +123,9 @@ export default function HomePage() {
       toggleFolder(note.folderId)
     }
     setActiveNoteId(id)
+    if (searchQuery.trim()) {
+      router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`)
+    }
   }
 
   if (loading) {
@@ -182,49 +181,90 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Sections - Mobile */}
-        <div className="space-y-8 sm:hidden">
-          <NoteSection
-            title="Favorites"
-            icon={<Star className="h-5 w-5 text-amber-500" />}
-            notes={favoriteNotes.slice(0, 5)}
-            viewAllHref="/favorites"
-            emptyMessage={searchQuery ? "No notes match your search" : "No favorite notes yet. Star notes to see them here!"}
-            onNoteClick={handleNoteClick}
-            onToggleFavorite={toggleFavorite}
-          />
-          <NoteSection
-            title="Recent Notes"
-            icon={<FileText className="h-5 w-5 text-primary" />}
-            notes={filteredNotes.slice(0, 5)}
-            viewAllHref="/recent"
-            emptyMessage={searchQuery ? "No notes match your search" : "No recent notes yet. Create your first note!"}
-            onNoteClick={handleNoteClick}
-            onToggleFavorite={toggleFavorite}
-          />
-        </div>
-
-        {/* Sections - Desktop */}
-        <div className="hidden sm:grid sm:grid-cols-2 gap-6">
-          <NoteSection
-            title="Favorites"
-            icon={<Star className="h-5 w-5 text-amber-500" />}
-            notes={favoriteNotes.slice(0, 5)}
-            viewAllHref="/favorites"
-            emptyMessage={searchQuery ? "No notes match your search" : "No favorite notes yet. Star notes to see them here!"}
-            onNoteClick={handleNoteClick}
-            onToggleFavorite={toggleFavorite}
-          />
-          <NoteSection
-            title="Recent Notes"
-            icon={<FileText className="h-5 w-5 text-primary" />}
-            notes={filteredNotes.slice(0, 5)}
-            viewAllHref="/recent"
-            emptyMessage={searchQuery ? "No notes match your search" : "No recent notes yet. Create your first note!"}
-            onNoteClick={handleNoteClick}
-            onToggleFavorite={toggleFavorite}
-          />
-        </div>
+        {/* Search Results or Sections */}
+        {searchQuery.trim() ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Search results for &ldquo;{searchQuery}&rdquo; &mdash; {filteredNotes.length} {filteredNotes.length === 1 ? "note" : "notes"} found
+            </p>
+            {filteredNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No notes match your search.</p>
+            ) : (
+              <div className="space-y-2">
+                {filteredNotes.map((note) => (
+                  <div
+                    key={note._id}
+                    className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => handleNoteClick(note._id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{note.title || "Untitled"}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {stripHtml(note.content) || "No content"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}
+                        className="text-muted-foreground hover:text-amber-500 transition-colors"
+                      >
+                        <Star className={`h-4 w-4 ${note.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
+                      </button>
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeTime(note.updatedAt)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Sections - Mobile */}
+            <div className="space-y-8 sm:hidden">
+              <NoteSection
+                title="Favorites"
+                icon={<Star className="h-5 w-5 text-amber-500" />}
+                notes={favoriteNotes.slice(0, 5)}
+                viewAllHref="/favorites"
+                emptyMessage="No favorite notes yet. Star notes to see them here!"
+                onNoteClick={handleNoteClick}
+                onToggleFavorite={toggleFavorite}
+              />
+              <NoteSection
+                title="Recent Notes"
+                icon={<FileText className="h-5 w-5 text-primary" />}
+                notes={filteredNotes.slice(0, 5)}
+                viewAllHref="/recent"
+                emptyMessage="No recent notes yet. Create your first note!"
+                onNoteClick={handleNoteClick}
+                onToggleFavorite={toggleFavorite}
+              />
+            </div>
+            {/* Sections - Desktop */}
+            <div className="hidden sm:grid sm:grid-cols-2 gap-6">
+              <NoteSection
+                title="Favorites"
+                icon={<Star className="h-5 w-5 text-amber-500" />}
+                notes={favoriteNotes.slice(0, 5)}
+                viewAllHref="/favorites"
+                emptyMessage="No favorite notes yet. Star notes to see them here!"
+                onNoteClick={handleNoteClick}
+                onToggleFavorite={toggleFavorite}
+              />
+              <NoteSection
+                title="Recent Notes"
+                icon={<FileText className="h-5 w-5 text-primary" />}
+                notes={filteredNotes.slice(0, 5)}
+                viewAllHref="/recent"
+                emptyMessage="No recent notes yet. Create your first note!"
+                onNoteClick={handleNoteClick}
+                onToggleFavorite={toggleFavorite}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
