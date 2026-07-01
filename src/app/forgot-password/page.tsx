@@ -48,6 +48,8 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <div className="flex min-h-svh items-center justify-center p-4">
+        <div className="w-full max-w-sm flex flex-col items-center gap-4">
+          <img src="/ZooNote.png" alt="ZooNote" className="size-48 rounded-xl" />
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle>Check your email</CardTitle>
@@ -64,14 +66,17 @@ export default function ForgotPasswordPage() {
             </a>
           </CardFooter>
         </Card>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
+      <div className="w-full max-w-sm flex flex-col items-center gap-4">
+        <img src="/ZooNote.png" alt="ZooNote" className="size-48 rounded-xl" />
       <Card className="w-full max-w-sm">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="contents">
           <CardHeader>
             <CardTitle>Forgot password</CardTitle>
             <CardDescription>
@@ -112,6 +117,7 @@ export default function ForgotPasswordPage() {
           </CardFooter>
         </form>
       </Card>
+      </div>
     </div>
   )
 }
