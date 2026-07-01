@@ -24,6 +24,15 @@ vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }))
 
+vi.mock('@/components/AccountSheet', () => ({
+  default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <div data-testid="account-sheet">
+        <button onClick={onClose}>Close Account</button>
+      </div>
+    ) : null,
+}))
+
 vi.mock('@/components/DeleteConfirmDialog', () => ({
   default: ({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) =>
     open ? <div data-testid="delete-confirm"><button onClick={onClose}>Cancel</button><button onClick={onConfirm}>Confirm Delete</button></div> : null,
@@ -209,7 +218,10 @@ function createMockContext(overrides: Record<string, unknown> = {}) {
     renameFolder: vi.fn(),
     deleteFolder: vi.fn(),
     moveNote: vi.fn(),
+    moveFolder: vi.fn(),
     toggleFolder: vi.fn(),
+    favoriteNotes: [] as string[],
+    toggleFavorite: vi.fn(),
     trashItems: { notes: [], folders: [] },
     trashLoading: false,
     trashError: null,
@@ -382,5 +394,44 @@ describe('NotesSidebar', () => {
     renderSidebar()
     const expandButtons = screen.getAllByText(/>|</)
     expect(expandButtons.length).toBeGreaterThan(0)
+  })
+})
+
+describe("Account menu item", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(useNotes).mockReturnValue(createMockContext({ notes: [], folders: [] }))
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Test User', email: 'test@example.com', role: 'user' } },
+      status: 'authenticated',
+      update: vi.fn(),
+    } as any)
+  })
+
+  it("renders Account menu item (not disabled)", () => {
+    render(<NotesSidebar />)
+    // Open the user dropdown by clicking the trigger
+    const trigger = screen.getByText('Test User')
+    fireEvent.click(trigger)
+    const accountItem = screen.getByText('Account')
+    expect(accountItem.closest('[data-disabled]')).toBeNull()
+  })
+
+  it("opens AccountSheet when Account item is clicked", async () => {
+    render(<NotesSidebar />)
+    const trigger = screen.getByText('Test User')
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByText('Account'))
+    expect(await screen.findByTestId('account-sheet')).toBeInTheDocument()
+  })
+
+  it("closes AccountSheet when sheet's close is triggered", async () => {
+    render(<NotesSidebar />)
+    const trigger = screen.getByText('Test User')
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByText('Account'))
+    expect(await screen.findByTestId('account-sheet')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Close Account'))
+    expect(screen.queryByTestId('account-sheet')).not.toBeInTheDocument()
   })
 })

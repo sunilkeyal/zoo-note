@@ -20,6 +20,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useNotes } from "@/contexts/NoteContext"
+import AccountSheet from "./AccountSheet"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
 import {
@@ -269,6 +270,7 @@ export default function NotesSidebar() {
 
   const [search, setSearch] = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null)
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
@@ -880,11 +882,11 @@ export default function NotesSidebar() {
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem disabled>
-                    <Settings /> Settings
+                  <DropdownMenuItem onClick={() => setAccountOpen(true)}>
+                    <UserIcon /> Account
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled>
-                    <UserIcon /> Account
+                    <Settings /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled>
                     <Rocket /> Upgrade to Pro
@@ -900,6 +902,7 @@ export default function NotesSidebar() {
         </SidebarFooter>
       </Sidebar>
 
+      <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
       <DeleteConfirmDialog open={deleteNoteTarget !== null} onClose={() => setDeleteNoteTarget(null)} onConfirm={handleDeleteNote} />
       <DeleteFolderDialog open={deleteFolderTarget !== null} folderName={deleteFolderTarget?.name || ""}
         notesCount={deleteFolderTarget ? notes.filter((n) => n.folderId === deleteFolderTarget._id).length : 0}
