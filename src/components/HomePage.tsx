@@ -67,7 +67,7 @@ function NoteSection({ title, icon, notes, viewAllHref, emptyMessage, onNoteClic
           {notes.map((note) => (
             <div
               key={note._id}
-              className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer group"
+              className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
             >
               <div className="flex-1 min-w-0" onClick={() => onNoteClick(note._id)}>
                 <p className="font-medium text-sm truncate">{note.title || "Untitled"}</p>
