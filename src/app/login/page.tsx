@@ -44,14 +44,12 @@ function LoginForm() {
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
       <div className="w-full max-w-sm flex flex-col items-center gap-4">
-        <img src="/ZooNote.png" alt="ZooNote" className="size-16 rounded-xl" />
+        <img src="/ZooNote.png" alt="ZooNote" className="size-48 rounded-xl" />
       <Card className="w-full max-w-sm">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="contents">
           <CardHeader>
-            <div>
-              <CardTitle>Login to your account</CardTitle>
-              <CardDescription>Enter your email below to login to your account</CardDescription>
-            </div>
+            <CardTitle>Login to your account</CardTitle>
+            <CardDescription>Enter your email below to login to your account</CardDescription>
             <CardAction>
               <Link href="/signup">
                 <Button variant="outline" size="sm" type="button">Sign Up</Button>

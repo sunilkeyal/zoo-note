@@ -22,7 +22,7 @@ export default function RootLayout({
       <head>
         <meta name="color-scheme" content="dark light" />
       </head>
-      <body>
+      <body className="antialiased">
         <Providers>
           {children}
         </Providers>
