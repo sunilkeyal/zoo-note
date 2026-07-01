@@ -39,9 +39,10 @@ interface NoteSectionProps {
   viewAllHref: string
   emptyMessage: string
   onNoteClick: (id: string) => void
+  onToggleFavorite?: (id: string) => void
 }
 
-function NoteSection({ title, icon, notes, viewAllHref, emptyMessage, onNoteClick }: NoteSectionProps) {
+function NoteSection({ title, icon, notes, viewAllHref, emptyMessage, onNoteClick, onToggleFavorite }: NoteSectionProps) {
   const router = useRouter()
 
   return (
@@ -66,19 +67,27 @@ function NoteSection({ title, icon, notes, viewAllHref, emptyMessage, onNoteClic
           {notes.map((note) => (
             <div
               key={note._id}
-              onClick={() => onNoteClick(note._id)}
               className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
             >
-              {icon}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0" onClick={() => onNoteClick(note._id)}>
                 <p className="font-medium text-sm truncate">{note.title || "Untitled"}</p>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
                   {stripHtml(note.content) || "No content"}
                 </p>
               </div>
-              <span className="text-xs text-muted-foreground shrink-0">
-                {formatRelativeTime(note.updatedAt)}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(note._id) }}
+                  className="text-muted-foreground hover:text-amber-500 transition-colors"
+                >
+                  <Star
+                    className={`h-4 w-4 ${note.isFavorite ? "text-amber-500 fill-amber-500" : ""}`}
+                  />
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {formatRelativeTime(note.updatedAt)}
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -90,7 +99,7 @@ function NoteSection({ title, icon, notes, viewAllHref, emptyMessage, onNoteClic
 export default function HomePage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { notes, loading, error, setActiveNoteId, createNote, fetchNotes, expandedFolders, toggleFolder } = useNotes()
+  const { notes, loading, error, setActiveNoteId, createNote, fetchNotes, expandedFolders, toggleFolder, toggleFavorite, favoriteNotes } = useNotes()
   const [searchQuery, setSearchQuery] = useState("")
 
   const sortedNotes = useMemo(() => {
@@ -186,10 +195,11 @@ export default function HomePage() {
           <NoteSection
             title="Favorites"
             icon={<Star className="h-5 w-5 text-amber-500" />}
-            notes={filteredNotes}
+            notes={favoriteNotes.slice(0, 5)}
             viewAllHref="/favorites"
             emptyMessage={searchQuery ? "No notes match your search" : "No favorite notes yet. Star notes to see them here!"}
             onNoteClick={handleNoteClick}
+            onToggleFavorite={toggleFavorite}
           />
         </div>
 
@@ -206,10 +216,11 @@ export default function HomePage() {
           <NoteSection
             title="Favorites"
             icon={<Star className="h-5 w-5 text-amber-500" />}
-            notes={filteredNotes}
+            notes={favoriteNotes.slice(0, 5)}
             viewAllHref="/favorites"
             emptyMessage={searchQuery ? "No notes match your search" : "No favorite notes yet. Star notes to see them here!"}
             onNoteClick={handleNoteClick}
+            onToggleFavorite={toggleFavorite}
           />
         </div>
       </div>

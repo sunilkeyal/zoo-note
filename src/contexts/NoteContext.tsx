@@ -17,6 +17,8 @@ interface NoteContextValue {
   createNote: (input: NoteInput) => Promise<Note | null>;
   updateNote: (id: string, update: NoteUpdate) => Promise<Note | null>;
   deleteNote: (id: string) => Promise<boolean>;
+  toggleFavorite: (id: string) => Promise<Note | null>;
+  favoriteNotes: Note[];
   createFolder: (name: string) => Promise<Folder | null>;
   renameFolder: (id: string, name: string) => Promise<Folder | null>;
   deleteFolder: (id: string) => Promise<{ deletedFolder: string; softDeletedNotesCount: number } | null>;
@@ -79,6 +81,17 @@ export function NoteProvider({ children }: { children: ReactNode }) {
   const [trashError, setTrashError] = useState<string | null>(null);
 
   const activeNote = notes.find((n) => n._id === activeNoteId) ?? null;
+
+  const favoriteNotes = useMemo(
+    () => notes
+      .filter((n) => n.isFavorite)
+      .sort((a, b) => {
+        const aTime = a.favoritedAt ? new Date(a.favoritedAt).getTime() : new Date(a.updatedAt).getTime()
+        const bTime = b.favoritedAt ? new Date(b.favoritedAt).getTime() : new Date(b.updatedAt).getTime()
+        return bTime - aTime
+      }),
+    [notes]
+  )
 
   const toggleFolder = useCallback((folderId: string) => {
     setExpandedFolders((prev) => {
@@ -178,6 +191,43 @@ export function NoteProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, []);
+
+  const toggleFavorite = useCallback(async (id: string): Promise<Note | null> => {
+    // Save original note state for revert
+    let originalNote: Note | undefined
+    setNotes((prev) => {
+      const original = prev.find((n) => n._id === id)
+      if (original) originalNote = original
+      return prev.map((n) => {
+        if (n._id !== id) return n
+        const isCurrentlyFavorite = !!n.isFavorite
+        return {
+          ...n,
+          isFavorite: !isCurrentlyFavorite,
+          favoritedAt: !isCurrentlyFavorite ? new Date().toISOString() : undefined,
+        }
+      })
+    })
+    try {
+      const res = await fetch(`/api/notes/${id}/favorite`, { method: 'PATCH' })
+      const json: ApiResponse<Note> = await res.json()
+      if (json.success && json.data) {
+        setNotes((prev) => sortByPosition(prev.map((n) => (n._id === id ? json.data! : n))))
+        return json.data
+      }
+      // Revert on API failure
+      if (originalNote) {
+        setNotes((prev) => prev.map((n) => (n._id === id ? originalNote! : n)))
+      }
+      return null
+    } catch {
+      // Revert on network error
+      if (originalNote) {
+        setNotes((prev) => prev.map((n) => (n._id === id ? originalNote! : n)))
+      }
+      return null
+    }
+  }, [])
 
   const createFolder = useCallback(async (name: string): Promise<Folder | null> => {
     try {
@@ -362,6 +412,7 @@ export function NoteProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<NoteContextValue>(() => ({
     notes,
+    favoriteNotes,
     folders,
     expandedFolders,
     loading,
@@ -374,6 +425,7 @@ export function NoteProvider({ children }: { children: ReactNode }) {
     createNote,
     updateNote,
     deleteNote,
+    toggleFavorite,
     createFolder,
     renameFolder,
     deleteFolder,
@@ -387,8 +439,9 @@ export function NoteProvider({ children }: { children: ReactNode }) {
     restoreItems,
     permanentDeleteItems,
   }), [
-    notes, folders, expandedFolders, loading, error, activeNoteId, activeNote,
+    notes, favoriteNotes, folders, expandedFolders, loading, error, activeNoteId, activeNote,
     setActiveNoteId, fetchNotes, fetchFolders, createNote, updateNote, deleteNote,
+    toggleFavorite,
     createFolder, renameFolder, deleteFolder, moveNote, moveFolder, toggleFolder,
     trashItems, trashLoading, trashError,
     fetchTrash, restoreItems, permanentDeleteItems,

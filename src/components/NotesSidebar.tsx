@@ -264,7 +264,7 @@ export default function NotesSidebar() {
   const {
     notes, folders, expandedFolders, createNote, deleteNote, updateNote,
     activeNoteId, setActiveNoteId, createFolder, renameFolder,
-    deleteFolder, moveNote, moveFolder, toggleFolder,
+    deleteFolder, moveNote, moveFolder, toggleFolder, favoriteNotes, toggleFavorite,
   } = useNotes()
 
   const [search, setSearch] = useState("")
@@ -561,6 +561,13 @@ export default function NotesSidebar() {
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
                 <File /> Download PDF
               </ContextMenuItem>
+              <ContextMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}>
+                {note.isFavorite ? (
+                  <><Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Remove from Favorite</>
+                ) : (
+                  <><Star className="h-4 w-4" /> Add to Favorite</>
+                )}
+              </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
                 <Trash2 /> Move to trash
@@ -720,8 +727,13 @@ export default function NotesSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")}>
-                    <Star />
+                    <Star className={favoriteNotes.length > 0 ? "text-amber-500" : ""} />
                     <span>Favorites</span>
+                    {favoriteNotes.length > 0 && (
+                      <span className="ml-auto text-xs bg-sidebar-accent text-sidebar-accent-foreground rounded-full px-2 py-0.5">
+                        {favoriteNotes.length}
+                      </span>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

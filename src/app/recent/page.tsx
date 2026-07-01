@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Clock, FileText, Folder, Search, Pencil, File, Trash2 } from "lucide-react"
+import { Clock, FileText, Folder, Search, Pencil, File, Trash2, Star } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,7 +58,7 @@ function NoteFooter({ note, folderMap }: { note: Note; folderMap: Map<string, st
 }
 
 export default function RecentPage() {
-  const { notes, folders, loading, error, setActiveNoteId, expandedFolders, toggleFolder, fetchNotes, updateNote, deleteNote } = useNotes()
+  const { notes, folders, loading, error, setActiveNoteId, expandedFolders, toggleFolder, fetchNotes, updateNote, deleteNote, toggleFavorite } = useNotes()
   const [filter, setFilter] = useState("")
   const router = useRouter()
 
@@ -187,7 +187,15 @@ export default function RecentPage() {
               onClick={() => handleNoteClick(hero._id)}
               className="p-5 rounded-xl border-2 border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-900/10 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors cursor-pointer"
             >
-              <p className="font-semibold text-base">{hero.title || "Untitled"}</p>
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-base">{hero.title || "Untitled"}</p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(hero._id) }}
+                  className="text-muted-foreground hover:text-amber-500 transition-colors"
+                >
+                  <Star className={`h-5 w-5 ${hero.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
+                </button>
+              </div>
               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                 {stripHtml(hero.content) || "No content"}
               </p>
@@ -200,6 +208,13 @@ export default function RecentPage() {
             </ContextMenuItem>
             <ContextMenuItem onClick={() => handleExportPdf(hero._id, hero.title)}>
               <File className="h-4 w-4 mr-2" /> Download PDF
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => toggleFavorite(hero._id)}>
+              {hero.isFavorite ? (
+                <><Star className="h-4 w-4 mr-2 text-amber-500 fill-amber-500" /> Remove from Favorite</>
+              ) : (
+                <><Star className="h-4 w-4 mr-2" /> Add to Favorite</>
+              )}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem onClick={() => setDeleteTarget(hero._id)} className="text-destructive focus:text-destructive">
@@ -227,6 +242,12 @@ export default function RecentPage() {
                         {stripHtml(note.content) || "No content"}
                       </p>
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}
+                      className="text-muted-foreground hover:text-amber-500 transition-colors shrink-0"
+                    >
+                      <Star className={`h-4 w-4 ${note.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
+                    </button>
                   </div>
                   <div className="flex items-center justify-between pl-7">
                     {note.folderId && folderMap.get(note.folderId) ? (
@@ -244,6 +265,13 @@ export default function RecentPage() {
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => handleExportPdf(note._id, note.title)}>
                   <File className="h-4 w-4 mr-2" /> Download PDF
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => toggleFavorite(note._id)}>
+                  {note.isFavorite ? (
+                    <><Star className="h-4 w-4 mr-2 text-amber-500 fill-amber-500" /> Remove from Favorite</>
+                  ) : (
+                    <><Star className="h-4 w-4 mr-2" /> Add to Favorite</>
+                  )}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onClick={() => setDeleteTarget(note._id)} className="text-destructive focus:text-destructive">

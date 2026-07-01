@@ -82,6 +82,8 @@ export async function PUT(
     content: result.content || "",
     folderId: result.folderId || undefined,
     position: result.position ?? 0,
+    isFavorite: result.isFavorite ?? false,
+    favoritedAt: result.favoritedAt?.toISOString(),
     createdAt: result.createdAt.toISOString(),
     updatedAt: result.updatedAt.toISOString(),
   }

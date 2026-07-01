@@ -17,6 +17,8 @@ export interface Note {
   folderName?: string;
   userId?: string;
   position: number;
+  isFavorite?: boolean;
+  favoritedAt?: string;
   createdAt: string;
   updatedAt: string;
   isDeleted?: boolean;

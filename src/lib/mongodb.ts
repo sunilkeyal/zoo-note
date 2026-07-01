@@ -35,6 +35,11 @@ export async function connectToDatabase(): Promise<Db> {
     { background: true }
   ).catch(() => {});
 
+  await cachedDb.collection("notes").createIndex(
+    { userId: 1, isFavorite: 1, favoritedAt: -1 },
+    { background: true }
+  ).catch(() => {});
+
   await cachedDb.collection("folders").createIndex(
     { userId: 1, isDeleted: 1 },
     { background: true }
