@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Clock, FileText, Folder, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -43,6 +44,7 @@ function NoteFooter({ note }: { note: Note }) {
 export default function RecentPage() {
   const { notes, loading, error, setActiveNoteId, expandedFolders, toggleFolder, fetchNotes } = useNotes()
   const [filter, setFilter] = useState("")
+  const router = useRouter()
 
   const sortedNotes = useMemo(
     () => [...notes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
@@ -61,6 +63,7 @@ export default function RecentPage() {
       toggleFolder(note.folderId)
     }
     setActiveNoteId(id)
+    router.push("/")
   }
 
   if (loading) {

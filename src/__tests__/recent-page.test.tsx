@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mockRouterPush }) }))
+
+const mockRouterPush = vi.fn()
 
 vi.mock('@/contexts/NoteContext', () => ({ useNotes: vi.fn() }))
 
@@ -53,7 +55,10 @@ function baseContext(overrides = {}) {
   }
 }
 
-beforeEach(() => mockUseNotes.mockReturnValue(baseContext()))
+beforeEach(() => {
+  mockUseNotes.mockReturnValue(baseContext())
+  mockRouterPush.mockClear()
+})
 
 describe('RecentPage', () => {
   it('renders the page heading', () => {
@@ -78,12 +83,13 @@ describe('RecentPage', () => {
     expect(screen.getByText('Alpha content')).toBeInTheDocument()
   })
 
-  it('calls setActiveNoteId when a note card is clicked', () => {
+  it('calls setActiveNoteId and navigates to / when a note card is clicked', () => {
     const setActiveNoteId = vi.fn()
     mockUseNotes.mockReturnValue(baseContext({ setActiveNoteId }))
     render(<RecentPage />)
     fireEvent.click(screen.getAllByText('Alpha Note')[0])
     expect(setActiveNoteId).toHaveBeenCalledWith('1')
+    expect(mockRouterPush).toHaveBeenCalledWith('/')
   })
 
   it('expands the folder when clicking a note whose folder is collapsed', () => {
