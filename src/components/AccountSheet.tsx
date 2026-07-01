@@ -14,10 +14,8 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -29,7 +27,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     if (open) {
       setName(session?.user?.name ?? "")
       setEmail(session?.user?.email ?? "")
-      setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
       setErrors({})
@@ -54,8 +51,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errs.email = "Invalid email format."
     }
-    if (newPassword || currentPassword || confirmPassword) {
-      if (!currentPassword) errs.currentPassword = "Current password is required."
+    if (newPassword || confirmPassword) {
       if (newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters."
       if (newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match."
     }
@@ -73,7 +69,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
     const body: Record<string, string> = { name, email }
     if (newPassword) {
-      body.currentPassword = currentPassword
       body.newPassword = newPassword
     }
 
@@ -90,8 +85,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
       if (!res.ok) {
         if (res.status === 409) {
           setErrors({ email: data.error })
-        } else if (data.error?.toLowerCase().includes("password") && !data.error?.toLowerCase().includes("new")) {
-          setErrors({ currentPassword: data.error })
         } else if (data.error?.toLowerCase().includes("new password")) {
           setErrors({ newPassword: data.error })
         } else {
@@ -110,7 +103,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
           await update({ name })
         }
         setSuccessMsg("Account updated.")
-        setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
       }
@@ -210,37 +202,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               Change password
             </p>
-
-            {/* Current password */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                Current password
-              </label>
-              <div className="relative">
-                <input
-                  type={showCurrent ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Current password (leave blank to keep)"
-                  className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 pr-8 ${
-                    errors.currentPassword
-                      ? "border-red-400 focus:ring-red-400"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
-                  aria-label={showCurrent ? "Hide password" : "Show password"}
-                >
-                  {showCurrent ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-              {errors.currentPassword && (
-                <p className="text-xs text-red-500">{errors.currentPassword}</p>
-              )}
-            </div>
 
             {/* New password */}
             <div className="flex flex-col gap-1">

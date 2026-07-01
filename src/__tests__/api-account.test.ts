@@ -66,46 +66,17 @@ describe("PATCH /api/account", () => {
     expect(body.error).toBe("Invalid email format.")
   })
 
-  it("returns 400 when newPassword provided without currentPassword", async () => {
-    const { auth } = await import("@/lib/auth")
-    vi.mocked(auth).mockResolvedValue({ user: { id: "507f1f77bcf86cd799439011", name: "Old", email: "old@example.com" } } as any)
-    mockFindOne.mockResolvedValue({ _id: "507f1f77bcf86cd799439011", displayName: "Old", email: "old@example.com", passwordHash: "hash" })
-
-    const { PATCH } = await import("@/app/api/account/route")
-    const req = new Request("http://localhost/api/account", { method: "PATCH", body: JSON.stringify({ newPassword: "newpass123" }) })
-    const res = await PATCH(req as any)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toBe("Current password is required to change your password.")
-  })
-
   it("returns 400 when newPassword is fewer than 8 characters", async () => {
     const { auth } = await import("@/lib/auth")
     vi.mocked(auth).mockResolvedValue({ user: { id: "507f1f77bcf86cd799439011", name: "Old", email: "old@example.com" } } as any)
     mockFindOne.mockResolvedValue({ _id: "507f1f77bcf86cd799439011", displayName: "Old", email: "old@example.com", passwordHash: "hash" })
 
     const { PATCH } = await import("@/app/api/account/route")
-    const req = new Request("http://localhost/api/account", { method: "PATCH", body: JSON.stringify({ currentPassword: "old", newPassword: "short" }) })
+    const req = new Request("http://localhost/api/account", { method: "PATCH", body: JSON.stringify({ newPassword: "short" }) })
     const res = await PATCH(req as any)
     expect(res.status).toBe(400)
     const body = await res.json()
     expect(body.error).toBe("New password must be at least 8 characters.")
-  })
-
-  it("returns 400 when currentPassword is incorrect", async () => {
-    const { auth } = await import("@/lib/auth")
-    vi.mocked(auth).mockResolvedValue({ user: { id: "507f1f77bcf86cd799439011", name: "Old", email: "old@example.com" } } as any)
-    mockFindOne.mockResolvedValue({ _id: "507f1f77bcf86cd799439011", displayName: "Old", email: "old@example.com", passwordHash: "hash" })
-
-    const bcrypt = await import("bcryptjs")
-    vi.mocked(bcrypt.default.compare).mockResolvedValue(false as never)
-
-    const { PATCH } = await import("@/app/api/account/route")
-    const req = new Request("http://localhost/api/account", { method: "PATCH", body: JSON.stringify({ currentPassword: "wrongpass", newPassword: "newpassword123" }) })
-    const res = await PATCH(req as any)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toBe("Incorrect current password.")
   })
 
   it("returns 409 when new email is already taken", async () => {
@@ -160,11 +131,8 @@ describe("PATCH /api/account", () => {
     mockFindOne.mockResolvedValue({ _id: "507f1f77bcf86cd799439011", displayName: "Old", email: "old@example.com", passwordHash: "hash" })
     mockUpdateOne.mockResolvedValue({ modifiedCount: 1 })
 
-    const bcrypt = await import("bcryptjs")
-    vi.mocked(bcrypt.default.compare).mockResolvedValue(true as never)
-
     const { PATCH } = await import("@/app/api/account/route")
-    const req = new Request("http://localhost/api/account", { method: "PATCH", body: JSON.stringify({ currentPassword: "oldpass", newPassword: "newpassword123" }) })
+    const req = new Request("http://localhost/api/account", { method: "PATCH", body: JSON.stringify({ newPassword: "newpassword123" }) })
     const res = await PATCH(req as any)
     expect(res.status).toBe(200)
     const body = await res.json()

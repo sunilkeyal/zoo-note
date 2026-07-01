@@ -10,14 +10,14 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
   }
 
-  let body: { name?: string; email?: string; currentPassword?: string; newPassword?: string }
+  let body: { name?: string; email?: string; newPassword?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 })
   }
 
-  const { name, email, currentPassword, newPassword } = body
+  const { name, email, newPassword } = body
 
   if (name !== undefined && name.trim() === "") {
     return NextResponse.json({ error: "Name is required." }, { status: 400 })
@@ -31,12 +31,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (newPassword !== undefined) {
-    if (!currentPassword) {
-      return NextResponse.json(
-        { error: "Current password is required to change your password." },
-        { status: 400 }
-      )
-    }
     if (newPassword.length < 8) {
       return NextResponse.json(
         { error: "New password must be at least 8 characters." },
@@ -62,10 +56,6 @@ export async function PATCH(request: NextRequest) {
   const update: Record<string, unknown> = { updatedAt: new Date().toISOString() }
 
   if (newPassword !== undefined) {
-    const valid = await bcrypt.compare(currentPassword!, user.passwordHash)
-    if (!valid) {
-      return NextResponse.json({ error: "Incorrect current password." }, { status: 400 })
-    }
     update.passwordHash = await bcrypt.hash(newPassword, 12)
     changed.push("password")
   }
