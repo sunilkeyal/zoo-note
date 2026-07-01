@@ -35,7 +35,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
       setErrors({})
       setSuccessMsg("")
     }
-  }, [open, session?.user?.name, session?.user?.email])
+  }, [open])
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
