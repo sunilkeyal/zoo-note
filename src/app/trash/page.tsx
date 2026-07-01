@@ -40,7 +40,7 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="max-w-5xl">
+    <div>
       <h1 className="text-2xl font-bold mb-2">Trash</h1>
       <p className="text-muted-foreground mb-6">
         Notes and folders you deleted. Items are automatically purged after 7 days.

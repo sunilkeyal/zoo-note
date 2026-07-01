@@ -1,6 +1,6 @@
 export default function AuditPage() {
   return (
-    <div className="max-w-4xl">
+    <div>
       <h1 className="text-2xl font-bold mb-2">Audit Logs</h1>
       <p className="text-muted-foreground mb-6">View user activity and system events.</p>
       <div className="rounded-lg border overflow-hidden">

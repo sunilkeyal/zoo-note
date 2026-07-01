@@ -1,6 +1,6 @@
 export default function BackupPage() {
   return (
-    <div className="max-w-4xl">
+    <div>
       <h1 className="text-2xl font-bold mb-2">Backup & Restore</h1>
       <p className="text-muted-foreground mb-6">Manage database backups and restore points.</p>
       <div className="rounded-lg border overflow-hidden mb-4">

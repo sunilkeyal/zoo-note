@@ -143,7 +143,7 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 overflow-auto bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 space-y-8 w-full md:max-w-[900px] lg:max-w-[1140px]">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <Image

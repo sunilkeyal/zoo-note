@@ -1,6 +1,6 @@
 export default function SettingsPage() {
   return (
-    <div className="max-w-4xl">
+    <div>
       <h1 className="text-2xl font-bold mb-2">System Settings</h1>
       <p className="text-muted-foreground mb-6">Configure application-wide settings.</p>
       <div className="space-y-6">

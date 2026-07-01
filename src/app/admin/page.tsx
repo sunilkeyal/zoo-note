@@ -1,6 +1,6 @@
 export default function DashboardPage() {
   return (
-    <div className="max-w-4xl">
+    <div>
       <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
       <p className="text-muted-foreground mb-6">Overview of system stats and activity.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

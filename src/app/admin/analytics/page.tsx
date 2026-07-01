@@ -1,6 +1,6 @@
 export default function AnalyticsPage() {
   return (
-    <div className="max-w-4xl">
+    <div>
       <h1 className="text-2xl font-bold mb-2">Activity / Analytics</h1>
       <p className="text-muted-foreground mb-6">Charts for notes created, active users, storage usage trends.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
