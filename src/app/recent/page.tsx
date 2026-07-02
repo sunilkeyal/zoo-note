@@ -22,10 +22,7 @@ import {
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog"
 import { useNotes } from "@/contexts/NoteContext"
 import { Note } from "@/types"
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim()
-}
+import { stripHtml } from "@/lib/utils"
 
 function formatRelativeTime(dateStr: string): string {
   const now = Date.now()
@@ -79,7 +76,10 @@ export default function RecentPage() {
   const filteredNotes = useMemo(() => {
     if (!filter.trim()) return sortedNotes
     const q = filter.toLowerCase()
-    return sortedNotes.filter(n => n.title.toLowerCase().includes(q))
+    return sortedNotes.filter(n =>
+      n.title.toLowerCase().includes(q) ||
+      stripHtml(n.content).toLowerCase().includes(q)
+    )
   }, [sortedNotes, filter])
 
   function handleNoteClick(id: string) {
@@ -88,7 +88,7 @@ export default function RecentPage() {
       toggleFolder(note.folderId)
     }
     setActiveNoteId(id)
-    router.push("/")
+    router.push(filter ? `/?q=${encodeURIComponent(filter)}` : "/")
   }
 
   function openRename(note: Note) {
