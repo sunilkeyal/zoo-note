@@ -334,11 +334,7 @@ export default function NotesSidebar() {
     setActiveNoteId(noteId)
     setActiveFolderId(null)
     const searchParam = search ? `?q=${encodeURIComponent(search)}` : ""
-    if (pathname !== "/") {
-      router.push(`/${searchParam}`)
-    } else {
-      router.push(`${pathname}${searchParam}`)
-    }
+    router.push(`/notes/${noteId}${searchParam}`)
     setSearchOpen(false)
     setSearchFocused(false)
   }
@@ -579,7 +575,7 @@ export default function NotesSidebar() {
   setActiveNoteId(note._id)
   setActiveFolderId(null)
   setSearchOpen(false)
-  router.push(`/`)
+  router.push(`/notes/${note._id}`)
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
