@@ -12,7 +12,6 @@ interface SearchDropdownProps {
   results: Note[]
   onSelect: (noteId: string) => void
   onClose: () => void
-  inputRef: React.RefObject<HTMLInputElement | null>
   variant?: "home" | "sidebar"
   maxItems?: number
 }
@@ -23,7 +22,6 @@ export default function SearchDropdown({
   results,
   onSelect,
   onClose,
-  inputRef,
   variant = "home",
   maxItems = 20,
 }: SearchDropdownProps) {

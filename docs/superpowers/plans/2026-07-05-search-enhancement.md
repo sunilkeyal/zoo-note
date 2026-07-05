@@ -131,18 +131,15 @@ Import SearchDropdown and add a ref for the search input. Remove the conditional
 
 ```tsx
 // Add to imports:
-import { useRef } from "react"
 import SearchDropdown from "@/components/SearchDropdown"
 
 // Add state after searchQuery:
 const [searchOpen, setSearchOpen] = useState(false)
-const searchInputRef = useRef<HTMLInputElement>(null)
 
 // Change the search bar section (lines ~173-182) to:
 <div className="max-w-md mx-auto relative">
   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
   <Input
-    ref={searchInputRef}
     value={searchQuery}
     onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true) }}
     onFocus={() => setSearchOpen(true)}
@@ -156,7 +153,6 @@ const searchInputRef = useRef<HTMLInputElement>(null)
     results={filteredNotes}
     onSelect={handleNoteClick}
     onClose={() => setSearchOpen(false)}
-    inputRef={searchInputRef}
     variant="home"
   />
 </div>
@@ -215,7 +211,6 @@ Replace the current search input section (lines ~724-735) with one that has a Se
         results={filtered}
         onSelect={handleSearchResultClick}
         onClose={() => setSearchFocused(false)}
-        inputRef={searchInputRef}
         variant="sidebar"
       />
     </form>

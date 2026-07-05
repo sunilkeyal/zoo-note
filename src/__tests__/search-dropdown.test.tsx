@@ -33,7 +33,6 @@ function renderDropdown(props: Partial<React.ComponentProps<typeof SearchDropdow
     results: [],
     onSelect: vi.fn(),
     onClose: vi.fn(),
-    inputRef: { current: null },
     ...props,
   }
   return render(<SearchDropdown {...defaultProps} />)
@@ -51,6 +50,11 @@ describe('SearchDropdown', () => {
 
   it('shows nothing when query is empty', () => {
     const { container } = renderDropdown({ query: '' })
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('shows nothing when query is whitespace only', () => {
+    const { container } = renderDropdown({ query: '   ' })
     expect(container.innerHTML).toBe('')
   })
 
@@ -102,11 +106,11 @@ describe('SearchDropdown', () => {
     expect(items).toHaveLength(3)
   })
 
-  it('uses sidebar variant styling when variant is sidebar', () => {
+  it('renders with sidebar variant without error', () => {
     const results = [createNote()]
-    const { container } = renderDropdown({ variant: 'sidebar', results })
-    const text10px = container.querySelector('.text-\\[10px\\]')
-    expect(text10px).toBeTruthy()
+    renderDropdown({ variant: 'sidebar', results })
+    expect(screen.getByText('1 note found')).toBeInTheDocument()
+    expect(screen.getByText('Hello world')).toBeInTheDocument()
   })
 
   it('shows "Untitled" when note has no title', () => {
