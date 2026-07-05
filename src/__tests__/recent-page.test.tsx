@@ -124,7 +124,7 @@ describe('RecentPage', () => {
     render(<RecentPage />)
     fireEvent.click(screen.getAllByText('Alpha Note')[0])
     expect(setActiveNoteId).toHaveBeenCalledWith('1')
-    expect(mockRouterPush).toHaveBeenCalledWith('/')
+    expect(mockRouterPush).toHaveBeenCalledWith('/notes/1')
   })
 
   it('expands the folder when clicking a note whose folder is collapsed', () => {
