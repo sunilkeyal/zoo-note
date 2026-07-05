@@ -579,12 +579,12 @@ export default function NotesSidebar() {
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
+                <span className="truncate">{note.title}</span>
                 {note.isFavorite && (
                   <span className="flex items-center">
                     <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
                   </span>
                 )}
-                <span className="truncate">{note.title}</span>
               </Button>
             } />
             <ContextMenuContent>
