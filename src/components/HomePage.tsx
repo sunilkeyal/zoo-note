@@ -116,7 +116,10 @@ export default function HomePage() {
 
   const handleCreateNote = async () => {
     const note = await createNote({ title: "Untitled" })
-    if (note) setActiveNoteId(note._id)
+    if (note) {
+      setActiveNoteId(note._id)
+      router.push(`/notes/${note._id}`)
+    }
   }
 
   const handleNoteClick = (id: string) => {
@@ -125,9 +128,8 @@ export default function HomePage() {
       toggleFolder(note.folderId)
     }
     setActiveNoteId(id)
-    if (searchQuery.trim()) {
-      router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`)
-    }
+    const searchParam = searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ""
+    router.push(`/notes/${id}${searchParam}`)
   }
 
   if (loading) {
