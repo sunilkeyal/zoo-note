@@ -763,6 +763,8 @@ export default function NotesSidebar() {
         </SidebarHeader>
 
         <SidebarContent>
+          <SidebarSeparator className="mb-2 mt-0" />
+
           {/* Primary navigation */}
           <SidebarGroup className="py-0">
             <SidebarGroupContent>
