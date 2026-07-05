@@ -85,7 +85,7 @@ export default function FavoritesPage() {
       toggleFolder(note.folderId)
     }
     setActiveNoteId(id)
-    router.push(filter ? `/?q=${encodeURIComponent(filter)}` : "/")
+    router.push(filter ? `/notes/${id}?q=${encodeURIComponent(filter)}` : `/notes/${id}`)
   }
 
   function openRename(note: Note) {
