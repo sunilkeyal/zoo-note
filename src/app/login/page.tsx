@@ -15,6 +15,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const signupSuccess = searchParams.get("signup") === "success"
+  const callbackUrl = searchParams.get("callbackUrl") || "/"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +38,7 @@ function LoginForm() {
       )
       setLoading(false)
     } else {
-      window.location.href = "/"
+      window.location.href = callbackUrl
     }
   }
 

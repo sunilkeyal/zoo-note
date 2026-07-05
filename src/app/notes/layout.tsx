@@ -1,14 +1,13 @@
 "use client"
 
-import React, { Suspense } from "react"
+import React from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import AppHeader from "@/components/AppHeader"
 import NotesSidebar from "@/components/NotesSidebar"
-import HomePage from "@/components/HomePage"
 
-export default function Home() {
+export default function NotesLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const router = useRouter()
 
@@ -27,9 +26,7 @@ export default function Home() {
       <NotesSidebar />
       <SidebarInset className="overflow-hidden">
         <AppHeader />
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">Loading...</div>}>
-          <HomePage />
-        </Suspense>
+        <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1140px]">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )

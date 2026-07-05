@@ -372,7 +372,7 @@ describe('NotesSidebar', () => {
 
     const results = screen.getAllByTestId('search-result')
     await user.click(results[0])
-    expect(mockRouterPush).toHaveBeenCalledWith('/?q=Alpha')
+    expect(mockRouterPush).toHaveBeenCalledWith('/notes/n1?q=Alpha')
   })
 
   it('calls createNote when clicking create note from context menu', () => {
