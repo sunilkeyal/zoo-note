@@ -23,6 +23,7 @@ import { useNotes } from "@/contexts/NoteContext"
 import AccountSheet from "./AccountSheet"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
+import SearchDropdown from "@/components/SearchDropdown"
 import {
   Tooltip,
   TooltipContent,
@@ -275,6 +276,8 @@ export default function NotesSidebar() {
   const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null)
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null)
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null)
+  const [searchFocused, setSearchFocused] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState("")
@@ -321,6 +324,23 @@ export default function NotesSidebar() {
       }
       setActiveNoteId(note._id)
     }
+  }
+
+  const handleSearchResultClick = (noteId: string) => {
+    const note = notes.find((n) => n._id === noteId)
+    if (note?.folderId && !expandedFolders.has(note.folderId)) {
+      toggleFolder(note.folderId)
+    }
+    setActiveNoteId(noteId)
+    setActiveFolderId(null)
+    const searchParam = search ? `?q=${encodeURIComponent(search)}` : ""
+    if (pathname !== "/") {
+      router.push(`/${searchParam}`)
+    } else {
+      router.push(`${pathname}${searchParam}`)
+    }
+    setSearchOpen(false)
+    setSearchFocused(false)
   }
 
   const handleCreateRootNote = async () => {
@@ -558,12 +578,8 @@ export default function NotesSidebar() {
                 onClick={() => {
   setActiveNoteId(note._id)
   setActiveFolderId(null)
-  const searchParam = search ? `?q=${encodeURIComponent(search)}` : ""
-  if (pathname !== "/") {
-    router.push(`/${searchParam}`)
-  } else {
-    router.push(`${pathname}${searchParam}`)
-  }
+  setSearchOpen(false)
+  router.push(`/`)
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
@@ -601,7 +617,7 @@ export default function NotesSidebar() {
   }
 
   const renderFolder = (folder: Folder) => {
-    const folderNotes = filtered.filter((n) => n.folderId === folder._id)
+    const folderNotes = notes.filter((n) => n.folderId === folder._id)
     const isExpanded = expandedFolders.has(folder._id)
     const FolderIconForFolder = getFolderIcon(folder.name)
 
@@ -702,7 +718,7 @@ export default function NotesSidebar() {
               <TooltipContent>New folder</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => setSearchOpen(!searchOpen)} className={searchOpen ? "text-sidebar-accent-foreground" : ""} />}>
+              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setSearchOpen(!searchOpen); setSearchFocused(false); setSearch("") }} className={searchOpen ? "text-sidebar-accent-foreground" : ""} />}>
                 <Search />
               </TooltipTrigger>
               <TooltipContent>Search</TooltipContent>
@@ -723,12 +739,27 @@ export default function NotesSidebar() {
           </TooltipProvider>
           {searchOpen && (
             <div className="px-1 pb-2">
-              <form onSubmit={(e) => e.preventDefault()}>
-                <SidebarInput
-                  placeholder="Search notes..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  autoFocus
+              <form onSubmit={(e) => e.preventDefault()} className="relative">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  <SidebarInput
+                    ref={searchInputRef}
+                    placeholder="Search notes..."
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setSearchFocused(true) }}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                    autoFocus
+                    className="pl-7"
+                  />
+                </div>
+                <SearchDropdown
+                  open={searchOpen && searchFocused && search.trim().length > 0}
+                  query={search}
+                  results={filtered}
+                  onSelect={handleSearchResultClick}
+                  onClose={() => setSearchFocused(false)}
+                  variant="sidebar"
                 />
               </form>
             </div>
@@ -741,13 +772,13 @@ export default function NotesSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null) }}>
+                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }}>
                     <House />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")}>
+                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)}>
                     <Star className={favoriteNotes.length > 0 ? "text-amber-500" : ""} />
                     <span>Favorites</span>
                     {favoriteNotes.length > 0 && (
@@ -758,13 +789,13 @@ export default function NotesSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")}>
+                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)}>
                     <Clock />
                     <span>Recent</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")}>
+                  <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)}>
                     <CalendarDays />
                     <span>Calendar</span>
                   </SidebarMenuButton>
@@ -784,15 +815,15 @@ export default function NotesSidebar() {
             <SortableContext items={folders.map(f => f._id)} strategy={verticalListSortingStrategy}>
               {folders.map(renderFolder)}
             </SortableContext>
-            {filtered.filter(n => !n.folderId).length > 0 && (
+            {notes.filter(n => !n.folderId).length > 0 && (
               <SidebarGroup className="py-0">
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SortableContext
-                      items={filtered.filter(n => !n.folderId).map(n => n._id)}
+                      items={notes.filter(n => !n.folderId).map(n => n._id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      {filtered.filter(n => !n.folderId).map((note, noteIndex) => (
+                      {notes.filter(n => !n.folderId).map((note, noteIndex) => (
                         <SortableNoteItem key={note._id} noteId={note._id}>
                           {renderNoteItem(note, noteIndex, null, true)}
                         </SortableNoteItem>
@@ -833,7 +864,7 @@ export default function NotesSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")}>
+                  <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)}>
                     <Trash2 />
                     <span>Trash</span>
                   </SidebarMenuButton>

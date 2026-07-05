@@ -112,6 +112,20 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarInput: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }))
 
+vi.mock('@/components/SearchDropdown', () => ({
+  default: ({ open, query, results, onSelect }: {
+    open: boolean; query: string; results: Note[]; onSelect: (id: string) => void
+  }) => open ? (
+    <div data-testid="search-dropdown">
+      {results.map(r => (
+        <div key={r._id} data-testid="search-result" onClick={() => onSelect(r._id)}>
+          {r.title}
+        </div>
+      ))}
+    </div>
+  ) : null,
+}))
+
 vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-menu">{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <button data-testid="dropdown-trigger">{children}</button>,
@@ -175,6 +189,7 @@ vi.mock('lucide-react', () => ({
 import { useNotes } from '@/contexts/NoteContext'
 import { useSession } from 'next-auth/react'
 import { signOut } from 'next-auth/react'
+import { usePathname, useRouter } from 'next/navigation'
 
 const mockNote1: Note = {
   _id: 'n1', title: 'Alpha Note', content: '', folderId: 'f1', position: 0,
@@ -310,7 +325,7 @@ describe('NotesSidebar', () => {
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
-  it('filters notes by search', async () => {
+  it('shows search dropdown with matching results', async () => {
     const user = userEvent.setup()
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
@@ -321,8 +336,43 @@ describe('NotesSidebar', () => {
     const searchInput = screen.getByPlaceholderText('Search notes...')
     await user.type(searchInput, 'Alpha')
 
-    expect(screen.getByText('Alpha Note')).toBeInTheDocument()
-    expect(screen.queryByText('Beta Note')).not.toBeInTheDocument()
+    const dropdown = screen.getByTestId('search-dropdown')
+    expect(dropdown).toBeInTheDocument()
+  })
+
+  it('does not hide non-matching notes when searching', async () => {
+    const user = userEvent.setup()
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+
+    const searchButtons = screen.getAllByText('Search')
+    await user.click(searchButtons[0])
+
+    const searchInput = screen.getByPlaceholderText('Search notes...')
+    await user.type(searchInput, 'Alpha')
+
+    expect(screen.getAllByText('Alpha Note').length).toBeGreaterThan(0)
+    expect(screen.getByText('Beta Note')).toBeInTheDocument()
+    expect(screen.getByText('Standalone Note')).toBeInTheDocument()
+  })
+
+  it('navigates to note when clicking a search result', async () => {
+    const user = userEvent.setup()
+    const mockRouterPush = vi.fn()
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    vi.mocked(useRouter).mockReturnValue({ push: mockRouterPush })
+    vi.mocked(usePathname).mockReturnValue('/')
+    renderSidebar()
+
+    const searchButtons = screen.getAllByText('Search')
+    await user.click(searchButtons[0])
+
+    const searchInput = screen.getByPlaceholderText('Search notes...')
+    await user.type(searchInput, 'Alpha')
+
+    const results = screen.getAllByTestId('search-result')
+    await user.click(results[0])
+    expect(mockRouterPush).toHaveBeenCalledWith('/?q=Alpha')
   })
 
   it('calls createNote when clicking create note from context menu', () => {
