@@ -2,6 +2,7 @@
 
 import React, { useCallback, useRef, useState, useEffect } from "react"
 import { useEditor } from "@tiptap/react"
+import { useSearchParams } from "next/navigation"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import { TextStyle } from "@tiptap/extension-text-style"
@@ -13,6 +14,7 @@ import { ParagraphSpacing } from "@/extensions/ParagraphSpacing"
 import TaskList from "@tiptap/extension-task-list"
 import { CustomTaskItem } from "@/extensions/TaskItem"
 import { ImageNode } from "@/extensions/ImageNode"
+import SearchHighlight from "@/extensions/SearchHighlight"
 import {
   Tooltip,
   TooltipContent,
@@ -125,6 +127,7 @@ export default function MainArea() {
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
+      SearchHighlight.configure({ multicolor: true }),
       FontFamily,
       FontSize,
       ParagraphSpacing,
@@ -135,6 +138,15 @@ export default function MainArea() {
     content: activeNote?.content || "<p></p>",
     editorProps: {
       attributes: { class: "note-editor" },
+      handleClick: () => {
+        const markType = editor?.schema.marks.searchHighlight
+        if (!markType) return false
+        const tr = editor.state.tr
+        tr.setMeta("searchHighlight", true)
+        tr.removeMark(0, editor.state.doc.content.size, markType)
+        if (tr.steps.length > 0) editor.view.dispatch(tr)
+        return false
+      },
       handlePaste: (view, event) => {
         const items = event.clipboardData?.files
         if (items && items.length > 0) {
@@ -160,7 +172,8 @@ export default function MainArea() {
         return false
       },
     },
-    onUpdate: ({ editor: ed }) => {
+    onUpdate: ({ editor: ed, transaction }) => {
+      if (transaction?.getMeta("searchHighlight")) return
       const id = activeNoteIdRef.current
       if (id) handleUpdate(id, ed.getHTML())
     },
@@ -183,22 +196,27 @@ export default function MainArea() {
     if (activeNote) setTitle(activeNote.title)
   }, [activeNote?._id, activeNote?.title])
 
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     if (!editor || !activeNote) return
 
-    const params = new URLSearchParams(window.location.search)
-    const query = params.get("q")
+    const query = searchParams?.get("q")
 
-    editor.chain().focus().unsetHighlight().run()
+    const searchMarkType = editor.schema.marks.searchHighlight
+    if (!searchMarkType) return
 
-    if (!query || !query.trim()) return
+    const tr = editor.state.tr
+    tr.setMeta("searchHighlight", true)
+    tr.removeMark(0, editor.state.doc.content.size, searchMarkType)
+
+    if (!query || !query.trim()) {
+      if (tr.steps.length > 0) editor.view.dispatch(tr)
+      return
+    }
 
     const lowerQuery = query.toLowerCase()
     const doc = editor.state.doc
-    const markType = editor.schema.marks.highlight
-    if (!markType) return
-
-    const tr = editor.state.tr
     let hasMatches = false
 
     doc.descendants((node, pos) => {
@@ -209,7 +227,7 @@ export default function MainArea() {
         while ((startIdx = lowerText.indexOf(lowerQuery, startIdx)) !== -1) {
           const from = pos + startIdx
           const to = from + lowerQuery.length
-          tr.addMark(from, to, markType.create({ color: "#fff9c4" }))
+          tr.addMark(from, to, searchMarkType.create({ color: "#fff9c4" }))
           startIdx += lowerQuery.length
           hasMatches = true
         }
@@ -220,7 +238,7 @@ export default function MainArea() {
     if (hasMatches) {
       editor.view.dispatch(tr)
     }
-  }, [editor, activeNote?._id])
+  }, [editor, activeNote?._id, searchParams])
 
   const handleTitleChange = useCallback((id: string, value: string) => {
     setTitle(value)

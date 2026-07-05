@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
@@ -31,7 +31,7 @@ export default function Home() {
       <NotesSidebar />
       <SidebarInset className="overflow-hidden">
         <AppHeader />
-        {activeNoteId ? <MainArea /> : <HomePage />}
+        {activeNoteId ? <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">Loading editor...</div>}><MainArea /></Suspense> : <HomePage />}
       </SidebarInset>
     </SidebarProvider>
   )

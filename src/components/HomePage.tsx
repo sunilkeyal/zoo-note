@@ -207,7 +207,7 @@ export default function HomePage() {
           <NoteSection
             title="Recent Notes"
             icon={<FileText className="h-5 w-5 text-primary" />}
-            notes={filteredNotes.slice(0, 5)}
+            notes={sortedNotes.slice(0, 5)}
             viewAllHref="/recent"
             emptyMessage="No recent notes yet. Create your first note!"
             onNoteClick={handleNoteClick}
@@ -228,7 +228,7 @@ export default function HomePage() {
           <NoteSection
             title="Recent Notes"
             icon={<FileText className="h-5 w-5 text-primary" />}
-            notes={filteredNotes.slice(0, 5)}
+            notes={sortedNotes.slice(0, 5)}
             viewAllHref="/recent"
             emptyMessage="No recent notes yet. Create your first note!"
             onNoteClick={handleNoteClick}
