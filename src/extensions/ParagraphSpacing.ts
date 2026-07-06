@@ -18,7 +18,7 @@ export const ParagraphSpacing = Extension.create<ParagraphSpacingOptions>({
 
   addOptions() {
     return {
-      types: ['paragraph'],
+      types: ['paragraph', 'listItem'],
     };
   },
 
@@ -32,7 +32,7 @@ export const ParagraphSpacing = Extension.create<ParagraphSpacingOptions>({
             parseHTML: (element) => element.style.marginBottom?.replace(/['"]+/g, '') || null,
             renderHTML: (attributes) => {
               if (!attributes.paragraphSpacing) return {};
-              return { style: `margin-bottom: ${attributes.paragraphSpacing}` };
+              return { style: `margin-top: ${attributes.paragraphSpacing}; margin-bottom: ${attributes.paragraphSpacing}` };
             },
           },
         },
@@ -45,11 +45,19 @@ export const ParagraphSpacing = Extension.create<ParagraphSpacingOptions>({
       setParagraphSpacing:
         (spacing: string) =>
         ({ chain }) =>
-          chain().focus().updateAttributes('paragraph', { paragraphSpacing: spacing }).run(),
+          chain()
+            .focus()
+            .updateAttributes('paragraph', { paragraphSpacing: spacing })
+            .updateAttributes('listItem', { paragraphSpacing: spacing })
+            .run(),
       unsetParagraphSpacing:
         () =>
         ({ chain }) =>
-          chain().focus().updateAttributes('paragraph', { paragraphSpacing: null }).run(),
+          chain()
+            .focus()
+            .updateAttributes('paragraph', { paragraphSpacing: null })
+            .updateAttributes('listItem', { paragraphSpacing: null })
+            .run(),
     };
   },
 });

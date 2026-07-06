@@ -8,7 +8,7 @@ function log(...args: unknown[]) {
 const EDITOR_STYLES = `
   body {
     font-family: system-ui, -apple-system, sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
     color: #1a1a2e;
     padding: 40px;

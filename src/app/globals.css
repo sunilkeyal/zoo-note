@@ -133,7 +133,7 @@
   outline: none;
   min-height: 200px;
   line-height: 1.6;
-  font-size: 14px;
+  font-size: 13px;
   max-width: 1140px;
   color: inherit;
   font-family: inherit;
@@ -141,7 +141,7 @@
 .ProseMirror p { margin: 0 0 10px 0; }
 .ProseMirror ul { padding-left: 1.75rem; list-style-type: disc; margin: 8px 0; }
 .ProseMirror ol { padding-left: 1.75rem; list-style-type: decimal; margin: 8px 0; }
-.ProseMirror li { margin: 4px 0; }
+.ProseMirror li { margin: 0; }
 .ProseMirror li p { margin: 0; }
 .ProseMirror ul ul,
 .ProseMirror ol ul { list-style-type: circle; }

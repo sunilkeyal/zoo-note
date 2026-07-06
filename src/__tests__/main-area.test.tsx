@@ -53,6 +53,8 @@ vi.mock('@tiptap/react', () => {
         },
       },
     },
+    on: vi.fn(() => mockEditor),
+    off: vi.fn(() => mockEditor),
   }
   return {
     useEditor: vi.fn(() => mockEditor),
