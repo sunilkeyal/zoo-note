@@ -54,11 +54,11 @@ describe('TrashTable', () => {
     expect(onRetry).toHaveBeenCalledOnce()
   })
 
-  it('shows "Trash is empty" when items is empty', () => {
+  it('shows empty state when items is empty', () => {
     render(
       <TrashTable items={[]} onRestore={vi.fn()} onPermanentDelete={vi.fn()} />
     )
-    expect(screen.getByText('Trash is empty')).toBeInTheDocument()
+    expect(screen.getByText('Nothing here')).toBeInTheDocument()
   })
 
   it('renders items in a table', () => {

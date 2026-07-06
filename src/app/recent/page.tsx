@@ -147,9 +147,9 @@ export default function RecentPage() {
   const [hero, ...rest] = filteredNotes
 
   return (
-    <div className="py-2 space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
             <Clock className="size-5 text-violet-500" />

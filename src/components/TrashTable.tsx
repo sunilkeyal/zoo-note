@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -216,8 +217,11 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-16 text-muted-foreground">
-        <p>Trash is empty</p>
+      <div className="rounded-xl border border-dashed bg-muted/30 p-10 text-center flex flex-col items-center gap-3 mx-auto max-w-xs">
+        <div className="size-12 rounded-full bg-muted flex items-center justify-center">
+          <Trash2 className="size-6 text-muted-foreground" />
+        </div>
+        <h3 className="font-semibold text-sm">Nothing here</h3>
       </div>
     )
   }

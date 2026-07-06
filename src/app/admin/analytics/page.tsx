@@ -1,8 +1,17 @@
+import { BarChart3 } from "lucide-react"
+
 export default function AnalyticsPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Activity / Analytics</h1>
-      <p className="text-muted-foreground mb-6">Charts for notes created, active users, storage usage trends.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+          <BarChart3 className="size-5 text-blue-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Activity / Analytics</h1>
+          <p className="text-xs text-muted-foreground">Charts for notes created, active users, storage usage trends</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="rounded-lg border p-6">
           <h3 className="font-semibold mb-2">Notes Created (Last 7 Days)</h3>

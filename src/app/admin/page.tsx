@@ -1,8 +1,17 @@
+import { LayoutDashboard } from "lucide-react"
+
 export default function DashboardPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
-      <p className="text-muted-foreground mb-6">Overview of system stats and activity.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+          <LayoutDashboard className="size-5 text-blue-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <p className="text-xs text-muted-foreground">Overview of system stats and activity</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Total Users</p>

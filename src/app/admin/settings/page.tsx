@@ -1,8 +1,17 @@
+import { Settings } from "lucide-react"
+
 export default function SettingsPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">System Settings</h1>
-      <p className="text-muted-foreground mb-6">Configure application-wide settings.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+          <Settings className="size-5 text-blue-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">System Settings</h1>
+          <p className="text-xs text-muted-foreground">Configure application-wide settings</p>
+        </div>
+      </div>
       <div className="space-y-6">
         <div className="rounded-lg border p-4">
           <h3 className="font-semibold mb-1">Application Name</h3>

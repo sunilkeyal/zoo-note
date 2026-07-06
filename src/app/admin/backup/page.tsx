@@ -1,8 +1,17 @@
+import { Database } from "lucide-react"
+
 export default function BackupPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Backup & Restore</h1>
-      <p className="text-muted-foreground mb-6">Manage database backups and restore points.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+          <Database className="size-5 text-blue-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Backup & Restore</h1>
+          <p className="text-xs text-muted-foreground">Manage database backups and restore points</p>
+        </div>
+      </div>
       <div className="rounded-lg border overflow-hidden mb-4">
         <table className="w-full text-sm">
           <thead>

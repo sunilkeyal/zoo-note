@@ -1,14 +1,16 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { Trash2 } from "lucide-react"
 import TrashTable from "@/components/TrashTable"
 import { useNotes } from "@/contexts/NoteContext"
 
 export default function TrashPage() {
   const { trashItems, trashLoading, trashError, fetchTrash, restoreItems, permanentDeleteItems } = useNotes()
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   useEffect(() => {
-    fetchTrash()
+    fetchTrash().then(() => setHasLoaded(true))
   }, [fetchTrash])
 
   const items = [
@@ -41,18 +43,25 @@ export default function TrashPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Trash</h1>
-      <p className="text-muted-foreground mb-6">
-        Notes and folders you deleted. Items are automatically purged after 7 days.
-      </p>
-      <TrashTable
-        items={items}
-        loading={trashLoading}
-        error={trashError}
-        onRestore={handleRestore}
-        onPermanentDelete={handlePermanentDelete}
-        onRetry={fetchTrash}
-      />
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+          <Trash2 className="size-5 text-orange-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Trash</h1>
+          <p className="text-xs text-muted-foreground">Recently deleted notes and folders</p>
+        </div>
+      </div>
+      {hasLoaded && (
+        <TrashTable
+          items={items}
+          loading={trashLoading}
+          error={trashError}
+          onRestore={handleRestore}
+          onPermanentDelete={handlePermanentDelete}
+          onRetry={fetchTrash}
+        />
+      )}
     </div>
   )
 }

@@ -144,9 +144,9 @@ export default function FavoritesPage() {
   const [hero, ...rest] = filteredNotes
 
   return (
-    <div className="py-2 space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
             <Star className="size-5 text-amber-500" />

@@ -1,8 +1,17 @@
+import { ScrollText } from "lucide-react"
+
 export default function AuditPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Audit Logs</h1>
-      <p className="text-muted-foreground mb-6">View user activity and system events.</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+          <ScrollText className="size-5 text-blue-500" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Audit Logs</h1>
+          <p className="text-xs text-muted-foreground">View user activity and system events</p>
+        </div>
+      </div>
       <div className="rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
           <thead>

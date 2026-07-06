@@ -60,7 +60,7 @@ describe('NoteContext', () => {
       expect(ctx.activeNoteId).toBeNull()
       expect(ctx.activeNote).toBeNull()
       expect(ctx.trashItems).toEqual({ notes: [], folders: [] })
-      expect(ctx.trashLoading).toBe(false)
+      expect(ctx.trashLoading).toBe(true)
       expect(ctx.trashError).toBeNull()
       expect(typeof ctx.fetchNotes).toBe('function')
       expect(typeof ctx.fetchFolders).toBe('function')

@@ -398,13 +398,20 @@ export default function NotesSidebar() {
   const handleDeleteNote = async () => {
     if (!deleteNoteTarget) return
     await deleteNote(deleteNoteTarget)
-    if (activeNoteId === deleteNoteTarget) setActiveNoteId(null)
+    if (activeNoteId === deleteNoteTarget) {
+      setActiveNoteId(null)
+      router.push("/")
+    }
     setDeleteNoteTarget(null)
   }
 
   const handleDeleteFolder = async () => {
     if (!deleteFolderTarget) return
     await deleteFolder(deleteFolderTarget._id)
+    if (activeNoteId && notes.find((n) => n._id === activeNoteId && n.folderId === deleteFolderTarget._id)) {
+      setActiveNoteId(null)
+      router.push("/")
+    }
     setDeleteFolderTarget(null)
   }
 

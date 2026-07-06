@@ -77,7 +77,7 @@ export function NoteProvider({ children }: { children: ReactNode }) {
     } catch { /* localStorage unavailable */ }
   }, []);
   const [trashItems, setTrashItems] = useState<{ notes: Note[]; folders: Folder[] }>({ notes: [], folders: [] });
-  const [trashLoading, setTrashLoading] = useState(false);
+  const [trashLoading, setTrashLoading] = useState(true);
   const [trashError, setTrashError] = useState<string | null>(null);
 
   const activeNote = notes.find((n) => n._id === activeNoteId) ?? null;

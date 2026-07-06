@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { useSession } from "next-auth/react"
-import { Plus } from "lucide-react"
+import { Plus, Users } from "lucide-react"
 import UsersTable, { type UserRow } from "./users-table"
 import CreateUserDialog from "./create-user-dialog"
 import EditUserDialog from "./edit-user-dialog"
@@ -96,9 +96,14 @@ export default function UsersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage user accounts, passwords, and access.</p>
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+            <Users className="size-5 text-blue-500" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">User Management</h1>
+            <p className="text-xs text-muted-foreground">Manage user accounts, passwords, and access</p>
+          </div>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
