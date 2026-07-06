@@ -34,6 +34,7 @@ export default function SettingsSheet({ open, onClose, density, onDensityChange 
       <div
         className="fixed inset-0 bg-black/20 z-40"
         onClick={onClose}
+        aria-hidden="true"
         aria-label="Close settings sheet overlay"
       />
       <div
