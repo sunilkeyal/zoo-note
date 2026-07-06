@@ -21,6 +21,8 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { useNotes } from "@/contexts/NoteContext"
 import AccountSheet from "./AccountSheet"
+import SettingsSheet from "@/components/SettingsSheet"
+import { useSidebarDensity, type SidebarDensity } from "@/hooks/use-sidebar-density"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
 import SearchDropdown from "@/components/SearchDropdown"
@@ -285,6 +287,8 @@ export default function NotesSidebar() {
   const ignoreNextBlurRef = useRef(false)
 
   const { data: session } = useSession()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { density, setDensity } = useSidebarDensity()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -940,7 +944,7 @@ export default function NotesSidebar() {
                   <DropdownMenuItem onClick={() => setAccountOpen(true)}>
                     <UserIcon /> Account
                   </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
+                  <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
                     <Settings /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled>
@@ -958,6 +962,7 @@ export default function NotesSidebar() {
       </Sidebar>
 
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} density={density} onDensityChange={setDensity} />
       <DeleteConfirmDialog open={deleteNoteTarget !== null} onClose={() => setDeleteNoteTarget(null)} onConfirm={handleDeleteNote} />
       <DeleteFolderDialog open={deleteFolderTarget !== null} folderName={deleteFolderTarget?.name || ""}
         notesCount={deleteFolderTarget ? notes.filter((n) => n.folderId === deleteFolderTarget._id).length : 0}
