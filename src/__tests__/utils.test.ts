@@ -49,4 +49,25 @@ describe('stripHtml', () => {
   it('trims whitespace', () => {
     expect(stripHtml('  <p>content</p>  ')).toBe('content')
   })
+
+  it('decodes &nbsp; entities', () => {
+    expect(stripHtml('<p>Hello&nbsp;World</p>')).toBe('Hello\u00A0World')
+  })
+
+  it('decodes multiple &nbsp; for consecutive spaces', () => {
+    expect(stripHtml('<p>Multiple&nbsp;&nbsp;&nbsp;spaces</p>')).toBe('Multiple\u00A0\u00A0\u00A0spaces')
+  })
+
+  it('decodes common HTML entities', () => {
+    expect(stripHtml('<p>&amp; &lt; &gt; &quot;</p>')).toBe('& < > "')
+  })
+
+  it('decodes numeric HTML entities', () => {
+    expect(stripHtml('<p>&#39; &#x27;</p>')).toBe("' '")
+  })
+
+  it('handles real-world TipTap content with &nbsp;', () => {
+    const html = '<p class="MsoNormal" style="margin: 0px; padding: 0px; color: rgb(0, 0, 0); font-family: &quot;Times New Roman&quot;;"><span style="font-family: Arial, sans-serif;">This is a note&nbsp;&nbsp;with spaces.</span></p>'
+    expect(stripHtml(html)).toBe('This is a note\u00A0\u00A0with spaces.')
+  })
 })
