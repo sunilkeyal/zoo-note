@@ -83,10 +83,15 @@ vi.mock('@/components/ui/context-menu', () => ({
     render || <div>{children}</div>,
   ContextMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="context-menu-content">{children}</div>,
   ContextMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => <button onClick={onClick}>{children}</button>,
+  ContextMenuLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   ContextMenuSeparator: () => <hr />,
   ContextMenuSub: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ContextMenuSubContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ContextMenuSubTrigger: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+}))
+
+vi.mock('@/components/EmptyTrashDialog', () => ({
+  default: () => null,
 }))
 
 vi.mock('@/components/ui/sidebar', () => ({
@@ -190,6 +195,7 @@ vi.mock('lucide-react', () => ({
   House: () => <span>House</span>,
   Clock: () => <span>Clock</span>,
   CalendarDays: () => <span>CalendarDays</span>,
+  RotateCcw: () => <span>RotateCcw</span>,
 }))
 
 import { useNotes } from '@/contexts/NoteContext'

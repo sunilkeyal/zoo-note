@@ -26,6 +26,7 @@ import ImportExportSheet from "./ImportExportSheet"
 import { useSidebarDensity, type SidebarDensity } from "@/hooks/use-sidebar-density"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
+import EmptyTrashDialog from "./EmptyTrashDialog"
 import SearchDropdown from "@/components/SearchDropdown"
 import {
   Tooltip,
@@ -37,6 +38,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuLabel,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
@@ -102,6 +104,7 @@ import {
   Car,
   BookOpen,
   Info,
+  RotateCcw,
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
@@ -365,6 +368,7 @@ export default function NotesSidebar() {
     notes, folders, expandedFolders, createNote, deleteNote, updateNote,
     activeNoteId, setActiveNoteId, createFolder, renameFolder,
     deleteFolder, moveNote, moveFolder, toggleFolder, favoriteNotes, toggleFavorite,
+    trashItems, restoreItems, permanentDeleteItems,
   } = useNotes()
 
   const [search, setSearch] = useState("")
@@ -384,11 +388,22 @@ export default function NotesSidebar() {
   const { data: session } = useSession()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [importExportOpen, setImportExportOpen] = useState(false)
+  const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false)
   const { density, setDensity } = useSidebarDensity()
   const pathname = usePathname()
   const router = useRouter()
 
 
+
+  const trashNoteCount = trashItems.notes.length
+  const trashFolderCount = trashItems.folders.length
+  const trashTotalCount = trashNoteCount + trashFolderCount
+  const trashCountLabel = trashTotalCount === 0
+    ? "Trash is empty"
+    : [
+        trashNoteCount > 0 ? `${trashNoteCount} note${trashNoteCount !== 1 ? "s" : ""}` : null,
+        trashFolderCount > 0 ? `${trashFolderCount} folder${trashFolderCount !== 1 ? "s" : ""}` : null,
+      ].filter(Boolean).join(", ")
 
   const query = search.toLowerCase()
   const filtered = search
@@ -970,10 +985,37 @@ export default function NotesSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Trash2 className="text-rose-600 dark:text-rose-500" />
-                    <span>Trash</span>
-                  </SidebarMenuButton>
+                  <ContextMenu>
+                    <ContextMenuTrigger render={
+                      <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
+                        <Trash2 className="text-rose-600 dark:text-rose-500" />
+                        <span>Trash</span>
+                      </SidebarMenuButton>
+                    } />
+                    <ContextMenuContent>
+                      <ContextMenuLabel className="text-xs text-muted-foreground">{trashCountLabel}</ContextMenuLabel>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        disabled={trashTotalCount === 0}
+                        onClick={() => restoreItems(
+                          trashItems.notes.map((n) => n._id),
+                          trashItems.folders.map((f) => f._id),
+                        )}
+                      >
+                        <RotateCcw /> Restore All
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        disabled={trashTotalCount === 0}
+                        className="text-rose-600 focus:text-rose-600 dark:text-rose-500"
+                        onClick={() => setEmptyTrashDialogOpen(true)}
+                      >
+                        <Trash2 /> Empty Trash
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuLabel className="text-xs text-muted-foreground italic">Auto-purges after 7 days</ContextMenuLabel>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
@@ -1068,6 +1110,19 @@ export default function NotesSidebar() {
       <DeleteFolderDialog open={deleteFolderTarget !== null} folderName={deleteFolderTarget?.name || ""}
         notesCount={deleteFolderTarget ? notes.filter((n) => n.folderId === deleteFolderTarget._id).length : 0}
         onClose={() => setDeleteFolderTarget(null)} onConfirm={handleDeleteFolder} />
+      <EmptyTrashDialog
+        open={emptyTrashDialogOpen}
+        noteCount={trashNoteCount}
+        folderCount={trashFolderCount}
+        onConfirm={() => {
+          permanentDeleteItems(
+            trashItems.notes.map((n) => n._id),
+            trashItems.folders.map((f) => f._id),
+          )
+          setEmptyTrashDialogOpen(false)
+        }}
+        onCancel={() => setEmptyTrashDialogOpen(false)}
+      />
     </>
   )
 }
