@@ -45,7 +45,7 @@ export default function TrashPage() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="size-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
-          <Trash2 className="size-5 text-rose-500 dark:text-rose-400" />
+          <Trash2 className="size-5 text-rose-600 dark:text-rose-500" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Trash</h1>

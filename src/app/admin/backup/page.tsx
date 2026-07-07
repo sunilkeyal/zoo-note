@@ -5,7 +5,7 @@ export default function BackupPage() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="size-10 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center shrink-0">
-          <Database className="size-5 text-teal-500 dark:text-teal-400" />
+          <Database className="size-5 text-teal-600 dark:text-teal-500" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Backup & Restore</h1>

@@ -7,7 +7,7 @@ export default function CalendarPage() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="size-10 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
-          <CalendarDays className="size-5 text-sky-500 dark:text-sky-400" />
+          <CalendarDays className="size-5 text-sky-700 dark:text-sky-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Calendar</h1>

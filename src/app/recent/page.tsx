@@ -152,7 +152,7 @@ export default function RecentPage() {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-            <Clock className="size-5 text-emerald-500 dark:text-emerald-400" />
+            <Clock className="size-5 text-emerald-600 dark:text-emerald-500" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">Recent</h1>

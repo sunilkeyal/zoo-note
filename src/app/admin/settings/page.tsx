@@ -5,7 +5,7 @@ export default function SettingsPage() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-900/30 flex items-center justify-center shrink-0">
-          <Settings className="size-5 text-slate-500 dark:text-slate-400" />
+          <Settings className="size-5 text-slate-700 dark:text-slate-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">System Settings</h1>

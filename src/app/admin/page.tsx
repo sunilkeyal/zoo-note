@@ -5,7 +5,7 @@ export default function DashboardPage() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="size-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
-          <LayoutDashboard className="size-5 text-violet-500 dark:text-violet-400" />
+          <LayoutDashboard className="size-5 text-violet-600 dark:text-violet-500" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>

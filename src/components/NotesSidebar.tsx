@@ -210,74 +210,74 @@ const folderIcons: Record<string, typeof FolderIcon> = {
 }
 
 const folderIconColors: Record<string, string> = {
-  work: "text-blue-500 dark:text-blue-400",
-  office: "text-blue-500 dark:text-blue-400",
-  business: "text-blue-500 dark:text-blue-400",
-  personal: "text-purple-500 dark:text-purple-400",
-  private: "text-purple-500 dark:text-purple-400",
-  school: "text-amber-500 dark:text-amber-400",
-  study: "text-amber-500 dark:text-amber-400",
-  education: "text-amber-500 dark:text-amber-400",
-  learning: "text-emerald-500 dark:text-emerald-400",
-  reading: "text-emerald-500 dark:text-emerald-400",
-  books: "text-emerald-500 dark:text-emerald-400",
-  book: "text-emerald-500 dark:text-emerald-400",
-  library: "text-emerald-500 dark:text-emerald-400",
-  courses: "text-emerald-500 dark:text-emerald-400",
-  course: "text-emerald-500 dark:text-emerald-400",
-  music: "text-pink-500 dark:text-pink-400",
-  songs: "text-pink-500 dark:text-pink-400",
-  audio: "text-pink-500 dark:text-pink-400",
-  photos: "text-sky-500 dark:text-sky-400",
-  images: "text-sky-500 dark:text-sky-400",
-  pictures: "text-sky-500 dark:text-sky-400",
-  videos: "text-red-500 dark:text-red-400",
-  movies: "text-red-500 dark:text-red-400",
-  films: "text-red-500 dark:text-red-400",
-  documents: "text-stone-500 dark:text-stone-400",
-  docs: "text-stone-500 dark:text-stone-400",
-  files: "text-stone-500 dark:text-stone-400",
-  notes: "text-stone-500 dark:text-stone-400",
-  downloads: "text-cyan-500 dark:text-cyan-400",
-  projects: "text-indigo-500 dark:text-indigo-400",
-  software: "text-indigo-500 dark:text-indigo-400",
-  recipes: "text-orange-500 dark:text-orange-400",
-  cooking: "text-orange-500 dark:text-orange-400",
-  food: "text-orange-500 dark:text-orange-400",
-  health: "text-rose-500 dark:text-rose-400",
-  medical: "text-rose-500 dark:text-rose-400",
-  doctor: "text-rose-500 dark:text-rose-400",
-  fitness: "text-lime-500 dark:text-lime-400",
-  sports: "text-lime-500 dark:text-lime-400",
-  gym: "text-lime-500 dark:text-lime-400",
-  workout: "text-lime-500 dark:text-lime-400",
-  finance: "text-yellow-500 dark:text-yellow-400",
-  money: "text-yellow-500 dark:text-yellow-400",
-  budget: "text-yellow-500 dark:text-yellow-400",
-  travel: "text-teal-500 dark:text-teal-400",
-  trips: "text-teal-500 dark:text-teal-400",
-  vacation: "text-teal-500 dark:text-teal-400",
-  itinerary: "text-teal-500 dark:text-teal-400",
-  shopping: "text-rose-500 dark:text-rose-400",
-  stores: "text-rose-500 dark:text-rose-400",
-  ideas: "text-yellow-500 dark:text-yellow-400",
-  starred: "text-amber-500 dark:text-amber-400",
-  favorites: "text-amber-500 dark:text-amber-400",
-  auto: "text-slate-500 dark:text-slate-400",
-  car: "text-slate-500 dark:text-slate-400",
-  vehicle: "text-slate-500 dark:text-slate-400",
-  garage: "text-slate-500 dark:text-slate-400",
-  information: "text-blue-400 dark:text-blue-300",
-  info: "text-blue-400 dark:text-blue-300",
-  reference: "text-blue-400 dark:text-blue-300",
-  faq: "text-blue-400 dark:text-blue-300",
-  help: "text-blue-400 dark:text-blue-300",
-  wiki: "text-blue-400 dark:text-blue-300",
-  meetings: "text-violet-500 dark:text-violet-400",
-  meeting: "text-violet-500 dark:text-violet-400",
-  conference: "text-violet-500 dark:text-violet-400",
-  agenda: "text-violet-500 dark:text-violet-400",
-  team: "text-violet-500 dark:text-violet-400",
+  work: "text-blue-600 dark:text-blue-500",
+  office: "text-blue-600 dark:text-blue-500",
+  business: "text-blue-600 dark:text-blue-500",
+  personal: "text-purple-600 dark:text-purple-500",
+  private: "text-purple-600 dark:text-purple-500",
+  school: "text-amber-700 dark:text-amber-600",
+  study: "text-amber-700 dark:text-amber-600",
+  education: "text-amber-700 dark:text-amber-600",
+  learning: "text-emerald-600 dark:text-emerald-500",
+  reading: "text-emerald-600 dark:text-emerald-500",
+  books: "text-emerald-600 dark:text-emerald-500",
+  book: "text-emerald-600 dark:text-emerald-500",
+  library: "text-emerald-600 dark:text-emerald-500",
+  courses: "text-emerald-600 dark:text-emerald-500",
+  course: "text-emerald-600 dark:text-emerald-500",
+  music: "text-pink-600 dark:text-pink-500",
+  songs: "text-pink-600 dark:text-pink-500",
+  audio: "text-pink-600 dark:text-pink-500",
+  photos: "text-sky-700 dark:text-sky-600",
+  images: "text-sky-700 dark:text-sky-600",
+  pictures: "text-sky-700 dark:text-sky-600",
+  videos: "text-red-600 dark:text-red-500",
+  movies: "text-red-600 dark:text-red-500",
+  films: "text-red-600 dark:text-red-500",
+  documents: "text-stone-700 dark:text-stone-600",
+  docs: "text-stone-700 dark:text-stone-600",
+  files: "text-stone-700 dark:text-stone-600",
+  notes: "text-stone-700 dark:text-stone-600",
+  downloads: "text-cyan-700 dark:text-cyan-600",
+  projects: "text-indigo-600 dark:text-indigo-500",
+  software: "text-indigo-600 dark:text-indigo-500",
+  recipes: "text-orange-600 dark:text-orange-500",
+  cooking: "text-orange-600 dark:text-orange-500",
+  food: "text-orange-600 dark:text-orange-500",
+  health: "text-rose-600 dark:text-rose-500",
+  medical: "text-rose-600 dark:text-rose-500",
+  doctor: "text-rose-600 dark:text-rose-500",
+  fitness: "text-lime-700 dark:text-lime-600",
+  sports: "text-lime-700 dark:text-lime-600",
+  gym: "text-lime-700 dark:text-lime-600",
+  workout: "text-lime-700 dark:text-lime-600",
+  finance: "text-yellow-700 dark:text-yellow-600",
+  money: "text-yellow-700 dark:text-yellow-600",
+  budget: "text-yellow-700 dark:text-yellow-600",
+  travel: "text-teal-600 dark:text-teal-500",
+  trips: "text-teal-600 dark:text-teal-500",
+  vacation: "text-teal-600 dark:text-teal-500",
+  itinerary: "text-teal-600 dark:text-teal-500",
+  shopping: "text-rose-600 dark:text-rose-500",
+  stores: "text-rose-600 dark:text-rose-500",
+  ideas: "text-yellow-700 dark:text-yellow-600",
+  starred: "text-amber-700 dark:text-amber-600",
+  favorites: "text-amber-700 dark:text-amber-600",
+  auto: "text-slate-700 dark:text-slate-600",
+  car: "text-slate-700 dark:text-slate-600",
+  vehicle: "text-slate-700 dark:text-slate-600",
+  garage: "text-slate-700 dark:text-slate-600",
+  information: "text-blue-500 dark:text-blue-400",
+  info: "text-blue-500 dark:text-blue-400",
+  reference: "text-blue-500 dark:text-blue-400",
+  faq: "text-blue-500 dark:text-blue-400",
+  help: "text-blue-500 dark:text-blue-400",
+  wiki: "text-blue-500 dark:text-blue-400",
+  meetings: "text-violet-600 dark:text-violet-500",
+  meeting: "text-violet-600 dark:text-violet-500",
+  conference: "text-violet-600 dark:text-violet-500",
+  agenda: "text-violet-600 dark:text-violet-500",
+  team: "text-violet-600 dark:text-violet-500",
 }
 
 function getFolderIcon(name: string) {
@@ -337,12 +337,12 @@ const SortableFolderItem = ({ folderId, dragType, children }: { folderId: string
 }
 
 const adminItems = [
-  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard, iconColor: "text-violet-500 dark:text-violet-400" },
-  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3,       iconColor: "text-cyan-500 dark:text-cyan-400" },
-  { route: "/admin/backup",    label: "Backup & Restore", icon: Database,        iconColor: "text-teal-500 dark:text-teal-400" },
-  { route: "/admin/users",     label: "User Management",  icon: Users,           iconColor: "text-blue-500 dark:text-blue-400" },
-  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText,      iconColor: "text-orange-500 dark:text-orange-400" },
-  { route: "/admin/settings",  label: "System Settings",  icon: Settings,        iconColor: "text-slate-500 dark:text-slate-400" },
+  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard, iconColor: "text-violet-600 dark:text-violet-500" },
+  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3,       iconColor: "text-cyan-700 dark:text-cyan-600" },
+  { route: "/admin/backup",    label: "Backup & Restore", icon: Database,        iconColor: "text-teal-600 dark:text-teal-500" },
+  { route: "/admin/users",     label: "User Management",  icon: Users,           iconColor: "text-blue-600 dark:text-blue-500" },
+  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText,      iconColor: "text-orange-600 dark:text-orange-500" },
+  { route: "/admin/settings",  label: "System Settings",  icon: Settings,        iconColor: "text-slate-700 dark:text-slate-600" },
 ]
 
 function navItemClass(density: SidebarDensity): string {
@@ -877,13 +877,13 @@ export default function NotesSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }} className={navItemClass(density)}>
-                    <House className="text-indigo-500 dark:text-indigo-400" />
+                    <House className="text-indigo-600 dark:text-indigo-500" />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Star className="text-amber-500 dark:text-amber-400" />
+                    <Star className="text-amber-700 dark:text-amber-600" />
                     <span>Favorites</span>
                     {favoriteNotes.length > 0 && (
                       <span className="ml-auto text-xs bg-sidebar-accent text-sidebar-accent-foreground rounded-full px-2 py-0.5">
@@ -894,13 +894,13 @@ export default function NotesSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Clock className="text-emerald-500 dark:text-emerald-400" />
+                    <Clock className="text-emerald-600 dark:text-emerald-500" />
                     <span>Recent</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <CalendarDays className="text-sky-500 dark:text-sky-400" />
+                    <CalendarDays className="text-sky-700 dark:text-sky-600" />
                     <span>Calendar</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -969,7 +969,7 @@ export default function NotesSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Trash2 className="text-rose-500 dark:text-rose-400" />
+                    <Trash2 className="text-rose-600 dark:text-rose-500" />
                     <span>Trash</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
