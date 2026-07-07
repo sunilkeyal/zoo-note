@@ -55,20 +55,27 @@ export async function generateExportZip(
     }
   }
 
-  // Build id → extension map from GridFS metadata
-  const extMap = new Map<string, string>()
-  for (const id of allImageIds) {
-    try {
+  // Download all images first. Only images that download successfully will have
+  // their srcs rewritten in the manifest — prevents a manifest with rewritten
+  // relative paths that point at zip entries that don't exist.
+  const successImages: { id: string; ext: string; buffer: Buffer }[] = []
+  await Promise.allSettled(
+    Array.from(allImageIds).map(async (id) => {
       const objectId = new ObjectId(id)
       const files = await bucket.find({ _id: objectId }).toArray()
-      if (files.length > 0) {
-        const ext = files[0].filename.split(".").pop() || "jpg"
-        extMap.set(id, ext)
+      if (files.length === 0) return
+      const ext = files[0].filename.split(".").pop() || "jpg"
+      const imageChunks: Buffer[] = []
+      const stream = bucket.openDownloadStream(objectId)
+      for await (const chunk of stream) {
+        imageChunks.push(chunk)
       }
-    } catch {
-      // Skip images that can't be read
-    }
-  }
+      successImages.push({ id, ext, buffer: Buffer.concat(imageChunks) })
+    })
+  )
+
+  // extMap only contains images we actually bundled in the zip
+  const extMap = new Map(successImages.map(({ id, ext }) => [id, ext]))
 
   function rewriteExportSrcs(html: string): string {
     let result = html
@@ -102,33 +109,9 @@ export async function generateExportZip(
     archive.on("error", reject)
 
     archive.append(JSON.stringify(manifest, null, 2), { name: "notes.json" })
-
-    const imagePromises: Promise<void>[] = []
-
-    for (const id of allImageIds) {
-      imagePromises.push(
-        (async () => {
-          try {
-            const objectId = new ObjectId(id)
-            const files = await bucket.find({ _id: objectId }).toArray()
-            if (files.length === 0) return
-            const file = files[0]
-            const ext = file.filename.split(".").pop() || "jpg"
-            const chunks: Buffer[] = []
-            const stream = bucket.openDownloadStream(objectId)
-            for await (const chunk of stream) {
-              chunks.push(chunk)
-            }
-            archive.append(Buffer.concat(chunks), { name: `images/${id}.${ext}` })
-          } catch {
-            // Skip images that can't be read
-          }
-        })()
-      )
+    for (const { id, ext, buffer } of successImages) {
+      archive.append(buffer, { name: `images/${id}.${ext}` })
     }
-
-    Promise.all(imagePromises).then(() => {
-      archive.finalize()
-    }).catch(reject)
+    archive.finalize()
   })
 }

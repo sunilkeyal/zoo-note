@@ -215,6 +215,10 @@ describe('export', () => {
           { filename: 'photo.png', _id: imgId },
         ]),
       }))
+      // Download must succeed for the src rewrite to happen
+      mockBucketOpenDownloadStream.mockReturnValue({
+        [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true, value: undefined }) }),
+      })
 
       await generateExportZip(
         [mockNote({ content: `<img src="/api/images/${imgId}">` })],
@@ -253,7 +257,7 @@ describe('export', () => {
       await generateExportZip([mockNote()], [], {} as never)
 
       expect(mockExtractImageIds).toHaveBeenCalledWith('<p>Hello</p>')
-      expect(mockBucketFind).toHaveBeenCalledTimes(2)
+      expect(mockBucketFind).toHaveBeenCalledTimes(1)
       expect(mockBucketOpenDownloadStream).toHaveBeenCalledTimes(1)
       expect(mockArchiveInstance.append).toHaveBeenCalledWith(
         expect.any(Buffer),
