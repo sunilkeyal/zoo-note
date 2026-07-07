@@ -257,12 +257,12 @@ const SortableFolderItem = ({ folderId, dragType, children }: { folderId: string
 }
 
 const adminItems = [
-  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard },
-  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3 },
-  { route: "/admin/backup",    label: "Backup & Restore", icon: Database },
-  { route: "/admin/users",     label: "User Management",  icon: Users },
-  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText },
-  { route: "/admin/settings",  label: "System Settings",  icon: Settings },
+  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard, iconColor: "text-violet-500 dark:text-violet-400" },
+  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3,       iconColor: "text-cyan-500 dark:text-cyan-400" },
+  { route: "/admin/backup",    label: "Backup & Restore", icon: Database,        iconColor: "text-teal-500 dark:text-teal-400" },
+  { route: "/admin/users",     label: "User Management",  icon: Users,           iconColor: "text-blue-500 dark:text-blue-400" },
+  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText,      iconColor: "text-orange-500 dark:text-orange-400" },
+  { route: "/admin/settings",  label: "System Settings",  icon: Settings,        iconColor: "text-slate-500 dark:text-slate-400" },
 ]
 
 function navItemClass(density: SidebarDensity): string {
@@ -909,7 +909,7 @@ export default function NotesSidebar() {
                     {adminItems.map((item) => (
                       <SidebarMenuItem key={item.route}>
                         <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)} className={navItemClass(density)}>
-                          <item.icon />
+                          <item.icon className={item.iconColor} />
                           <span>{item.label}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
