@@ -11,10 +11,10 @@ interface SettingsSheetProps {
   onDensityChange: (density: SidebarDensity) => void
 }
 
-const modes: { value: SidebarDensity; label: string }[] = [
-  { value: "default", label: "Default" },
-  { value: "compact", label: "Compact" },
-  { value: "dense", label: "Dense" },
+const modes: { value: SidebarDensity; label: string; description: string }[] = [
+  { value: "spacious", label: "Spacious", description: "Most spacious" },
+  { value: "default", label: "Default", description: "Medium density" },
+  { value: "compact", label: "Compact", description: "Most compact" },
 ]
 
 export default function SettingsSheet({ open, onClose, density, onDensityChange }: SettingsSheetProps) {

@@ -266,15 +266,17 @@ const adminItems = [
 ]
 
 function navItemClass(density: SidebarDensity): string {
-  if (density === "compact") return "h-[28px]! px-[10px]! py-[3px]! text-[13px]! gap-[6px]!"
-  if (density === "dense") return "h-[24px]! px-[8px]! py-[2px]! text-[12px]! gap-[4px]!"
-  return ""
+  const base = "transition-all duration-100"
+  if (density === "default") return `${base} h-[28px]! px-[10px]! py-[3px]! text-[13px]! gap-[6px]!`
+  if (density === "compact") return `${base} h-[24px]! px-[8px]! py-[2px]! text-[12px]! gap-[4px]!`
+  return base
 }
 
 function subItemClass(density: SidebarDensity): string {
-  if (density === "compact") return "h-[24px]! px-[8px]! py-[2px]! text-[13px]!"
-  if (density === "dense") return "h-[20px]! px-[6px]! py-[1px]! text-[12px]!"
-  return ""
+  const base = "transition-all duration-100"
+  if (density === "default") return `${base} h-[24px]! px-[8px]! py-[2px]! text-[13px]!`
+  if (density === "compact") return `${base} h-[20px]! px-[6px]! py-[1px]! text-[12px]!`
+  return base
 }
 
 export default function NotesSidebar() {

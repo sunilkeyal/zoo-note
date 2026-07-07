@@ -10,6 +10,11 @@ vi.mock('@/contexts/NoteContext', () => ({
   NoteProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
+vi.mock('@/contexts/SidebarDensityContext', () => ({
+  SidebarDensityProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useSidebarDensity: vi.fn(() => ({ density: 'default', setDensity: vi.fn() })),
+}))
+
 vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),
   signOut: vi.fn(),
