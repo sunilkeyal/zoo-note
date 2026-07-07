@@ -23,14 +23,13 @@ const { mockTurndown, mockTurndownConstructor, mockDump, mockArchiveInstance, mo
   return { mockTurndown, mockTurndownConstructor, mockDump, mockArchiveInstance, mockZipArchive, archiveHandlers }
 })
 
-const { mockExtractImageIds, mockRewriteImageSrcs, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream } = vi.hoisted(() => {
+const { mockExtractImageIds, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream } = vi.hoisted(() => {
   const mockExtractImageIds = vi.fn()
-  const mockRewriteImageSrcs = vi.fn()
   const mockObjectId = vi.fn()
   const mockBucketFind = vi.fn()
   const mockBucketOpenDownloadStream = vi.fn()
 
-  return { mockExtractImageIds, mockRewriteImageSrcs, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream }
+  return { mockExtractImageIds, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream }
 })
 
 vi.mock('turndown', () => ({
@@ -54,7 +53,7 @@ vi.mock('@/lib/gridfs', () => ({
 
 vi.mock('@/lib/utils', () => ({
   extractImageIds: mockExtractImageIds,
-  rewriteImageSrcs: mockRewriteImageSrcs,
+  rewriteImageSrcs: vi.fn(),
 }))
 
 describe('export', () => {
@@ -145,8 +144,6 @@ describe('export', () => {
 
     beforeEach(() => {
       mockExtractImageIds.mockReturnValue([])
-      mockRewriteImageSrcs.mockImplementation((html: string) => html)
-      mockObjectId.mockImplementation((id: string) => id)
     })
 
     it('creates a ZIP archive and returns a Buffer', async () => {
@@ -209,20 +206,25 @@ describe('export', () => {
       expect(manifest.notes[0].folderName).toBeNull()
     })
 
-    it('rewrites image srcs in manifest content', async () => {
+    it('rewrites image srcs in manifest content with extensions', async () => {
       const { generateExportZip } = await import('@/lib/export')
-      mockRewriteImageSrcs.mockReturnValue('<img src="images/abc123">')
+      const imgId = '507f1f77bcf86cd799439011'
+      mockExtractImageIds.mockReturnValue([imgId])
+      mockBucketFind.mockImplementation(() => ({
+        toArray: () => Promise.resolve([
+          { filename: 'photo.png', _id: imgId },
+        ]),
+      }))
 
-      await generateExportZip([mockNote({ content: '<img src="/api/images/abc123">' })], [], {} as never)
-
-      expect(mockRewriteImageSrcs).toHaveBeenCalledWith(
-        '<img src="/api/images/abc123">',
-        '/api/images/',
-        'images/'
+      await generateExportZip(
+        [mockNote({ content: `<img src="/api/images/${imgId}">` })],
+        [],
+        {} as never
       )
+
       const [content] = mockArchiveInstance.append.mock.calls[0]
       const manifest = JSON.parse(content)
-      expect(manifest.notes[0].content).toBe('<img src="images/abc123">')
+      expect(manifest.notes[0].content).toBe(`<img src="images/${imgId}.png">`)
     })
 
     it('extracts image IDs and fetches images from GridFS', async () => {
@@ -251,7 +253,7 @@ describe('export', () => {
       await generateExportZip([mockNote()], [], {} as never)
 
       expect(mockExtractImageIds).toHaveBeenCalledWith('<p>Hello</p>')
-      expect(mockBucketFind).toHaveBeenCalledTimes(1)
+      expect(mockBucketFind).toHaveBeenCalledTimes(2)
       expect(mockBucketOpenDownloadStream).toHaveBeenCalledTimes(1)
       expect(mockArchiveInstance.append).toHaveBeenCalledWith(
         expect.any(Buffer),

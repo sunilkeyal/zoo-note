@@ -4,7 +4,7 @@ import * as yaml from "js-yaml"
 import * as archiver from "archiver"
 import { Db, ObjectId } from "mongodb"
 import { getBucket } from "@/lib/gridfs"
-import { extractImageIds, rewriteImageSrcs } from "@/lib/utils"
+import { extractImageIds } from "@/lib/utils"
 
 const turndown = new TurndownService({
   headingStyle: "atx",
@@ -55,17 +55,39 @@ export async function generateExportZip(
     }
   }
 
+  // Build id → extension map from GridFS metadata
+  const extMap = new Map<string, string>()
+  for (const id of allImageIds) {
+    try {
+      const objectId = new ObjectId(id)
+      const files = await bucket.find({ _id: objectId }).toArray()
+      if (files.length > 0) {
+        const ext = files[0].filename.split(".").pop() || "jpg"
+        extMap.set(id, ext)
+      }
+    } catch {
+      // Skip images that can't be read
+    }
+  }
+
+  function rewriteExportSrcs(html: string): string {
+    let result = html
+    for (const [id, ext] of extMap) {
+      result = result.replace(
+        new RegExp(`src="/api/images/${id}"`, "g"),
+        `src="images/${id}.${ext}"`
+      )
+    }
+    return result
+  }
+
   const manifest: ExportManifest = {
     version: 1,
     exportedAt: new Date().toISOString(),
     folders: folders.map((f) => ({ name: f.name, position: f.position })),
     notes: notes.map((n) => ({
       title: n.title,
-      content: rewriteImageSrcs(
-        n.content || "",
-        "/api/images/",
-        "images/"
-      ),
+      content: rewriteExportSrcs(n.content || ""),
       folderName: n.folderId ? folderMap.get(n.folderId) ?? null : null,
       position: n.position,
     })),
