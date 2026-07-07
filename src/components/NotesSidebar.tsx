@@ -796,13 +796,13 @@ export default function NotesSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }} className={navItemClass(density)}>
-                    <House />
+                    <House className="text-indigo-500 dark:text-indigo-400" />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Star className={favoriteNotes.length > 0 ? "text-amber-500" : ""} />
+                    <Star className="text-amber-500 dark:text-amber-400" />
                     <span>Favorites</span>
                     {favoriteNotes.length > 0 && (
                       <span className="ml-auto text-xs bg-sidebar-accent text-sidebar-accent-foreground rounded-full px-2 py-0.5">
@@ -813,13 +813,13 @@ export default function NotesSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Clock />
+                    <Clock className="text-emerald-500 dark:text-emerald-400" />
                     <span>Recent</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <CalendarDays />
+                    <CalendarDays className="text-sky-500 dark:text-sky-400" />
                     <span>Calendar</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -888,7 +888,7 @@ export default function NotesSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Trash2 />
+                    <Trash2 className="text-rose-500 dark:text-rose-400" />
                     <span>Trash</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
