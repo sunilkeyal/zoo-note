@@ -22,6 +22,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { useNotes } from "@/contexts/NoteContext"
 import AccountSheet from "./AccountSheet"
 import SettingsSheet from "@/components/SettingsSheet"
+import ImportExportSheet from "./ImportExportSheet"
 import { useSidebarDensity, type SidebarDensity } from "@/hooks/use-sidebar-density"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
@@ -112,7 +113,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, ScrollText, BarChart3 } from "lucide-react"
+import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, ScrollText, BarChart3, Upload } from "lucide-react"
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -382,6 +383,7 @@ export default function NotesSidebar() {
 
   const { data: session } = useSession()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [importExportOpen, setImportExportOpen] = useState(false)
   const { density, setDensity } = useSidebarDensity()
   const pathname = usePathname()
   const router = useRouter()
@@ -1042,6 +1044,9 @@ export default function NotesSidebar() {
                   <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
                     <Settings /> Settings
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setImportExportOpen(true)}>
+                    <Upload /> Import / Export
+                  </DropdownMenuItem>
                   <DropdownMenuItem disabled>
                     <Rocket /> Upgrade to Pro
                   </DropdownMenuItem>
@@ -1058,6 +1063,7 @@ export default function NotesSidebar() {
 
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} density={density} onDensityChange={setDensity} />
+      <ImportExportSheet open={importExportOpen} onClose={() => setImportExportOpen(false)} />
       <DeleteConfirmDialog open={deleteNoteTarget !== null} onClose={() => setDeleteNoteTarget(null)} onConfirm={handleDeleteNote} />
       <DeleteFolderDialog open={deleteFolderTarget !== null} folderName={deleteFolderTarget?.name || ""}
         notesCount={deleteFolderTarget ? notes.filter((n) => n.folderId === deleteFolderTarget._id).length : 0}

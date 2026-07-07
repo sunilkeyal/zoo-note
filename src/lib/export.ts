@@ -2,6 +2,9 @@ import TurndownService from "turndown"
 import { Note, Folder } from "@/types"
 import * as yaml from "js-yaml"
 import * as archiver from "archiver"
+import { Db, ObjectId } from "mongodb"
+import { getBucket } from "@/lib/gridfs"
+import { extractImageIds } from "@/lib/utils"
 
 const turndown = new TurndownService({
   headingStyle: "atx",
@@ -25,11 +28,70 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_").trim() || "untitled"
 }
 
+interface ExportManifest {
+  version: number
+  exportedAt: string
+  folders: { name: string; position: number }[]
+  notes: {
+    title: string
+    content: string
+    folderName: string | null
+    position: number
+  }[]
+}
+
 export async function generateExportZip(
   notes: Note[],
-  folders: Folder[]
+  folders: Folder[],
+  _db: Db
 ): Promise<Buffer> {
+  const bucket = await getBucket()
   const folderMap = new Map(folders.map((f) => [f._id, f.name]))
+
+  const allImageIds = new Set<string>()
+  for (const note of notes) {
+    for (const id of extractImageIds(note.content || "")) {
+      allImageIds.add(id)
+    }
+  }
+
+  // Build id → extension map from GridFS metadata
+  const extMap = new Map<string, string>()
+  for (const id of allImageIds) {
+    try {
+      const objectId = new ObjectId(id)
+      const files = await bucket.find({ _id: objectId }).toArray()
+      if (files.length > 0) {
+        const ext = files[0].filename.split(".").pop() || "jpg"
+        extMap.set(id, ext)
+      }
+    } catch {
+      // Skip images that can't be read
+    }
+  }
+
+  function rewriteExportSrcs(html: string): string {
+    let result = html
+    for (const [id, ext] of extMap) {
+      result = result.replace(
+        new RegExp(`src="/api/images/${id}"`, "g"),
+        `src="images/${id}.${ext}"`
+      )
+    }
+    return result
+  }
+
+  const manifest: ExportManifest = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    folders: folders.map((f) => ({ name: f.name, position: f.position })),
+    notes: notes.map((n) => ({
+      title: n.title,
+      content: rewriteExportSrcs(n.content || ""),
+      folderName: n.folderId ? folderMap.get(n.folderId) ?? null : null,
+      position: n.position,
+    })),
+  }
 
   return new Promise((resolve, reject) => {
     const archive = new archiver.ZipArchive({ zlib: { level: 9 } })
@@ -39,32 +101,34 @@ export async function generateExportZip(
     archive.on("end", () => resolve(Buffer.concat(chunks)))
     archive.on("error", reject)
 
-    const usedFilenames = new Set<string>()
+    archive.append(JSON.stringify(manifest, null, 2), { name: "notes.json" })
 
-    for (const note of notes) {
-      const folderName = note.folderId ? folderMap.get(note.folderId) : undefined
-      const frontMatter = generateFrontMatter(note.title, folderName)
-      const markdownBody = convertHtmlToMarkdown(note.content)
-      const content = frontMatter + markdownBody
+    const imagePromises: Promise<void>[] = []
 
-      const sanitizedTitle = sanitizeFilename(note.title)
-      const baseName = folderName
-        ? `${sanitizeFilename(folderName)}/${sanitizedTitle}.md`
-        : `${sanitizedTitle}.md`
-
-      let filename = baseName
-      let counter = 1
-      while (usedFilenames.has(filename)) {
-        filename = folderName
-          ? `${sanitizeFilename(folderName)}/${sanitizedTitle}-${counter}.md`
-          : `${sanitizedTitle}-${counter}.md`
-        counter++
-      }
-      usedFilenames.add(filename)
-
-      archive.append(content, { name: filename })
+    for (const id of allImageIds) {
+      imagePromises.push(
+        (async () => {
+          try {
+            const objectId = new ObjectId(id)
+            const files = await bucket.find({ _id: objectId }).toArray()
+            if (files.length === 0) return
+            const file = files[0]
+            const ext = file.filename.split(".").pop() || "jpg"
+            const chunks: Buffer[] = []
+            const stream = bucket.openDownloadStream(objectId)
+            for await (const chunk of stream) {
+              chunks.push(chunk)
+            }
+            archive.append(Buffer.concat(chunks), { name: `images/${id}.${ext}` })
+          } catch {
+            // Skip images that can't be read
+          }
+        })()
+      )
     }
 
-    archive.finalize()
+    Promise.all(imagePromises).then(() => {
+      archive.finalize()
+    }).catch(reject)
   })
 }

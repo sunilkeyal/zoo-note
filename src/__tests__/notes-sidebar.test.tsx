@@ -185,6 +185,7 @@ vi.mock('lucide-react', () => ({
   Users: () => <span>Users</span>,
   ScrollText: () => <span>ScrollText</span>,
   BarChart3: () => <span>BarChart</span>,
+  Upload: () => <span>Upload</span>,
   UserIcon: () => <span>UserIcon</span>,
   House: () => <span>House</span>,
   Clock: () => <span>Clock</span>,

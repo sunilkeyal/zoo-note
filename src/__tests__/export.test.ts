@@ -23,6 +23,15 @@ const { mockTurndown, mockTurndownConstructor, mockDump, mockArchiveInstance, mo
   return { mockTurndown, mockTurndownConstructor, mockDump, mockArchiveInstance, mockZipArchive, archiveHandlers }
 })
 
+const { mockExtractImageIds, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream } = vi.hoisted(() => {
+  const mockExtractImageIds = vi.fn()
+  const mockObjectId = vi.fn()
+  const mockBucketFind = vi.fn()
+  const mockBucketOpenDownloadStream = vi.fn()
+
+  return { mockExtractImageIds, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream }
+})
+
 vi.mock('turndown', () => ({
   default: mockTurndownConstructor,
 }))
@@ -33,6 +42,18 @@ vi.mock('js-yaml', () => ({
 
 vi.mock('archiver', () => ({
   ZipArchive: mockZipArchive,
+}))
+
+vi.mock('@/lib/gridfs', () => ({
+  getBucket: () => ({
+    find: mockBucketFind,
+    openDownloadStream: mockBucketOpenDownloadStream,
+  }),
+}))
+
+vi.mock('@/lib/utils', () => ({
+  extractImageIds: mockExtractImageIds,
+  rewriteImageSrcs: vi.fn(),
 }))
 
 describe('export', () => {
@@ -115,100 +136,179 @@ describe('export', () => {
     const mockFolder = (overrides: Record<string, unknown> = {}) => ({
       _id: 'folder1',
       name: 'My Folder',
+      position: 1,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
       ...overrides,
     })
 
+    beforeEach(() => {
+      mockExtractImageIds.mockReturnValue([])
+    })
+
     it('creates a ZIP archive and returns a Buffer', async () => {
       const { generateExportZip } = await import('@/lib/export')
 
-      const result = await generateExportZip([mockNote()], [])
+      const result = await generateExportZip([mockNote()], [], {} as never)
 
       expect(Buffer.isBuffer(result)).toBe(true)
       expect(mockArchiveInstance.finalize).toHaveBeenCalled()
     })
 
-    it('appends notes with front matter and markdown content', async () => {
+    it('appends notes.json manifest with correct structure', async () => {
       const { generateExportZip } = await import('@/lib/export')
-      mockDump.mockReturnValue('title: Test Note\n')
+      const datePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
 
-      await generateExportZip([mockNote()], [])
+      await generateExportZip([mockNote()], [], {} as never)
 
-      expect(mockArchiveInstance.append).toHaveBeenCalledWith(
-        '---\ntitle: Test Note\n---\n\nmd(<p>Hello</p>)',
-        { name: 'Test Note.md' }
-      )
+      expect(mockArchiveInstance.append).toHaveBeenCalledTimes(1)
+      const [content, options] = mockArchiveInstance.append.mock.calls[0]
+      expect(options).toEqual({ name: 'notes.json' })
+      const manifest = JSON.parse(content)
+      expect(manifest.version).toBe(1)
+      expect(manifest.exportedAt).toMatch(datePattern)
+      expect(manifest.folders).toEqual([])
+      expect(manifest.notes).toHaveLength(1)
+      expect(manifest.notes[0]).toEqual({
+        title: 'Test Note',
+        content: '<p>Hello</p>',
+        folderName: null,
+        position: 0,
+      })
     })
 
-    it('sanitizes filenames by replacing invalid characters', async () => {
+    it('includes folder information in manifest when note has folder', async () => {
       const { generateExportZip } = await import('@/lib/export')
-      mockDump.mockReturnValue('title: Bad/File:*Name\n')
-
-      await generateExportZip([mockNote({ title: 'Bad/File:*Name' })], [])
-
-      expect(mockArchiveInstance.append).toHaveBeenCalledWith(
-        expect.any(String),
-        { name: 'Bad_File__Name.md' }
-      )
-    })
-
-    it('groups notes into subdirectories by folder', async () => {
-      const { generateExportZip } = await import('@/lib/export')
-      mockDump.mockReturnValue('title: Note\nfolder: My Folder\n')
 
       await generateExportZip(
-        [mockNote({ folderId: 'folder1', title: 'Note' })],
-        [mockFolder()]
+        [mockNote({ folderId: 'folder1' })],
+        [mockFolder()],
+        {} as never
       )
 
+      const [content] = mockArchiveInstance.append.mock.calls[0]
+      const manifest = JSON.parse(content)
+      expect(manifest.folders).toEqual([{ name: 'My Folder', position: 1 }])
+      expect(manifest.notes[0].folderName).toBe('My Folder')
+    })
+
+    it('uses null folderName when folder not found in map', async () => {
+      const { generateExportZip } = await import('@/lib/export')
+
+      await generateExportZip(
+        [mockNote({ folderId: 'nonexistent' })],
+        [],
+        {} as never
+      )
+
+      const [content] = mockArchiveInstance.append.mock.calls[0]
+      const manifest = JSON.parse(content)
+      expect(manifest.notes[0].folderName).toBeNull()
+    })
+
+    it('rewrites image srcs in manifest content with extensions', async () => {
+      const { generateExportZip } = await import('@/lib/export')
+      const imgId = '507f1f77bcf86cd799439011'
+      mockExtractImageIds.mockReturnValue([imgId])
+      mockBucketFind.mockImplementation(() => ({
+        toArray: () => Promise.resolve([
+          { filename: 'photo.png', _id: imgId },
+        ]),
+      }))
+
+      await generateExportZip(
+        [mockNote({ content: `<img src="/api/images/${imgId}">` })],
+        [],
+        {} as never
+      )
+
+      const [content] = mockArchiveInstance.append.mock.calls[0]
+      const manifest = JSON.parse(content)
+      expect(manifest.notes[0].content).toBe(`<img src="images/${imgId}.png">`)
+    })
+
+    it('extracts image IDs and fetches images from GridFS', async () => {
+      const { generateExportZip } = await import('@/lib/export')
+      const validId = '507f1f77bcf86cd799439011'
+      mockExtractImageIds.mockReturnValue([validId])
+      mockBucketFind.mockImplementation((query: { _id: unknown }) => ({
+        toArray: () => Promise.resolve([
+          { filename: 'photo.png', _id: query._id },
+        ]),
+      }))
+      const mockStream = {
+        [Symbol.asyncIterator]: () => {
+          let emitted = false
+          return {
+            next: () => {
+              if (emitted) return Promise.resolve({ done: true, value: undefined })
+              emitted = true
+              return Promise.resolve({ done: false, value: Buffer.from('image-data') })
+            },
+          }
+        },
+      }
+      mockBucketOpenDownloadStream.mockReturnValue(mockStream)
+
+      await generateExportZip([mockNote()], [], {} as never)
+
+      expect(mockExtractImageIds).toHaveBeenCalledWith('<p>Hello</p>')
+      expect(mockBucketFind).toHaveBeenCalledTimes(2)
+      expect(mockBucketOpenDownloadStream).toHaveBeenCalledTimes(1)
       expect(mockArchiveInstance.append).toHaveBeenCalledWith(
-        expect.any(String),
-        { name: 'My Folder/Note.md' }
+        expect.any(Buffer),
+        { name: `images/${validId}.png` }
       )
     })
 
-    it('handles duplicate filenames by appending a counter', async () => {
+    it('skips images not found in GridFS', async () => {
       const { generateExportZip } = await import('@/lib/export')
-      mockDump.mockReturnValue('title: Note\nfolder: Folder\n')
+      mockExtractImageIds.mockReturnValue(['507f1f77bcf86cd799439011'])
+      mockBucketFind.mockImplementation(() => ({
+        toArray: () => Promise.resolve([]),
+      }))
 
-      const notes = [
-        mockNote({ _id: 'n1', title: 'Note', folderId: 'folder1' }),
-        mockNote({ _id: 'n2', title: 'Note', folderId: 'folder1' }),
-      ]
+      await generateExportZip([mockNote()], [], {} as never)
 
-      await generateExportZip(notes, [mockFolder({ name: 'Folder' })])
-
-      const calls = mockArchiveInstance.append.mock.calls
-      expect(calls[0][1].name).toBe('Folder/Note.md')
-      expect(calls[1][1].name).toBe('Folder/Note-1.md')
+      expect(mockArchiveInstance.append).toHaveBeenCalledTimes(1)
     })
 
-    it('does not create duplicate filenames across folders', async () => {
+    it('handles image fetch errors gracefully', async () => {
       const { generateExportZip } = await import('@/lib/export')
-      mockDump.mockReturnValue('title: Note\n')
+      mockExtractImageIds.mockReturnValue(['507f1f77bcf86cd799439011'])
+      mockBucketFind.mockImplementation(() => ({
+        toArray: () => Promise.resolve([{ filename: 'photo.jpg', _id: '507f1f77bcf86cd799439011' }]),
+      }))
+      mockBucketOpenDownloadStream.mockImplementation(() => {
+        throw new Error('Stream error')
+      })
 
-      const notes = [
-        mockNote({ _id: 'n1', title: 'Note', folderId: 'folder1' }),
-        mockNote({ _id: 'n2', title: 'Note', folderId: undefined }),
-      ]
+      await generateExportZip([mockNote()], [], {} as never)
 
-      await generateExportZip(notes, [mockFolder()])
-
-      const calls = mockArchiveInstance.append.mock.calls
-      expect(calls[0][1].name).toBe('My Folder/Note.md')
-      expect(calls[1][1].name).toBe('Note.md')
+      expect(mockArchiveInstance.append).toHaveBeenCalledTimes(1)
     })
 
-    it('uses "untitled" for notes with empty title after sanitization', async () => {
+    it('uses jpg as default extension when filename has no extension', async () => {
       const { generateExportZip } = await import('@/lib/export')
-      mockDump.mockReturnValue('title: \n')
+      const validId = '507f1f77bcf86cd799439011'
+      mockExtractImageIds.mockReturnValue([validId])
+      mockBucketFind.mockImplementation(() => ({
+        toArray: () => Promise.resolve([
+          { filename: 'photo.', _id: validId },
+        ]),
+      }))
+      const mockStream = {
+        [Symbol.asyncIterator]: () => ({
+          next: () => Promise.resolve({ done: true, value: undefined }),
+        }),
+      }
+      mockBucketOpenDownloadStream.mockReturnValue(mockStream)
 
-      await generateExportZip([mockNote({ title: '' })], [])
+      await generateExportZip([mockNote()], [], {} as never)
 
       expect(mockArchiveInstance.append).toHaveBeenCalledWith(
-        expect.any(String),
-        { name: 'untitled.md' }
+        expect.any(Buffer),
+        { name: `images/${validId}.jpg` }
       )
     })
   })
