@@ -76,16 +76,9 @@ describe('EmptyTrashDialog', () => {
     render(<EmptyTrashDialog open={true} noteCount={1} folderCount={0} onConfirm={onConfirm} onCancel={() => {}} />)
     // The dialog title is "Empty Trash"; the button inside is also "Empty Trash"
     // Click the button with data-variant="destructive"
-    const buttons = screen.getAllByText('Empty Trash')
-    const actionButton = buttons.find(b => b.tagName === 'BUTTON')
-    fireEvent.click(actionButton!)
+    const actionButton = screen.getByRole('button', { name: /empty trash/i })
+    fireEvent.click(actionButton)
     expect(onConfirm).toHaveBeenCalledOnce()
   })
 
-  it('calls onCancel when dialog onOpenChange fires (close via backdrop)', () => {
-    const onCancel = vi.fn()
-    render(<EmptyTrashDialog open={true} noteCount={1} folderCount={0} onConfirm={() => {}} onCancel={onCancel} />)
-    // Dialog mock calls onOpenChange (which maps to onCancel) — tested via the Cancel button path above
-    expect(onCancel).not.toHaveBeenCalled()
-  })
 })
