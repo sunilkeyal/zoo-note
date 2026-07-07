@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
 import { Note, Folder } from "@/types"
 import { ObjectId } from "mongodb"
+import { getBucket } from "@/lib/gridfs"
+import { extractImageIds } from "@/lib/utils"
 
 export async function GET() {
   const session = await auth()
@@ -94,11 +96,32 @@ export async function DELETE(request: NextRequest) {
     if (noteObjectIds.length === 0) {
       return NextResponse.json({ success: false, error: "Invalid note ID format" }, { status: 400 })
     }
+
+    // Collect image IDs before deleting so we can clean up GridFS
+    const noteDocs = await notesCollection
+      .find({ _id: { $in: noteObjectIds }, userId: session.user.id })
+      .project({ content: 1 })
+      .toArray()
+    const noteImageIds = new Set<string>()
+    for (const doc of noteDocs) {
+      for (const imgId of extractImageIds(doc.content || "")) {
+        noteImageIds.add(imgId)
+      }
+    }
+
     const result = await notesCollection.deleteMany({
       _id: { $in: noteObjectIds },
       userId: session.user.id,
     })
     deletedNotes = result.deletedCount
+
+    // Delete associated GridFS image files
+    if (noteImageIds.size > 0) {
+      const bucket = await getBucket()
+      for (const imgId of noteImageIds) {
+        try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+      }
+    }
   }
 
   if (folderIds && folderIds.length > 0) {
@@ -115,11 +138,31 @@ export async function DELETE(request: NextRequest) {
     })
     deletedFolders = result.deletedCount
 
+    // Collect image IDs from folder notes before deleting them
+    const folderNoteDocs = await notesCollection
+      .find({ folderId: { $in: folderIds }, userId: session.user.id })
+      .project({ content: 1 })
+      .toArray()
+    const folderImageIds = new Set<string>()
+    for (const doc of folderNoteDocs) {
+      for (const imgId of extractImageIds(doc.content || "")) {
+        folderImageIds.add(imgId)
+      }
+    }
+
     // Also hard-delete notes inside these folders
     await notesCollection.deleteMany({
       folderId: { $in: folderIds },
       userId: session.user.id,
     })
+
+    // Delete associated GridFS image files
+    if (folderImageIds.size > 0) {
+      const bucket = await getBucket()
+      for (const imgId of folderImageIds) {
+        try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+      }
+    }
   }
 
   return NextResponse.json({
