@@ -115,11 +115,18 @@ export async function DELETE(request: NextRequest) {
     })
     deletedNotes = result.deletedCount
 
-    // Delete associated GridFS image files
+    // Delete GridFS image files — but only those no longer referenced by any
+    // surviving note (e.g. the same image pasted into two notes).
     if (noteImageIds.size > 0) {
       const bucket = await getBucket()
       for (const imgId of noteImageIds) {
-        try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+        const stillReferenced = await notesCollection.countDocuments({
+          userId: session.user.id,
+          content: { $regex: imgId },
+        })
+        if (stillReferenced === 0) {
+          try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+        }
       }
     }
   }
@@ -156,11 +163,17 @@ export async function DELETE(request: NextRequest) {
       userId: session.user.id,
     })
 
-    // Delete associated GridFS image files
+    // Delete GridFS image files — only those no longer referenced by any surviving note
     if (folderImageIds.size > 0) {
       const bucket = await getBucket()
       for (const imgId of folderImageIds) {
-        try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+        const stillReferenced = await notesCollection.countDocuments({
+          userId: session.user.id,
+          content: { $regex: imgId },
+        })
+        if (stillReferenced === 0) {
+          try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+        }
       }
     }
   }
