@@ -3,14 +3,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 import AppHeader from '@/components/AppHeader'
 
-const { mockSetTheme, mockUseTheme } = vi.hoisted(() => {
+const { mockSetTheme, mockUseThemeSync } = vi.hoisted(() => {
   const mockSetTheme = vi.fn()
-  const mockUseTheme = vi.fn(() => ({ theme: 'light', setTheme: mockSetTheme }))
-  return { mockSetTheme, mockUseTheme }
+  const mockUseThemeSync = vi.fn(() => ({ theme: 'light', setTheme: mockSetTheme }))
+  return { mockSetTheme, mockUseThemeSync }
 })
 
-vi.mock('next-themes', () => ({
-  useTheme: mockUseTheme,
+vi.mock('@/contexts/ThemeSyncContext', () => ({
+  useThemeSync: mockUseThemeSync,
 }))
 
 vi.mock('lucide-react', () => ({
@@ -44,7 +44,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 describe('AppHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseTheme.mockImplementation(() => ({ theme: 'light', setTheme: mockSetTheme }))
+    mockUseThemeSync.mockImplementation(() => ({ theme: 'light', setTheme: mockSetTheme }))
   })
 
   it('renders theme toggle button', () => {
@@ -54,7 +54,7 @@ describe('AppHeader', () => {
   })
 
   it('shows Sun icon when theme is dark', () => {
-    mockUseTheme.mockReturnValue({ theme: 'dark', setTheme: mockSetTheme })
+    mockUseThemeSync.mockReturnValue({ theme: 'dark', setTheme: mockSetTheme })
 
     render(<AppHeader />)
     expect(screen.getByTestId('sun-icon')).toBeInTheDocument()
@@ -68,7 +68,7 @@ describe('AppHeader', () => {
   })
 
   it('toggles from dark to light', () => {
-    mockUseTheme.mockReturnValue({ theme: 'dark', setTheme: mockSetTheme })
+    mockUseThemeSync.mockReturnValue({ theme: 'dark', setTheme: mockSetTheme })
 
     render(<AppHeader />)
     const tooltipTrigger = screen.getByTestId('tooltip-trigger')

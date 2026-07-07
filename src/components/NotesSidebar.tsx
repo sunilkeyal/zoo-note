@@ -21,6 +21,8 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { useNotes } from "@/contexts/NoteContext"
 import AccountSheet from "./AccountSheet"
+import SettingsSheet from "@/components/SettingsSheet"
+import { useSidebarDensity, type SidebarDensity } from "@/hooks/use-sidebar-density"
 import DeleteConfirmDialog from "./DeleteConfirmDialog"
 import DeleteFolderDialog from "./DeleteFolderDialog"
 import SearchDropdown from "@/components/SearchDropdown"
@@ -263,6 +265,20 @@ const adminItems = [
   { route: "/admin/settings",  label: "System Settings",  icon: Settings },
 ]
 
+function navItemClass(density: SidebarDensity): string {
+  const base = "transition-all duration-100"
+  if (density === "default") return `${base} h-[28px]! px-[10px]! py-[3px]! text-[13px]! gap-[6px]!`
+  if (density === "compact") return `${base} h-[24px]! px-[8px]! py-[2px]! text-[12px]! gap-[4px]!`
+  return base
+}
+
+function subItemClass(density: SidebarDensity): string {
+  const base = "transition-all duration-100"
+  if (density === "default") return `${base} h-[24px]! px-[8px]! py-[2px]! text-[13px]!`
+  if (density === "compact") return `${base} h-[20px]! px-[6px]! py-[1px]! text-[12px]!`
+  return base
+}
+
 export default function NotesSidebar() {
   const {
     notes, folders, expandedFolders, createNote, deleteNote, updateNote,
@@ -285,6 +301,8 @@ export default function NotesSidebar() {
   const ignoreNextBlurRef = useRef(false)
 
   const { data: session } = useSession()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { density, setDensity } = useSidebarDensity()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -577,7 +595,7 @@ export default function NotesSidebar() {
             <ContextMenuTrigger render={
               <Button
                 isActive={activeNoteId === note._id}
-                className={asRootItem ? "data-active:font-normal" : undefined}
+                className={asRootItem ? `data-active:font-normal ${navItemClass(density)}` : subItemClass(density)}
                 onClick={() => {
   setActiveNoteId(note._id)
   setActiveFolderId(null)
@@ -636,7 +654,7 @@ export default function NotesSidebar() {
                 <SidebarMenuItem>
                   <ContextMenu>
                     <ContextMenuTrigger render={
-                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} />}>
+                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={navItemClass(density)} />}>
                         <FolderIconForFolder />
                         {renamingId === folder._id ? (
                           <Input
@@ -777,13 +795,13 @@ export default function NotesSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }}>
+                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }} className={navItemClass(density)}>
                     <House />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)}>
+                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
                     <Star className={favoriteNotes.length > 0 ? "text-amber-500" : ""} />
                     <span>Favorites</span>
                     {favoriteNotes.length > 0 && (
@@ -794,13 +812,13 @@ export default function NotesSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)}>
+                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
                     <Clock />
                     <span>Recent</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)}>
+                  <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
                     <CalendarDays />
                     <span>Calendar</span>
                   </SidebarMenuButton>
@@ -869,7 +887,7 @@ export default function NotesSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)}>
+                  <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
                     <Trash2 />
                     <span>Trash</span>
                   </SidebarMenuButton>
@@ -890,7 +908,7 @@ export default function NotesSidebar() {
                   <SidebarMenu>
                     {adminItems.map((item) => (
                       <SidebarMenuItem key={item.route}>
-                        <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)}>
+                        <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)} className={navItemClass(density)}>
                           <item.icon />
                           <span>{item.label}</span>
                         </SidebarMenuButton>
@@ -940,7 +958,7 @@ export default function NotesSidebar() {
                   <DropdownMenuItem onClick={() => setAccountOpen(true)}>
                     <UserIcon /> Account
                   </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
+                  <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
                     <Settings /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled>
@@ -958,6 +976,7 @@ export default function NotesSidebar() {
       </Sidebar>
 
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} density={density} onDensityChange={setDensity} />
       <DeleteConfirmDialog open={deleteNoteTarget !== null} onClose={() => setDeleteNoteTarget(null)} onConfirm={handleDeleteNote} />
       <DeleteFolderDialog open={deleteFolderTarget !== null} folderName={deleteFolderTarget?.name || ""}
         notesCount={deleteFolderTarget ? notes.filter((n) => n.folderId === deleteFolderTarget._id).length : 0}

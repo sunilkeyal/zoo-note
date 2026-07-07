@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { useTheme } from "next-themes"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,9 +10,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Moon, Sun } from "lucide-react"
+import { useThemeSync } from "@/contexts/ThemeSyncContext"
 
 export default function AppHeader() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useThemeSync()
   const isDark = theme === "dark"
 
   return (
