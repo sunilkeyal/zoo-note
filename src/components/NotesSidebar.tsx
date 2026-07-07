@@ -684,6 +684,7 @@ export default function NotesSidebar() {
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
+                <StickyNote className="size-3.5 text-stone-400 dark:text-stone-500 shrink-0" />
                 <span className="truncate">{note.title}</span>
                 {note.isFavorite && (
                   <span className="flex items-center">
