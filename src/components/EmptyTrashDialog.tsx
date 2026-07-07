@@ -21,7 +21,9 @@ export default function EmptyTrashDialog({ open, noteCount, folderCount, onConfi
   const parts: string[] = []
   if (noteCount > 0) parts.push(`${noteCount} note${noteCount !== 1 ? "s" : ""}`)
   if (folderCount > 0) parts.push(`${folderCount} folder${folderCount !== 1 ? "s" : ""}`)
-  const description = `Permanently delete ${parts.join(" and ")}? This cannot be undone.`
+  const description = parts.length > 0
+    ? `Permanently delete ${parts.join(" and ")}? This cannot be undone.`
+    : `Permanently delete all items in Trash? This cannot be undone.`
 
   return (
     <Dialog open={open} onOpenChange={onCancel}>

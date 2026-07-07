@@ -1007,7 +1007,7 @@ export default function NotesSidebar() {
                       <ContextMenuSeparator />
                       <ContextMenuItem
                         disabled={trashTotalCount === 0}
-                        className="text-rose-600 focus:text-rose-600 dark:text-rose-500"
+                        className="text-rose-600 focus:text-rose-600 dark:text-rose-500 dark:focus:text-rose-500"
                         onClick={() => setEmptyTrashDialogOpen(true)}
                       >
                         <Trash2 /> Empty Trash
