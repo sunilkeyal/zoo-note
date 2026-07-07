@@ -209,6 +209,77 @@ const folderIcons: Record<string, typeof FolderIcon> = {
   team: Users,
 }
 
+const folderIconColors: Record<string, string> = {
+  work: "text-blue-500 dark:text-blue-400",
+  office: "text-blue-500 dark:text-blue-400",
+  business: "text-blue-500 dark:text-blue-400",
+  personal: "text-purple-500 dark:text-purple-400",
+  private: "text-purple-500 dark:text-purple-400",
+  school: "text-amber-500 dark:text-amber-400",
+  study: "text-amber-500 dark:text-amber-400",
+  education: "text-amber-500 dark:text-amber-400",
+  learning: "text-emerald-500 dark:text-emerald-400",
+  reading: "text-emerald-500 dark:text-emerald-400",
+  books: "text-emerald-500 dark:text-emerald-400",
+  book: "text-emerald-500 dark:text-emerald-400",
+  library: "text-emerald-500 dark:text-emerald-400",
+  courses: "text-emerald-500 dark:text-emerald-400",
+  course: "text-emerald-500 dark:text-emerald-400",
+  music: "text-pink-500 dark:text-pink-400",
+  songs: "text-pink-500 dark:text-pink-400",
+  audio: "text-pink-500 dark:text-pink-400",
+  photos: "text-sky-500 dark:text-sky-400",
+  images: "text-sky-500 dark:text-sky-400",
+  pictures: "text-sky-500 dark:text-sky-400",
+  videos: "text-red-500 dark:text-red-400",
+  movies: "text-red-500 dark:text-red-400",
+  films: "text-red-500 dark:text-red-400",
+  documents: "text-stone-500 dark:text-stone-400",
+  docs: "text-stone-500 dark:text-stone-400",
+  files: "text-stone-500 dark:text-stone-400",
+  notes: "text-stone-500 dark:text-stone-400",
+  downloads: "text-cyan-500 dark:text-cyan-400",
+  projects: "text-indigo-500 dark:text-indigo-400",
+  software: "text-indigo-500 dark:text-indigo-400",
+  recipes: "text-orange-500 dark:text-orange-400",
+  cooking: "text-orange-500 dark:text-orange-400",
+  food: "text-orange-500 dark:text-orange-400",
+  health: "text-rose-500 dark:text-rose-400",
+  medical: "text-rose-500 dark:text-rose-400",
+  doctor: "text-rose-500 dark:text-rose-400",
+  fitness: "text-lime-500 dark:text-lime-400",
+  sports: "text-lime-500 dark:text-lime-400",
+  gym: "text-lime-500 dark:text-lime-400",
+  workout: "text-lime-500 dark:text-lime-400",
+  finance: "text-yellow-500 dark:text-yellow-400",
+  money: "text-yellow-500 dark:text-yellow-400",
+  budget: "text-yellow-500 dark:text-yellow-400",
+  travel: "text-teal-500 dark:text-teal-400",
+  trips: "text-teal-500 dark:text-teal-400",
+  vacation: "text-teal-500 dark:text-teal-400",
+  itinerary: "text-teal-500 dark:text-teal-400",
+  shopping: "text-rose-500 dark:text-rose-400",
+  stores: "text-rose-500 dark:text-rose-400",
+  ideas: "text-yellow-500 dark:text-yellow-400",
+  starred: "text-amber-500 dark:text-amber-400",
+  favorites: "text-amber-500 dark:text-amber-400",
+  auto: "text-slate-500 dark:text-slate-400",
+  car: "text-slate-500 dark:text-slate-400",
+  vehicle: "text-slate-500 dark:text-slate-400",
+  garage: "text-slate-500 dark:text-slate-400",
+  information: "text-blue-400 dark:text-blue-300",
+  info: "text-blue-400 dark:text-blue-300",
+  reference: "text-blue-400 dark:text-blue-300",
+  faq: "text-blue-400 dark:text-blue-300",
+  help: "text-blue-400 dark:text-blue-300",
+  wiki: "text-blue-400 dark:text-blue-300",
+  meetings: "text-violet-500 dark:text-violet-400",
+  meeting: "text-violet-500 dark:text-violet-400",
+  conference: "text-violet-500 dark:text-violet-400",
+  agenda: "text-violet-500 dark:text-violet-400",
+  team: "text-violet-500 dark:text-violet-400",
+}
+
 function getFolderIcon(name: string) {
   const key = name.toLowerCase().trim()
   if (folderIcons[key]) return folderIcons[key]
@@ -216,6 +287,15 @@ function getFolderIcon(name: string) {
     if (folderIcons[word]) return folderIcons[word]
   }
   return FolderIcon
+}
+
+function getFolderIconColor(name: string): string {
+  const key = name.toLowerCase().trim()
+  if (folderIconColors[key]) return folderIconColors[key]
+  for (const word of key.split(/[\s-_]+/)) {
+    if (folderIconColors[word]) return folderIconColors[word]
+  }
+  return "text-sidebar-foreground"
 }
 
 const SortableNoteItem = ({ noteId, children }: { noteId: string; children: React.ReactNode }) => {
@@ -257,12 +337,12 @@ const SortableFolderItem = ({ folderId, dragType, children }: { folderId: string
 }
 
 const adminItems = [
-  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard },
-  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3 },
-  { route: "/admin/backup",    label: "Backup & Restore", icon: Database },
-  { route: "/admin/users",     label: "User Management",  icon: Users },
-  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText },
-  { route: "/admin/settings",  label: "System Settings",  icon: Settings },
+  { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard, iconColor: "text-violet-500 dark:text-violet-400" },
+  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3,       iconColor: "text-cyan-500 dark:text-cyan-400" },
+  { route: "/admin/backup",    label: "Backup & Restore", icon: Database,        iconColor: "text-teal-500 dark:text-teal-400" },
+  { route: "/admin/users",     label: "User Management",  icon: Users,           iconColor: "text-blue-500 dark:text-blue-400" },
+  { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText,      iconColor: "text-orange-500 dark:text-orange-400" },
+  { route: "/admin/settings",  label: "System Settings",  icon: Settings,        iconColor: "text-slate-500 dark:text-slate-400" },
 ]
 
 function navItemClass(density: SidebarDensity): string {
@@ -604,6 +684,7 @@ export default function NotesSidebar() {
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
               >
+                <StickyNote className="size-3.5 text-stone-400 dark:text-stone-500 shrink-0" />
                 <span className="truncate">{note.title}</span>
                 {note.isFavorite && (
                   <span className="flex items-center">
@@ -655,7 +736,7 @@ export default function NotesSidebar() {
                   <ContextMenu>
                     <ContextMenuTrigger render={
                       <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={navItemClass(density)} />}>
-                        <FolderIconForFolder />
+                        <FolderIconForFolder className={getFolderIconColor(folder.name)} />
                         {renamingId === folder._id ? (
                           <Input
                             ref={(el) => { renameInputRef.current = el }}
@@ -796,13 +877,13 @@ export default function NotesSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }} className={navItemClass(density)}>
-                    <House />
+                    <House className="text-indigo-500 dark:text-indigo-400" />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Star className={favoriteNotes.length > 0 ? "text-amber-500" : ""} />
+                    <Star className="text-amber-500 dark:text-amber-400" />
                     <span>Favorites</span>
                     {favoriteNotes.length > 0 && (
                       <span className="ml-auto text-xs bg-sidebar-accent text-sidebar-accent-foreground rounded-full px-2 py-0.5">
@@ -813,13 +894,13 @@ export default function NotesSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Clock />
+                    <Clock className="text-emerald-500 dark:text-emerald-400" />
                     <span>Recent</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <CalendarDays />
+                    <CalendarDays className="text-sky-500 dark:text-sky-400" />
                     <span>Calendar</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -888,7 +969,7 @@ export default function NotesSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <Trash2 />
+                    <Trash2 className="text-rose-500 dark:text-rose-400" />
                     <span>Trash</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -909,7 +990,7 @@ export default function NotesSidebar() {
                     {adminItems.map((item) => (
                       <SidebarMenuItem key={item.route}>
                         <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)} className={navItemClass(density)}>
-                          <item.icon />
+                          <item.icon className={item.iconColor} />
                           <span>{item.label}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

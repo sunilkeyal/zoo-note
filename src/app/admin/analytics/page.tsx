@@ -4,8 +4,8 @@ export default function AnalyticsPage() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-          <BarChart3 className="size-5 text-blue-500" />
+        <div className="size-10 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center shrink-0">
+          <BarChart3 className="size-5 text-cyan-500 dark:text-cyan-400" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Activity / Analytics</h1>
