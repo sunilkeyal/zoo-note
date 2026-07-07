@@ -37,6 +37,7 @@ import {
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuGroup,
   ContextMenuItem,
   ContextMenuLabel,
   ContextMenuSeparator,
@@ -993,7 +994,9 @@ export default function NotesSidebar() {
                       </SidebarMenuButton>
                     } />
                     <ContextMenuContent>
-                      <ContextMenuLabel className="text-xs text-muted-foreground">{trashCountLabel}</ContextMenuLabel>
+                      <ContextMenuGroup>
+                        <ContextMenuLabel className="text-xs text-muted-foreground">{trashCountLabel}</ContextMenuLabel>
+                      </ContextMenuGroup>
                       <ContextMenuSeparator />
                       <ContextMenuItem
                         disabled={trashTotalCount === 0}
@@ -1013,7 +1016,9 @@ export default function NotesSidebar() {
                         <Trash2 /> Empty Trash
                       </ContextMenuItem>
                       <ContextMenuSeparator />
-                      <ContextMenuLabel className="text-xs text-muted-foreground italic">Auto-purges after 7 days</ContextMenuLabel>
+                      <ContextMenuGroup>
+                        <ContextMenuLabel className="text-xs text-muted-foreground italic">Auto-purges after 7 days</ContextMenuLabel>
+                      </ContextMenuGroup>
                     </ContextMenuContent>
                   </ContextMenu>
                 </SidebarMenuItem>

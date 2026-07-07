@@ -82,6 +82,7 @@ vi.mock('@/components/ui/context-menu', () => ({
   ContextMenuTrigger: ({ children, render }: { children: React.ReactNode; render?: React.ReactElement }) =>
     render || <div>{children}</div>,
   ContextMenuContent: ({ children }: { children: React.ReactNode }) => <div data-testid="context-menu-content">{children}</div>,
+  ContextMenuGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ContextMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => <button onClick={onClick}>{children}</button>,
   ContextMenuLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   ContextMenuSeparator: () => <hr />,
