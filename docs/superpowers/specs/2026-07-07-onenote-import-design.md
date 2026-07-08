@@ -2,7 +2,7 @@
 
 ## Overview
 
-Import Microsoft OneNote notebooks (`.onepkg`) and section files (`.one`) into the app as folders and notes. Uses `@joplin/onenote-converter` (Rust → WebAssembly) to parse OneNote's binary format and output HTML.
+Import Microsoft OneNote notebooks (`.onepkg`) and section files (`.one`) into the app as folders and notes. Uses `@joplin/onenote-converter` (Rust → WebAssembly) to parse OneNote's binary format and output HTML. The WASM binary is prebuilt from the Rust source and **vendored** in the repository — no Rust toolchain needed at build or deploy time.
 
 ## Supported Formats
 
@@ -34,16 +34,20 @@ The UI should show a small info banner: *"Best compatibility with OneNote 2016+ 
 ```
 Upload (.onepkg or .one)
   ↓
-Format detection
+Format detection (magic bytes / CAB header)
   ↓
 If .onepkg → extract .one files + read .onetoc2 for section ordering
   ↓
 For each .one file:
-  ├── Parse with @joplin/onenote-converter → HTML per page
-  ├── Extract embedded images from HTML
+  ├── Save to temp directory
+  ├── Call vendored WASM (oneNoteConverter) → writes HTML files to temp output dir
+  ├── Read HTML files from output dir
+  ├── Extract embedded images from HTML (base64 + SVG)
   ├── Upload images to GridFS → rewrite <img> src
-  ├── Create folder (section name)
-  └── Create notes (pages with content)
+  ├── Create folder (section name from HTML metadata / filename)
+  └── Create notes (page title from <title> tag, content = cleaned HTML)
+  ↓
+Clean up temp directories
   ↓
 Return import result summary
 ```
@@ -82,21 +86,65 @@ Single file, passed directly to the converter. No extraction needed.
 
 ## Converter Integration
 
-`@joplin/onenote-converter` exports a `convert` function that takes a `.one` file path and returns HTML.
+The converter is built from `@joplin/onenote-converter` (Rust source at `node_modules/@joplin/onenote-converter/`). The WASM binary is built with `wasm-pack build --target nodejs --release ./renderer` and the output files are **vendored** into the repository at `src/lib/onenote/vendor/`:
 
-The converter:
-- Returns one HTML string per page (with section metadata)
-- Embeds images as base64 data URIs or SVG nodes
-- Preserves text formatting, tables, lists, checkboxes
-- Extracts ink drawings as SVG
+```
+src/lib/onenote/vendor/
+  renderer.js          # Node.js WASM wrapper (CommonJS)
+  renderer_bg.wasm     # Compiled WASM binary
+  renderer.d.ts        # TypeScript definitions
+```
 
-Post-processing steps after conversion:
-1. Parse HTML output
-2. Extract embedded images (base64 data URIs and SVG nodes)
-3. Upload images to GridFS with `sharp` for format conversion if needed
-4. Rewrite image references in HTML from data URIs to `/api/images/<id>`
-5. Convert SVG nodes to `<img>` tags pointing to GridFS
-6. Store clean HTML as note content
+These vendored files are committed to git — no Rust toolchain needed on CI or deploy.
+
+### WASM API
+
+The WASM exports a single function:
+
+```typescript
+function oneNoteConverter(input: string, output: string, basePath: string): void
+```
+
+It operates on **file paths**, not in-memory data:
+- `input`: path to `.one` file
+- `output`: directory path where HTML files will be written
+- `basePath`: base directory for resolving relative paths
+
+Each page in the section becomes an HTML file in the output directory.
+
+### Processing Pipeline
+
+1. Upload buffer is saved to a temp directory
+2. `oneNoteConverter(inputPath, outputDir, basePath)` is called via the vendored WASM
+3. Output HTML files are read from the output directory
+4. Page title is extracted from `<title>` tag or first `<h1>`
+5. Folder/section name is derived from the HTML filename pattern
+6. Base64 images are extracted, uploaded to GridFS, and `<img src>` rewritten
+7. SVG nodes are extracted, uploaded to GridFS, replaced with `<img>` tags
+8. Cleaned HTML is stored as note content
+9. Temp directories are cleaned up
+
+## WASM Build Process
+
+One-time setup for developers (not needed on CI/Vercel):
+
+```bash
+# Install Rust toolchain
+winget install Rustup.Rustup
+rustup target add wasm32-unknown-unknown
+
+# Build WASM from the onenote-converter source
+cd node_modules/@joplin/onenote-converter
+npx wasm-pack build --target nodejs --release ./renderer
+
+# Copy vendored files to repo
+mkdir -p src/lib/onenote/vendor
+Copy-Item renderer/pkg/renderer.js src/lib/onenote/vendor/
+Copy-Item renderer/pkg/renderer_bg.wasm src/lib/onenote/vendor/
+Copy-Item renderer/pkg/renderer.d.ts src/lib/onenote/vendor/
+```
+
+The vendored files should be regenerated when the `@joplin/onenote-converter` dependency is updated.
 
 ## API
 
@@ -141,12 +189,16 @@ Extend the existing `ImportExportSheet.tsx` to support OneNote files alongside t
 ## Files Changed
 
 ### New Files
-- `src/lib/onenote-import.ts` — OneNote parsing, extraction, conversion pipeline
+- `src/lib/onenote/vendor/renderer.js` — vendored WASM Node.js wrapper
+- `src/lib/onenote/vendor/renderer_bg.wasm` — vendored WASM binary
+- `src/lib/onenote/vendor/renderer.d.ts` — vendored type definitions
+- `src/lib/onenote/convert.ts` — loader/abstraction around vendored WASM
+- `src/lib/onenote/import.ts` — OneNote parsing, extraction, conversion pipeline
 - `src/app/api/notes/import/onenote/route.ts` — API route for OneNote import
 
 ### Modified Files
 - `src/components/ImportExportSheet.tsx` — add OneNote import UI
-- `package.json` — add `@joplin/onenote-converter` dependency
+- `package.json` — add `@joplin/onenote-converter` dependency (source for WASM build)
 
 ## Error Handling
 
