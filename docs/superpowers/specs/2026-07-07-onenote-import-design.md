@@ -13,6 +13,22 @@ Import Microsoft OneNote notebooks (`.onepkg`) and section files (`.one`) into t
 
 Detection is by file extension + magic bytes: `.onepkg` Cabinet header, `.one` GUID header `7B5C52E4-8CD8-4DA7-AEB1-5378D02996D3`.
 
+## Version Compatibility
+
+The underlying converter (`@joplin/onenote-converter`, based on `onenote.rs`) supports:
+
+| OneNote Version | `.one` | `.onepkg` | Notes |
+|----------------|--------|-----------|-------|
+| OneNote 2016+ (Windows desktop) | ✅ | ✅ | Best compatibility |
+| OneNote for Microsoft 365 (Windows) | ✅ | ✅ | Same format as 2016 |
+| OneDrive / SharePoint download | ✅ | N/A | FSSHTTPB format, well-tested |
+| OneNote for Windows 10 | ⚠️ Likely | ❌ | Cloud-synced only, no local `.onepkg` |
+| OneNote for Mac | ⚠️ Maybe | ❌ | `.onepkg` not supported on Mac at all |
+| OneNote 2007 | ❌ | ❌ | Older binary format, not supported |
+| OneNote 2003 | ❌ | ❌ | Not supported |
+
+The UI should show a small info banner: *"Best compatibility with OneNote 2016+ on Windows. Older versions and Mac exports may not work."*
+
 ## Pipeline
 
 ```
