@@ -38,3 +38,6 @@ yarn-error.log*
 next-env.d.ts
 
 # superpowers brainstorming cache.superpowers/
+
+# test data (large files, not part of source)
+/test-data/

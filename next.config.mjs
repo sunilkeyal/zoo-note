@@ -4,6 +4,7 @@ const nextConfig = {
   serverExternalPackages: ["@sparticuz/chromium"],
   outputFileTracingIncludes: {
     "/api/notes/*/export": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/api/notes/import/onenote": ["./src/lib/onenote/vendor/**/*"],
   },
 }
 

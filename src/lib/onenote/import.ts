@@ -33,6 +33,7 @@ export function detectOneNoteFormat(buffer: Buffer): "one" | "onepkg" | null {
 
 export async function importOneNote(
   buffer: Buffer,
+  originalFilename: string,
   userId: string,
   db: Db
 ): Promise<OneNoteImportResult> {
@@ -49,8 +50,8 @@ export async function importOneNote(
   }
 
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "onenote-"))
-  const ext = format === "onepkg" ? ".onepkg" : ".one"
-  const inputPath = path.join(tmpDir, `import${ext}`)
+  const safeName = path.basename(originalFilename)
+  const inputPath = path.join(tmpDir, safeName)
   await fs.writeFile(inputPath, buffer)
 
   const outputDir = path.join(tmpDir, "output")
@@ -59,21 +60,67 @@ export async function importOneNote(
   try {
     await convertOneNote(inputPath, outputDir, tmpDir)
 
-    const htmlFiles = (await fs.readdir(outputDir)).filter((f) => f.endsWith(".html"))
+    const bucket = await getBucket()
 
-    if (htmlFiles.length === 0) {
+    const pageEntries: { filePath: string; folderName: string }[] = []
+    const entries = await fs.readdir(outputDir, { withFileTypes: true })
+    const subdirs = entries.filter((e) => e.isDirectory())
+
+    if (subdirs.length > 0) {
+      for (const subdir of subdirs) {
+        const sectionDir = path.join(outputDir, subdir.name)
+        const files = (await fs.readdir(sectionDir)).filter((f) =>
+          f.endsWith(".html")
+        )
+        for (const f of files) {
+          pageEntries.push({
+            filePath: path.join(sectionDir, f),
+            folderName: subdir.name,
+          })
+        }
+      }
+    } else {
+      const htmlFiles = entries
+        .filter((e) => e.isFile() && e.name.endsWith(".html"))
+        .map((e) => e.name)
+      for (const f of htmlFiles) {
+        pageEntries.push({
+          filePath: path.join(outputDir, f),
+          folderName: deriveFolderName(f),
+        })
+      }
+    }
+
+    if (pageEntries.length === 0) {
       result.errors.push("No pages found in the OneNote file")
       return result
     }
 
-    const bucket = await getBucket()
+    const sectionPageOrder = new Map<string, Map<string, number>>()
+    if (subdirs.length > 0) {
+      for (const subdir of subdirs) {
+        const tocPath = path.join(outputDir, `${subdir.name}.html`)
+        try {
+          const tocHtml = await fs.readFile(tocPath, "utf-8")
+          const order = parsePageOrderFromToc(tocHtml)
+          const posMap = new Map<string, number>()
+          order.forEach((filename, index) => {
+            posMap.set(filename, index)
+          })
+          sectionPageOrder.set(subdir.name, posMap)
+        } catch {
+          // No ToC file for this section — positions will default to 0
+        }
+      }
+    }
 
-    for (const htmlFile of htmlFiles) {
+    for (const { filePath: htmlPath, folderName } of pageEntries) {
+      const fileName = path.basename(htmlPath)
       try {
-        const htmlPath = path.join(outputDir, htmlFile)
         let html = await fs.readFile(htmlPath, "utf-8")
-
-        const folderName = deriveFolderName(htmlFile)
+        const title = extractPageTitle(html) || fileName.replace(/\.html$/, "")
+        html = extractBodyContent(html)
+        html = stripFontStyles(html)
 
         const foldersCollection = db.collection("folders")
         let folderId: string | null = null
@@ -97,7 +144,10 @@ export async function importOneNote(
           result.foldersCreated++
         }
 
-        const title = extractPageTitle(html) || htmlFile.replace(/\.html$/, "")
+        const sectionDir = path.dirname(htmlPath)
+        const localResult = await processLocalImages(html, sectionDir, bucket, userId)
+        html = localResult.cleanedHtml
+        result.imagesImported += localResult.imageCount
 
         const { cleanedHtml, imageCount } = await processImages(html, bucket, userId)
         html = cleanedHtml
@@ -109,11 +159,12 @@ export async function importOneNote(
 
         const notesCollection = db.collection("notes")
         const now = new Date()
+        const position = sectionPageOrder.get(folderName)?.get(fileName) ?? 0
         await notesCollection.insertOne({
           title,
           content: html,
           folderId,
-          position: 0,
+          position,
           userId,
           createdAt: now,
           updatedAt: now,
@@ -121,7 +172,7 @@ export async function importOneNote(
         result.notesImported++
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        result.errors.push(`Failed to import ${htmlFile}: ${message}`)
+        result.errors.push(`Failed to import ${fileName}: ${message}`)
       }
     }
   } catch (err) {
@@ -144,12 +195,156 @@ function deriveFolderName(filename: string): string {
   return withoutExt
 }
 
+const STRIP_STYLE_RE = /^\s*(?:font-family|font-size)\s*:/i
+
+export function stripFontStyles(html: string): string {
+  return html.replace(/style="[^"]*"/gi, (match) => {
+    const inner = match.slice(7, -1)
+    const escaped = inner.replace(/&quot;/g, "\x00Q\x00")
+    const parts = escaped.split(";").filter(Boolean)
+    const filtered = parts.filter((p) => !STRIP_STYLE_RE.test(p.trim()))
+    if (filtered.length === 0) return ""
+    const joined = filtered.map((p) => p.trim()).join("; ")
+    return `style="${joined.replace(/\x00Q\x00/g, "&quot;")}"`
+  })
+}
+
+export function parsePageOrderFromToc(tocHtml: string): string[] {
+  const filenames: string[] = []
+  const hrefRegex = /<a\s[^>]*href="([^"]*)"[^>]*>/gi
+  let match: RegExpExecArray | null
+  while ((match = hrefRegex.exec(tocHtml)) !== null) {
+    const href = match[1]
+    const decoded = decodeURIComponent(href)
+    filenames.push(path.basename(decoded))
+  }
+  return filenames
+}
+
+export function extractBodyContent(html: string): string {
+  let body = html
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)
+  if (bodyMatch) {
+    body = bodyMatch[1].trim()
+  } else {
+    body = body.replace(/<!DOCTYPE[^>]*>/i, "").replace(/<\/?html[^>]*>/gi, "").replace(/<head[^>]*>[\s\S]*?<\/head>/gi, "")
+  }
+  body = body.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+  body = stripTitleBlock(body)
+  return body.trim()
+}
+
+function stripTitleBlock(html: string): string {
+  const titleMatch = html.match(/<div\s[^>]*class="title"[^>]*>/i)
+  if (!titleMatch) return html
+  let depth = 1
+  let i = titleMatch.index + titleMatch[0].length
+  while (i < html.length && depth > 0) {
+    const nextOpen = html.slice(i).match(/^<div[^>]*>/i)
+    const nextClose = html.slice(i).match(/^<\/div>/i)
+    if (nextOpen && (!nextClose || nextOpen.index! < nextClose.index!)) {
+      depth++
+      i += nextOpen[0].length
+    } else if (nextClose) {
+      depth--
+      i += 6
+    } else {
+      i++
+    }
+  }
+  return (html.slice(0, titleMatch.index) + html.slice(i)).trim()
+}
+
 export function extractPageTitle(html: string): string {
   const titleMatch = html.match(/<title>([^<]*)<\/title>/i)
   if (titleMatch) return titleMatch[1].trim()
   const h1Match = html.match(/<h1[^>]*>([^<]*)<\/h1>/i)
   if (h1Match) return h1Match[1].trim()
   return ""
+}
+
+const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"])
+
+export function replaceLocalImageRefs(
+  html: string,
+  imageUrlMap: Map<string, string>
+): { cleanedHtml: string; imageCount: number } {
+  let imageCount = 0
+  const imgRefRegex = /<img[^>]+src="([^"]+)"[^>]*>/gi
+  const replacements: { start: number; end: number; newTag: string }[] = []
+  let match: RegExpExecArray | null
+
+  while ((match = imgRefRegex.exec(html)) !== null) {
+    const src = match[1]
+    if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:") || src.startsWith("//")) {
+      continue
+    }
+    const filename = path.basename(src)
+    const gridfsUrl = imageUrlMap.get(filename)
+    if (gridfsUrl) {
+      imageCount++
+      const fullMatch = match[0]
+      const newTag = fullMatch.replace(`src="${src}"`, `src="${gridfsUrl}"`)
+      replacements.push({ start: match.index, end: match.index + fullMatch.length, newTag })
+    }
+  }
+
+  let cleanedHtml = html
+  for (let i = replacements.length - 1; i >= 0; i--) {
+    const { start, end, newTag } = replacements[i]
+    cleanedHtml = cleanedHtml.slice(0, start) + newTag + cleanedHtml.slice(end)
+  }
+
+  return { cleanedHtml, imageCount }
+}
+
+async function processLocalImages(
+  html: string,
+  sectionDir: string,
+  bucket: GridFSBucket,
+  userId: string
+): Promise<{ cleanedHtml: string; imageCount: number }> {
+  let imageFiles: string[] = []
+  try {
+    const files = await fs.readdir(sectionDir)
+    imageFiles = files.filter((f) => IMAGE_EXTENSIONS.has(path.extname(f).toLowerCase()))
+  } catch {
+    return { cleanedHtml: html, imageCount: 0 }
+  }
+
+  if (imageFiles.length === 0) {
+    return { cleanedHtml: html, imageCount: 0 }
+  }
+
+  const imageUrlMap = new Map<string, string>()
+  for (const imageFile of imageFiles) {
+    const imagePath = path.join(sectionDir, imageFile)
+    try {
+      const data = await fs.readFile(imagePath)
+      const ext = path.extname(imageFile).toLowerCase().slice(1)
+      const uploadId = new ObjectId()
+
+      await new Promise<void>((resolve, reject) => {
+        const uploadStream = bucket.openUploadStreamWithId(uploadId, imageFile, {
+          contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+          metadata: { userId, uploadedAt: new Date() },
+        })
+        uploadStream.end(data)
+        uploadStream.on("finish", () => resolve())
+        uploadStream.on("error", reject)
+      })
+
+      imageUrlMap.set(imageFile, imageUrl(uploadId.toHexString()))
+    } catch {
+      // skip individual image upload failures
+    }
+  }
+
+  if (imageUrlMap.size === 0) {
+    return { cleanedHtml: html, imageCount: 0 }
+  }
+
+  return replaceLocalImageRefs(html, imageUrlMap)
 }
 
 async function processImages(

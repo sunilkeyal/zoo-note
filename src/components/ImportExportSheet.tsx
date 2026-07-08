@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { X, Download, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { useNotes } from "@/contexts/NoteContext"
 
 interface ImportExportSheetProps {
   open: boolean
@@ -12,6 +13,7 @@ type ExportState = "idle" | "loading"
 type ImportState = "idle" | "loading" | "success" | "error"
 
 export default function ImportExportSheet({ open, onClose }: ImportExportSheetProps) {
+  const { fetchNotes, fetchFolders } = useNotes()
   const [exportState, setExportState] = useState<ExportState>("idle")
   const [importState, setImportState] = useState<ImportState>("idle")
   const [importMessage, setImportMessage] = useState("")
@@ -93,6 +95,8 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
           `${r.foldersCreated} folder${r.foldersCreated !== 1 ? "s" : ""}, ` +
           `${r.imagesImported} image${r.imagesImported !== 1 ? "s" : ""}.`
       )
+      fetchNotes()
+      fetchFolders()
     } catch {
       setImportState("error")
       setImportMessage("Network error. Please try again.")
@@ -134,6 +138,8 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
           `${r.notesImported} note${r.notesImported !== 1 ? "s" : ""}, ` +
           `${r.imagesImported} image${r.imagesImported !== 1 ? "s" : ""}.`
       )
+      fetchNotes()
+      fetchFolders()
     } catch {
       setOnenoteImportState("error")
       setOnenoteImportMessage("Network error. Please try again.")

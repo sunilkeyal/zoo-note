@@ -386,7 +386,8 @@ module.exports.__wbindgen_throw = function(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 };
 
-const path = require('path').join(__dirname, 'renderer_bg.wasm');
+const vendorDir = typeof process.env.ONENOTE_VENDOR_DIR !== 'undefined' ? process.env.ONENOTE_VENDOR_DIR : __dirname;
+const path = require('path').join(vendorDir, 'renderer_bg.wasm');
 const bytes = require('fs').readFileSync(path);
 
 const wasmModule = new WebAssembly.Module(bytes);

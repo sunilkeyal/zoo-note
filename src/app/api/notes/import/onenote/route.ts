@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const db = await connectToDatabase()
 
   try {
-    const result = await importOneNote(buffer, session.user.id as string, db)
+    const result = await importOneNote(buffer, file.name, session.user.id as string, db)
     return NextResponse.json({ success: true, data: result })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Import failed"
