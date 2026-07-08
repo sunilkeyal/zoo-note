@@ -1,5 +1,5 @@
-import { Db, ObjectId } from "mongodb"
-import { getBucket } from "@/lib/gridfs"
+import { Db, GridFSBucket, ObjectId } from "mongodb"
+import { getBucket, imageUrl } from "@/lib/gridfs"
 import { convertOneNote } from "./convert"
 import path from "path"
 import fs from "fs/promises"
@@ -18,11 +18,11 @@ const ONENOTE_MAGIC = Buffer.from([
 ])
 
 function hasOneNoteMagic(buffer: Buffer): boolean {
-  return buffer.length >= 16 && buffer.subarray(0, 16).equals(ONENOTE_MAGIC)
+  return buffer.length >= ONENOTE_MAGIC.length && buffer.subarray(0, ONENOTE_MAGIC.length).equals(ONENOTE_MAGIC)
 }
 
 function isOnepkg(buffer: Buffer): boolean {
-  return buffer.length >= 4 && buffer.toString("ascii", 0, 4) === "MSCF"
+  return buffer.length >= "MSCF".length && buffer.toString("ascii", 0, "MSCF".length) === "MSCF"
 }
 
 export function detectOneNoteFormat(buffer: Buffer): "one" | "onepkg" | null {
@@ -69,57 +69,64 @@ export async function importOneNote(
     const bucket = await getBucket()
 
     for (const htmlFile of htmlFiles) {
-      const htmlPath = path.join(outputDir, htmlFile)
-      let html = await fs.readFile(htmlPath, "utf-8")
+      try {
+        const htmlPath = path.join(outputDir, htmlFile)
+        let html = await fs.readFile(htmlPath, "utf-8")
 
-      const folderName = deriveFolderName(htmlFile)
+        const folderName = deriveFolderName(htmlFile)
 
-      const foldersCollection = db.collection("folders")
-      let folderId: string | null = null
-      const existing = await foldersCollection.findOne({
-        name: folderName,
-        userId,
-        isDeleted: { $ne: true },
-      })
-      if (existing) {
-        folderId = existing._id.toString()
-      } else {
-        const now = new Date()
-        const insertResult = await foldersCollection.insertOne({
+        const foldersCollection = db.collection("folders")
+        let folderId: string | null = null
+        const existing = await foldersCollection.findOne({
           name: folderName,
+          userId,
+          isDeleted: { $ne: true },
+        })
+        if (existing) {
+          folderId = existing._id.toString()
+        } else {
+          const now = new Date()
+          const insertResult = await foldersCollection.insertOne({
+            name: folderName,
+            position: 0,
+            userId,
+            createdAt: now,
+            updatedAt: now,
+          })
+          folderId = insertResult.insertedId.toString()
+          result.foldersCreated++
+        }
+
+        const title = extractPageTitle(html) || htmlFile.replace(/\.html$/, "")
+
+        const { cleanedHtml, imageCount } = await processImages(html, bucket, userId)
+        html = cleanedHtml
+        result.imagesImported += imageCount
+
+        const svgResult = await processSvgNodes(html, bucket, userId)
+        html = svgResult.cleanedHtml
+        result.imagesImported += svgResult.imageCount
+
+        const notesCollection = db.collection("notes")
+        const now = new Date()
+        await notesCollection.insertOne({
+          title,
+          content: html,
+          folderId,
           position: 0,
           userId,
           createdAt: now,
           updatedAt: now,
         })
-        folderId = insertResult.insertedId.toString()
-        result.foldersCreated++
+        result.notesImported++
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        result.errors.push(`Failed to import ${htmlFile}: ${message}`)
       }
-
-      const title = extractPageTitle(html) || htmlFile.replace(/\.html$/, "")
-
-      const { cleanedHtml, imageCount } = await processImages(html, bucket, userId)
-      html = cleanedHtml
-      result.imagesImported += imageCount
-
-      html = await processSvgNodes(html, bucket, userId, result)
-
-      const notesCollection = db.collection("notes")
-      const now = new Date()
-      await notesCollection.insertOne({
-        title,
-        content: html,
-        folderId,
-        position: 0,
-        userId,
-        createdAt: now,
-        updatedAt: now,
-      })
-      result.notesImported++
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Conversion failed"
-    result.errors.push(message)
+    const message = err instanceof Error ? err.message : String(err)
+    result.errors.push(`Conversion failed: ${message}`)
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true })
   }
@@ -147,7 +154,7 @@ export function extractPageTitle(html: string): string {
 
 async function processImages(
   html: string,
-  bucket: NonNullable<Awaited<ReturnType<typeof getBucket>>>,
+  bucket: GridFSBucket,
   userId: string
 ): Promise<{ cleanedHtml: string; imageCount: number }> {
   let imageCount = 0
@@ -180,7 +187,7 @@ async function processImages(
     replacements.push({
       start: match.index,
       end: match.index + fullMatch.length,
-      newSrc: `/api/images/${uploadId.toHexString()}`,
+      newSrc: imageUrl(uploadId.toHexString()),
     })
   }
 
@@ -197,14 +204,14 @@ async function processImages(
 
 async function processSvgNodes(
   html: string,
-  bucket: NonNullable<Awaited<ReturnType<typeof getBucket>>>,
-  userId: string,
-  result: OneNoteImportResult
-): Promise<string> {
+  bucket: GridFSBucket,
+  userId: string
+): Promise<{ cleanedHtml: string; imageCount: number }> {
   const svgRegex = /<svg[^>]*>[\s\S]*?<\/svg>/gi
   const parts: string[] = []
   let lastIndex = 0
   let svgIndex = 0
+  let imageCount = 0
 
   let match: RegExpExecArray | null
   while ((match = svgRegex.exec(html)) !== null) {
@@ -223,11 +230,11 @@ async function processSvgNodes(
       uploadStream.on("error", reject)
     })
 
-    result.imagesImported++
-    parts.push(`<img src="/api/images/${uploadId.toHexString()}" alt="Drawing" />`)
+    imageCount++
+    parts.push(`<img src="${imageUrl(uploadId.toHexString())}" alt="Drawing" />`)
     lastIndex = match.index + match[0].length
   }
 
   parts.push(html.slice(lastIndex))
-  return parts.join("")
+  return { cleanedHtml: parts.join(""), imageCount }
 }
