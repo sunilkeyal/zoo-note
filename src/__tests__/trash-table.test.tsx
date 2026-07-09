@@ -95,7 +95,7 @@ describe('TrashTable', () => {
       <TrashTable items={manyItems} onRestore={vi.fn()} onPermanentDelete={vi.fn()} />
     )
     expect(screen.getByText('Page 1 of 3 (25 total)')).toBeInTheDocument()
-    expect(screen.getByText('Next')).toBeInTheDocument()
+    expect(screen.getByText('Previous')).toBeInTheDocument()
   })
 
   it('sorts items when clicking column header', () => {

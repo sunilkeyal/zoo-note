@@ -1,8 +1,15 @@
 "use client"
 
+import { cn } from "@/lib/utils"
 import React from "react"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
 import {
   Select,
   SelectContent,
@@ -14,7 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Pencil, Trash2, ArrowUp } from "lucide-react"
+import { Pencil, Trash2, ArrowUp, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -52,6 +59,20 @@ interface Props {
   sortField: string
   sortDir: "asc" | "desc"
   onSortChange: (field: string) => void
+}
+
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages: (number | "ellipsis")[] = [1]
+  if (current > 3) pages.push("ellipsis")
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (current < total - 2) pages.push("ellipsis")
+  pages.push(total)
+  return pages
 }
 
 export default function UsersTable({
@@ -223,11 +244,11 @@ export default function UsersTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Rows per page:</span>
+      <div className="flex items-center justify-between mt-4 text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm">
+          <span>Rows</span>
           <Select value={String(limit)} onValueChange={(v) => onLimitChange(Number(v))}>
-            <SelectTrigger className="w-16">
+            <SelectTrigger className="w-16 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -237,29 +258,56 @@ export default function UsersTable({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
-            Page {page} of {totalPages} ({total} total)
-          </span>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination className="w-auto mx-0">
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pl-1.5! hover:text-muted-foreground", page <= 1 && "pointer-events-none opacity-50")}
+                onClick={() => onPageChange(Math.max(1, page - 1))}
+                aria-label="Go to previous page"
+              >
+                <ChevronLeftIcon data-icon="inline-start" />
+                <span className="hidden sm:block">Previous</span>
+              </Button>
+            </PaginationItem>
+            {getPageNumbers(page, totalPages).map((p, i) =>
+              p === "ellipsis" ? (
+                <PaginationItem key={`e${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={p}>
+                  <Button
+                    variant={p === page ? "outline" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8 hover:text-muted-foreground"
+                    aria-current={p === page ? "page" : undefined}
+                    onClick={() => onPageChange(p)}
+                  >
+                    {p}
+                  </Button>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pr-1.5! hover:text-muted-foreground", page >= totalPages && "pointer-events-none opacity-50")}
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                aria-label="Go to next page"
+              >
+                <span className="hidden sm:block">Next</span>
+                <ChevronRightIcon data-icon="inline-end" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+        <span className="text-sm">
+          Page {page} of {totalPages} ({total} total)
+        </span>
       </div>
     </div>
   )

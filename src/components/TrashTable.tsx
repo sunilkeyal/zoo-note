@@ -1,8 +1,15 @@
 "use client"
 
+import { cn } from "@/lib/utils"
 import { useState, useCallback, useMemo } from "react"
-import { Trash2, ArrowUp } from "lucide-react"
+import { Trash2, ArrowUp, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
 import {
   Select,
   SelectContent,
@@ -91,6 +98,20 @@ function Checkbox({
       ) : null}
     </button>
   )
+}
+
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages: (number | "ellipsis")[] = [1]
+  if (current > 3) pages.push("ellipsis")
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (current < total - 2) pages.push("ellipsis")
+  pages.push(total)
+  return pages
 }
 
 export default function TrashTable({ items, isAdmin, loading, error, onRestore, onPermanentDelete, onRetry }: Props) {
@@ -214,7 +235,7 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-10" /><TableHead className="w-8" /><TableHead>Name</TableHead>
+                <TableHead className="w-10" /><TableHead className="w-8" /><TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
               {isAdmin && <TableHead>Deleted By</TableHead>}
               <TableHead>Deleted At</TableHead>
@@ -296,7 +317,7 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
       <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-10"><Checkbox checked={allSelected} onChange={toggleAll} /></TableHead>
               <TableHead className="w-8"><span className="sr-only">Type</span></TableHead>
               <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("title")}>
@@ -396,11 +417,11 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
         </Table>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Rows per page:</span>
+      <div className="flex items-center justify-between mt-4 text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm">
+          <span>Rows</span>
           <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1) }}>
-            <SelectTrigger className="w-16">
+            <SelectTrigger className="w-16 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -411,29 +432,56 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
-            Page {safePage} of {totalPages} ({sortedItems.length} total)
-          </span>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={safePage <= 1}
-              onClick={() => setPage(safePage - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={safePage >= totalPages}
-              onClick={() => setPage(safePage + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination className="w-auto mx-0">
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pl-1.5! hover:text-muted-foreground", safePage <= 1 && "pointer-events-none opacity-50")}
+                onClick={() => setPage(Math.max(1, safePage - 1))}
+                aria-label="Go to previous page"
+              >
+                <ChevronLeftIcon data-icon="inline-start" />
+                <span className="hidden sm:block">Previous</span>
+              </Button>
+            </PaginationItem>
+            {getPageNumbers(safePage, totalPages).map((p, i) =>
+              p === "ellipsis" ? (
+                <PaginationItem key={`e${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={p}>
+                  <Button
+                    variant={p === safePage ? "outline" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8 hover:text-muted-foreground"
+                    aria-current={p === safePage ? "page" : undefined}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </Button>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pr-1.5! hover:text-muted-foreground", safePage >= totalPages && "pointer-events-none opacity-50")}
+                onClick={() => setPage(Math.min(totalPages, safePage + 1))}
+                aria-label="Go to next page"
+              >
+                <span className="hidden sm:block">Next</span>
+                <ChevronRightIcon data-icon="inline-end" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+        <span className="text-sm">
+          Page {safePage} of {totalPages} ({sortedItems.length} total)
+        </span>
       </div>
 
       <Dialog open={confirmDelete !== null} onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}>
