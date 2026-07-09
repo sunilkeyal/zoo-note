@@ -191,7 +191,7 @@ export default function DashboardPage() {
           <KpiCard label="Active Today"  value={kpis ? String(kpis.activeToday)  : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
           <KpiCard label="New This Week" value={kpis ? String(kpis.newThisWeek)  : "—"} icon={Users}      loading={loading && !kpis} />
           <KpiCard label="Total Notes"   value={kpis ? kpis.totalNotes.toLocaleString() : "—"} icon={FileText}  loading={loading && !kpis} />
-          <KpiCard label="DB Storage"    value={kpis ? formatBytes(kpis.storageUsedBytes) : "—"} sub="of 512 MB (M0 limit)" icon={HardDrive} loading={loading && !kpis} />
+          <KpiCard label="DB Storage"    value={kpis ? formatBytes(kpis.storageUsedBytes) : "—"} sub="of 512 MB free tier" icon={HardDrive} loading={loading && !kpis} />
           <KpiCard label="Trash Items"   value={kpis ? String(kpis.trashItemCount) : "—"} icon={Trash2}    loading={loading && !kpis} />
         </div>
       </section>
