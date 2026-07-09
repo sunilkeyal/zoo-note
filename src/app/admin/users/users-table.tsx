@@ -160,7 +160,7 @@ export default function UsersTable({
               users.map((u) => {
                 const isCurrentUser = currentUserId === u._id
                 return (
-                <tr key={u._id} className="border-b last:border-0 even:bg-muted/10">
+                <tr key={u._id} className="border-b last:border-0 ">
                   <td className="p-2 md:p-3 font-medium">
                     {u.displayName}
                     {isCurrentUser && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}
