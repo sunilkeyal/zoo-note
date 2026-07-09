@@ -94,7 +94,7 @@ describe('TrashTable', () => {
     render(
       <TrashTable items={manyItems} onRestore={vi.fn()} onPermanentDelete={vi.fn()} />
     )
-    expect(screen.getByText('Page 1 of 2 (25 total)')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 of 3 (25 total)')).toBeInTheDocument()
     expect(screen.getByText('Next')).toBeInTheDocument()
   })
 

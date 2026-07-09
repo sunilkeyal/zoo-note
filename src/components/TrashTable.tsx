@@ -97,7 +97,7 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
   const [locked, setLocked] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<{ noteIds: string[]; folderIds: string[] } | null>(null)
   const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(20)
+  const [limit, setLimit] = useState(10)
   const [sortField, setSortField] = useState("deletedAt")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
