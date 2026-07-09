@@ -114,6 +114,13 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
       return
     }
 
+    const MAX_UPLOAD_SIZE = 4 * 1024 * 1024
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setOnenoteImportState("error")
+      setOnenoteImportMessage("File too large (max 4MB). Try a smaller section (.one) or notebook (.onepkg).")
+      return
+    }
+
     setOnenoteImportState("loading")
     setOnenoteImportMessage("")
 
