@@ -121,13 +121,22 @@ describe("GET /api/admin/stats — response shape", () => {
   })
 
   it("returns null for a bucket when its queries throw, others still return", async () => {
-    // Make images.files aggregate throw to break kpis bucket
+    // Make images.files aggregate throw to break kpis and charts buckets
     mockDb.collection = vi.fn().mockImplementation((name: string) => {
       if (name === "images.files") {
         return {
           aggregate: vi.fn().mockReturnValue({
             toArray: vi.fn().mockRejectedValue(new Error("storage failure")),
           }),
+        }
+      }
+      // users bucket maps r._id.toString() — provide safe empty-array mock
+      if (name === "users") {
+        return {
+          aggregate: vi.fn().mockReturnValue({
+            toArray: vi.fn().mockResolvedValue([]),
+          }),
+          countDocuments: vi.fn().mockResolvedValue(0),
         }
       }
       return makeCol([5])
@@ -140,10 +149,10 @@ describe("GET /api/admin/stats — response shape", () => {
     expect(body.success).toBe(true)
     // kpis bucket uses images.files — should be null due to the throw
     expect(body.data.kpis).toBeNull()
-    // charts, users, activity don't use images.files aggregation (or use different collections)
-    // At minimum the response shape is intact
-    expect(body.data).toHaveProperty("charts")
-    expect(body.data).toHaveProperty("users")
-    expect(body.data).toHaveProperty("activity")
+    // charts also queries images.files so it will also be null
+    expect(body.data.charts).toBeNull()
+    // users and activity don't query images.files — they must return non-null
+    expect(body.data.users).not.toBeNull()
+    expect(body.data.activity).not.toBeNull()
   })
 })
