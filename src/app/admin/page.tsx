@@ -103,8 +103,8 @@ function KpiCard({
 // ── Chart config ─────────────────────────────────────────────────────────────
 
 const chartConfig = {
-  count: { label: "Count", color: "hsl(var(--chart-1))" },
-  bytes: { label: "Storage", color: "hsl(var(--chart-2))" },
+  count: { label: "Count", color: "var(--chart-1)" },
+  bytes: { label: "Storage", color: "var(--chart-2)" },
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────────
@@ -152,8 +152,11 @@ export default function DashboardPage() {
         </div>
         <ToggleGroup
           type="single"
-          value={range}
-          onValueChange={(v) => v && setRange(v as Range)}
+          value={[range]}
+          onValueChange={(v: string[]) => {
+            const n = v[0]
+            if (n === "7" || n === "30" || n === "90") setRange(n)
+          }}
           className="shrink-0"
         >
           <ToggleGroupItem value="7" aria-label="Last 7 days">7d</ToggleGroupItem>
@@ -211,7 +214,7 @@ export default function DashboardPage() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                     <YAxis hide />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="count" fill="var(--chart-1)" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
               ) : (
@@ -234,7 +237,7 @@ export default function DashboardPage() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                     <YAxis hide />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="count" fill="var(--chart-2)" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
               ) : (
@@ -258,7 +261,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                   <YAxis hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="count" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="count" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ChartContainer>
             ) : (
@@ -281,7 +284,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                   <YAxis hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="bytes" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="bytes" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ChartContainer>
             ) : (
@@ -323,7 +326,7 @@ export default function DashboardPage() {
 
       {/* ── Top users table ─────────────────────────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Top Users by Activity</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Top Users (all time)</p>
         <Card>
           <CardContent className="p-0">
             {loading && !users ? (

@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
           $dateToString: { format: "%Y-%m-%d", date: `$${field}` },
         })
 
-        const [notesRaw, activeUsersRaw, storageRaw] = await Promise.all([
+        const [notesRaw, activeUsersRaw, storageBaseline, storageRaw] = await Promise.all([
           db.collection("notes").aggregate([
             { $match: { createdAt: { $gte: cutoff }, isDeleted: { $ne: true } } },
             { $group: { _id: dateGroupExpr("createdAt"), count: { $sum: 1 } } },
@@ -94,22 +94,27 @@ export async function GET(request: NextRequest) {
           ]).toArray(),
 
           db.collection("images.files").aggregate([
+            { $match: { uploadDate: { $lt: cutoff } } },
+            { $group: { _id: null, total: { $sum: "$length" } } },
+          ]).toArray(),
+
+          db.collection("images.files").aggregate([
             { $match: { uploadDate: { $gte: cutoff } } },
-            { $group: { _id: dateGroupExpr("uploadDate"), bytes: { $sum: "$length" } } },
+            { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$uploadDate" } }, bytes: { $sum: "$length" } } },
             { $sort: { _id: 1 } },
           ]).toArray(),
         ])
 
+        let cumulative = (storageBaseline[0]?.total as number) ?? 0
+        const storageTrend = storageRaw.map((r: any) => {
+          cumulative += r.bytes as number
+          return { date: r._id as string, bytes: cumulative }
+        })
+
         return {
           notesPerDay: notesRaw.map((r: any) => ({ date: r._id as string, count: r.count as number })),
           activeUsersPerDay: activeUsersRaw.map((r: any) => ({ date: r._id as string, count: r.count as number })),
-          storageTrend: (() => {
-            let cumulative = 0
-            return storageRaw.map((r: any) => {
-              cumulative += r.bytes as number
-              return { date: r._id as string, bytes: cumulative }
-            })
-          })(),
+          storageTrend,
         }
       } catch {
         return null
