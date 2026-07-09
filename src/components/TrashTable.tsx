@@ -1,7 +1,22 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Trash2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useState, useCallback, useMemo } from "react"
+import { Trash2, ArrowUp, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -85,10 +100,28 @@ function Checkbox({
   )
 }
 
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages: (number | "ellipsis")[] = [1]
+  if (current > 3) pages.push("ellipsis")
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (current < total - 2) pages.push("ellipsis")
+  pages.push(total)
+  return pages
+}
+
 export default function TrashTable({ items, isAdmin, loading, error, onRestore, onPermanentDelete, onRetry }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [locked, setLocked] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<{ noteIds: string[]; folderIds: string[] } | null>(null)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [sortField, setSortField] = useState("deletedAt")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
   const notesByFolder = new Map<string, TrashItem[]>()
   for (const item of items) {
@@ -98,6 +131,24 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
       notesByFolder.set(item.folderId, list)
     }
   }
+
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      let cmp = 0
+      if (sortField === "title") {
+        cmp = a.title.localeCompare(b.title)
+      } else if (sortField === "type") {
+        cmp = a.type.localeCompare(b.type)
+      } else if (sortField === "deletedAt") {
+        cmp = new Date(a.deletedAt).getTime() - new Date(b.deletedAt).getTime()
+      }
+      return sortDir === "asc" ? cmp : -cmp
+    })
+  }, [items, sortField, sortDir])
+
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / limit))
+  const safePage = Math.min(page, totalPages)
+  const displayItems = sortedItems.slice((safePage - 1) * limit, safePage * limit)
 
   const toggle = useCallback((id: string) => {
     setSelected((prev) => {
@@ -147,19 +198,19 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
 
   const toggleAll = useCallback(() => {
     setSelected((prev) => {
-      const allCheckable = items.filter((i) => !locked.has(i.id))
+      const allCheckable = displayItems.filter((i) => !locked.has(i.id))
       const allSel = allCheckable.length > 0 && allCheckable.every((i) => prev.has(i.id))
       if (allSel) {
         const next = new Set(prev)
-        for (const i of items) if (!locked.has(i.id)) next.delete(i.id)
+        for (const i of displayItems) if (!locked.has(i.id)) next.delete(i.id)
         return next
       } else {
         const next = new Set(prev)
-        for (const item of items) {
+        for (const item of displayItems) {
           if (!next.has(item.id)) {
             next.add(item.id)
             if (item.type === "note" && item.folderId) {
-              const folder = items.find((f) => f.id === item.folderId)
+              const folder = displayItems.find((f) => f.id === item.folderId)
               if (folder) {
                 next.add(item.folderId)
                 locked.add(item.folderId)
@@ -170,9 +221,9 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
         return next
       }
     })
-  }, [items, locked])
+  }, [displayItems, locked])
 
-  const allCheckable = items.filter((i) => !locked.has(i.id))
+  const allCheckable = displayItems.filter((i) => !locked.has(i.id))
   const allSelected = allCheckable.length > 0 && allCheckable.every((i) => selected.has(i.id))
 
   const selectedNoteIds = items.filter((i) => selected.has(i.id) && i.type === "note").map((i) => i.id)
@@ -181,27 +232,27 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
   if (loading) {
     return (
       <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="p-2 md:p-3 w-10" /><th className="p-2 md:p-3 w-8" /><th className="p-2 md:p-3 font-medium text-left">Name</th>
-              <th className="p-2 md:p-3 font-medium text-left">Type</th>
-              {isAdmin && <th className="p-2 md:p-3 font-medium text-left">Deleted By</th>}
-              <th className="p-2 md:p-3 font-medium text-left">Deleted At</th>
-              <th className="p-2 md:p-3 font-medium text-left">Auto-purge</th>
-              <th className="p-2 md:p-3 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="w-10" /><TableHead className="w-8" /><TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              {isAdmin && <TableHead>Deleted By</TableHead>}
+              <TableHead>Deleted At</TableHead>
+              <TableHead>Auto-purge</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {[...Array(3)].map((_, i) => (
-              <tr key={i} className="border-b last:border-0">
+              <TableRow key={i}>
                 {[...Array(isAdmin ? 8 : 7)].map((_, j) => (
-                  <td key={j} className="p-2 md:p-3"><div className="h-4 bg-muted rounded animate-pulse" style={{ width: j === 2 ? "60%" : "80%" }} /></td>
+                  <TableCell><div className="h-4 bg-muted rounded animate-pulse" style={{ width: j === 2 ? "60%" : "80%" }} /></TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     )
   }
@@ -234,6 +285,16 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
     return `${daysLeft} days`
   }
 
+  function handleSort(field: string) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
+    }
+    setPage(1)
+  }
+
   return (
     <div>
       {selected.size > 0 && (
@@ -253,22 +314,43 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
         </div>
       )}
 
-      <div className="rounded-lg border overflow-hidden overflow-x-auto md:overflow-x-visible">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="p-2 md:p-3 w-10"><Checkbox checked={allSelected} onChange={toggleAll} /></th>
-              <th className="p-2 md:p-3 w-8"><span className="sr-only">Type</span></th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Name</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Type</th>
-              {isAdmin && <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Deleted By</th>}
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Deleted At</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Auto-purge</th>
-              <th className="text-right p-2 md:p-3 font-medium whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => {
+      <div className="rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="w-10"><Checkbox checked={allSelected} onChange={toggleAll} /></TableHead>
+              <TableHead className="w-8"><span className="sr-only">Type</span></TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("title")}>
+                <div className="flex items-center gap-1">
+                  Name
+                  {sortField === "title" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("type")}>
+                <div className="flex items-center gap-1">
+                  Type
+                  {sortField === "type" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              {isAdmin && <TableHead>Deleted By</TableHead>}
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort("deletedAt")}>
+                <div className="flex items-center gap-1">
+                  Deleted At
+                  {sortField === "deletedAt" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead>Auto-purge</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {displayItems.map((item) => {
               const isLocked = locked.has(item.id)
               const isSelected = selected.has(item.id)
               const folderNotes = notesByFolder.get(item.id)
@@ -277,17 +359,17 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                 !folderNotes.every((n) => selected.has(n.id))
 
               return (
-                <tr key={item.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isSelected ? "bg-muted/20" : ""}`}>
-                  <td className="p-2 md:p-3">
+                <TableRow key={item.id} className={`${isSelected ? "bg-muted/20 hover:bg-muted/30" : ""}`}>
+                  <TableCell>
                     <div className="flex items-center gap-1">
                       <Checkbox checked={isSelected} indeterminate={isIndet} disabled={isLocked} onChange={() => toggle(item.id)} />
                       {isLocked && <span className="text-muted-foreground" title="Required — parent folder of a selected note"><LockIcon /></span>}
                     </div>
-                  </td>
-                  <td className="p-2 md:p-3 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {item.type === "folder" ? <FolderIcon /> : <FileTextIcon />}
-                  </td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <span className={item.type === "folder" ? "font-medium" : ""}>{item.title}</span>
                       {item.type === "folder" && item.notesCount && (
@@ -299,8 +381,8 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  <TableCell>
                     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${
                       item.type === "folder"
                         ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
@@ -308,15 +390,15 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                     }`}>
                       {item.type === "folder" ? "Folder" : "Note"}
                     </span>
-                  </td>
-                  {isAdmin && <td className="p-2 md:p-3 text-muted-foreground">{item.user || "-"}</td>}
-                  <td className="p-2 md:p-3 text-muted-foreground whitespace-nowrap">{item.deletedAt}</td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  {isAdmin && <TableCell className="text-muted-foreground">{item.user || "-"}</TableCell>}
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{item.deletedAt}</TableCell>
+                  <TableCell>
                     <span className={`text-xs ${computeDaysLeft(item.deletedAt) === "Expiring today" ? "text-destructive" : "text-muted-foreground"}`}>
                       {computeDaysLeft(item.deletedAt)}
                     </span>
-                  </td>
-                  <td className="p-2 md:p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="xs" onClick={() => onRestore(
                         item.type === "note" ? [item.id] : [],
@@ -327,12 +409,79 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                         folderIds: item.type === "folder" ? [item.id] : []
                       })}>Delete</Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm">
+          <span>Rows</span>
+          <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1) }}>
+            <SelectTrigger className="w-16 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Pagination className="w-auto mx-0">
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pl-1.5! hover:text-muted-foreground", safePage <= 1 && "pointer-events-none opacity-50")}
+                onClick={() => setPage(Math.max(1, safePage - 1))}
+                aria-label="Go to previous page"
+              >
+                <ChevronLeftIcon data-icon="inline-start" />
+                <span className="hidden sm:block">Previous</span>
+              </Button>
+            </PaginationItem>
+            {getPageNumbers(safePage, totalPages).map((p, i) =>
+              p === "ellipsis" ? (
+                <PaginationItem key={`e${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={p}>
+                  <Button
+                    variant={p === safePage ? "outline" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8 hover:text-muted-foreground"
+                    aria-current={p === safePage ? "page" : undefined}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </Button>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pr-1.5! hover:text-muted-foreground", safePage >= totalPages && "pointer-events-none opacity-50")}
+                onClick={() => setPage(Math.min(totalPages, safePage + 1))}
+                aria-label="Go to next page"
+              >
+                <span className="hidden sm:block">Next</span>
+                <ChevronRightIcon data-icon="inline-end" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+        <span className="text-sm">
+          Page {safePage} of {totalPages} ({sortedItems.length} total)
+        </span>
       </div>
 
       <Dialog open={confirmDelete !== null} onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}>

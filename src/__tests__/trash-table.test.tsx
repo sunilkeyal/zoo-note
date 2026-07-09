@@ -18,6 +18,18 @@ vi.mock('@/components/ui/dialog', () => ({
   DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children, value, onValueChange }: { children: React.ReactNode; value: string; onValueChange: (value: string) => void }) => (
+    <select value={value} onChange={(e) => onValueChange(e.target.value)} data-testid="select">{children}</select>
+  ),
+  SelectTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SelectValue: () => <></>,
+  SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <option value={value}>{children}</option>
+  ),
+}))
+
 const baseItems = [
   { id: 'n1', title: 'Note 1', type: 'note' as const, folderId: 'f1', folderName: 'Folder 1', deletedAt: new Date(Date.now() - 86400000).toISOString() },
   { id: 'n2', title: 'Note 2', type: 'note' as const, deletedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
@@ -70,6 +82,39 @@ describe('TrashTable', () => {
     expect(screen.getByText('Empty Folder')).toBeInTheDocument()
     const folderTexts = screen.getAllByText('Folder 1')
     expect(folderTexts.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('shows pagination controls when items exceed page size', () => {
+    const manyItems = Array.from({ length: 25 }, (_, i) => ({
+      id: `n${i}`,
+      title: `Note ${i}`,
+      type: 'note' as const,
+      deletedAt: new Date(Date.now() - i * 86400000).toISOString(),
+    }))
+    render(
+      <TrashTable items={manyItems} onRestore={vi.fn()} onPermanentDelete={vi.fn()} />
+    )
+    expect(screen.getByText('Page 1 of 3 (25 total)')).toBeInTheDocument()
+    expect(screen.getByText('Previous')).toBeInTheDocument()
+  })
+
+  it('sorts items when clicking column header', () => {
+    const items = [
+      { id: 'n1', title: 'Beta', type: 'note' as const, deletedAt: new Date(Date.now() - 86400000).toISOString() },
+      { id: 'n2', title: 'Alpha', type: 'note' as const, deletedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+    ]
+    render(
+      <TrashTable items={items} onRestore={vi.fn()} onPermanentDelete={vi.fn()} />
+    )
+
+    const rows = screen.getAllByRole('row')
+    // Default sort is deletedAt desc, so Beta (newer) should appear first
+    expect(rows[1]).toHaveTextContent('Beta')
+
+    const nameHeader = screen.getByText('Name')
+    fireEvent.click(nameHeader)
+    // Now sorted by name asc: Alpha first, Beta second
+    expect(screen.getAllByRole('row')[1]).toHaveTextContent('Alpha')
   })
 
   it('shows folder badge for notes with folderId', () => {

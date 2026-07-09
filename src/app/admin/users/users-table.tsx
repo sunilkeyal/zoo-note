@@ -1,7 +1,15 @@
 "use client"
 
+import { cn } from "@/lib/utils"
 import React from "react"
 import { Input } from "@/components/ui/input"
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
 import {
   Select,
   SelectContent,
@@ -13,7 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, ArrowUp, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +56,23 @@ interface Props {
   onToggleActive: (user: UserRow) => void
   onEdit: (user: UserRow) => void
   onDelete: (user: UserRow) => void
+  sortField: string
+  sortDir: "asc" | "desc"
+  onSortChange: (field: string) => void
+}
+
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages: (number | "ellipsis")[] = [1]
+  if (current > 3) pages.push("ellipsis")
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (current < total - 2) pages.push("ellipsis")
+  pages.push(total)
+  return pages
 }
 
 export default function UsersTable({
@@ -56,6 +81,7 @@ export default function UsersTable({
   onSearchChange, onRoleFilterChange, onStatusFilterChange,
   onPageChange, onLimitChange,
   onToggleActive, onEdit, onDelete,
+  sortField, sortDir, onSortChange,
 }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -90,47 +116,82 @@ export default function UsersTable({
         </Select>
       </div>
 
-      <div className="rounded-lg border overflow-hidden overflow-x-auto md:overflow-x-visible">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Name</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Email</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Role</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Status</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Created</th>
-              <th className="text-right p-2 md:p-3 font-medium whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("displayName")}>
+                <div className="flex items-center gap-1">
+                  Name
+                  {sortField === "displayName" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("email")}>
+                <div className="flex items-center gap-1">
+                  Email
+                  {sortField === "email" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("role")}>
+                <div className="flex items-center gap-1">
+                  Role
+                  {sortField === "role" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("isActive")}>
+                <div className="flex items-center gap-1">
+                  Status
+                  {sortField === "isActive" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("createdAt")}>
+                <div className="flex items-center gap-1">
+                  Created
+                  {sortField === "createdAt" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="p-2 md:p-3">
+              <TableRow>
+                <TableCell colSpan={6}>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Skeleton key={i} className="h-6 w-full mb-2" />
                   ))}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : users.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-4 md:p-6 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                   No users found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               users.map((u) => {
                 const isCurrentUser = currentUserId === u._id
                 return (
-                <tr key={u._id} className="border-b last:border-0">
-                  <td className="p-2 md:p-3 font-medium">
+                <TableRow key={u._id}>
+                  <TableCell className="font-medium">
                     {u.displayName}
                     {isCurrentUser && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}
-                  </td>
-                  <td className="p-2 md:p-3 text-muted-foreground">{u.email}</td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                  <TableCell>
                     <Badge variant="secondary">{u.role}</Badge>
-                  </td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       {isCurrentUser ? (
                         <TooltipProvider delay={0}>
@@ -153,11 +214,11 @@ export default function UsersTable({
                         </div>
                       )}
                     </div>
-                  </td>
-                  <td className="p-2 md:p-3 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
-                  </td>
-                  <td className="p-2 md:p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <TooltipProvider>
                       <div className="flex justify-end gap-1">
                         <Tooltip>
@@ -174,20 +235,20 @@ export default function UsersTable({
                         </Tooltip>
                       </div>
                     </TooltipProvider>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 )
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Rows per page:</span>
+      <div className="flex items-center justify-between mt-4 text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm">
+          <span>Rows</span>
           <Select value={String(limit)} onValueChange={(v) => onLimitChange(Number(v))}>
-            <SelectTrigger className="w-16">
+            <SelectTrigger className="w-16 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -197,29 +258,56 @@ export default function UsersTable({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
-            Page {page} of {totalPages} ({total} total)
-          </span>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination className="w-auto mx-0">
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pl-1.5! hover:text-muted-foreground", page <= 1 && "pointer-events-none opacity-50")}
+                onClick={() => onPageChange(Math.max(1, page - 1))}
+                aria-label="Go to previous page"
+              >
+                <ChevronLeftIcon data-icon="inline-start" />
+                <span className="hidden sm:block">Previous</span>
+              </Button>
+            </PaginationItem>
+            {getPageNumbers(page, totalPages).map((p, i) =>
+              p === "ellipsis" ? (
+                <PaginationItem key={`e${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={p}>
+                  <Button
+                    variant={p === page ? "outline" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8 hover:text-muted-foreground"
+                    aria-current={p === page ? "page" : undefined}
+                    onClick={() => onPageChange(p)}
+                  >
+                    {p}
+                  </Button>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <Button
+                variant="ghost"
+                size="default"
+                className={cn("pr-1.5! hover:text-muted-foreground", page >= totalPages && "pointer-events-none opacity-50")}
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                aria-label="Go to next page"
+              >
+                <span className="hidden sm:block">Next</span>
+                <ChevronRightIcon data-icon="inline-end" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+        <span className="text-sm">
+          Page {page} of {totalPages} ({total} total)
+        </span>
       </div>
     </div>
   )

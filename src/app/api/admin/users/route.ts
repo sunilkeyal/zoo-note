@@ -18,9 +18,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("search") || ""
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")))
+  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "10")))
   const role = searchParams.get("role")
   const status = searchParams.get("status")
+  const sortField = searchParams.get("sortField") || "createdAt"
+  const sortDir = searchParams.get("sortDir") || "desc"
 
   const db = await connectToDatabase()
   const filter: Record<string, any> = {}
@@ -40,10 +42,14 @@ export async function GET(request: NextRequest) {
     filter.isActive = false
   }
 
+  const allowedSortFields = ["displayName", "email", "role", "isActive", "createdAt"]
+  const safeSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt"
+  const safeSortDir = sortDir === "asc" ? 1 : -1
+
   const total = await db.collection("users").countDocuments(filter)
   const users = await db.collection("users")
     .find(filter)
-    .sort({ createdAt: -1 })
+    .sort({ [safeSortField]: safeSortDir })
     .skip((page - 1) * limit)
     .limit(limit)
     .toArray()
