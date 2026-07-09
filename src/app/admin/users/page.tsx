@@ -19,6 +19,8 @@ export default function UsersPage() {
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [sortField, setSortField] = useState("createdAt")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [loading, setLoading] = useState(true)
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -36,6 +38,8 @@ export default function UsersPage() {
       if (search) params.set("search", search)
       if (roleFilter !== "all") params.set("role", roleFilter)
       if (statusFilter !== "all") params.set("status", statusFilter)
+      params.set("sortField", sortField)
+      params.set("sortDir", sortDir)
 
       const res = await fetch(`/api/admin/users?${params}`)
       const data = await res.json()
@@ -48,7 +52,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, search, roleFilter, statusFilter])
+  }, [page, limit, search, roleFilter, statusFilter, sortField, sortDir])
 
   useEffect(() => {
     fetchUsers()
@@ -60,6 +64,16 @@ export default function UsersPage() {
       setSearch(value)
       setPage(1)
     }, 300)
+  }
+
+  function handleSortChange(field: string) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
+    }
+    setPage(1)
   }
 
   async function handleToggleActive(user: UserRow) {
@@ -124,6 +138,9 @@ export default function UsersPage() {
         onSearchChange={handleSearchChange}
         onRoleFilterChange={(v) => { setRoleFilter(v); setPage(1) }}
         onStatusFilterChange={(v) => { setStatusFilter(v); setPage(1) }}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         onPageChange={setPage}
         onLimitChange={(v) => { setLimit(v); setPage(1) }}
         onToggleActive={handleToggleActive}
