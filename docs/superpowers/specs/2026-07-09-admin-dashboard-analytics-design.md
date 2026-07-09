@@ -114,10 +114,10 @@ GET /api/admin/stats?range=7|30|90
   activity: {
     userId: string;
     userName: string;
-    action: string;
-    target: string;
+    action: "created note" | "created folder";  // derived from notes/folders collections
+    target: string;   // note title or folder name
     createdAt: string;
-  }[] | null;
+  }[] | null;  // note: no audit log collection exists; this is derived from notes+folders
 }
 ```
 
@@ -125,15 +125,16 @@ GET /api/admin/stats?range=7|30|90
 
 | Query | Collection(s) | Method |
 |---|---|---|
-| User KPIs | `users` | `countDocuments` × 3 (total, active today, new this week) |
+| User KPIs (total, new in last 7d) | `users` | `countDocuments` |
+| Active today (distinct users with note activity) | `notes` | `aggregate` distinct `userId` where `updatedAt >= today` |
 | Note / folder KPIs | `notes`, `folders` | `countDocuments` |
 | Trash count | `notes`, `folders` | `countDocuments` with `isDeleted: true` |
 | Storage total | `fs.files` (GridFS) | `aggregate` sum of `length` |
 | Notes per day | `notes` | `aggregate` group by `createdAt` date |
-| Active users per day | `users` | `aggregate` group by `lastLoginAt` date |
+| Active users per day | `notes` | `aggregate` distinct `userId` grouped by `updatedAt` date (proxy for user activity; no `lastLoginAt` field exists) |
 | Storage trend | `fs.files` | `aggregate` cumulative sum by upload date |
 | Top users | `users` + `notes` + `folders` | `aggregate` with `$lookup` |
-| Activity feed | `notes`, `users` | Last 10 creates/deletes ordered by `createdAt` desc |
+| Activity feed | `notes`, `folders` | Last 10 creates (`isDeleted: false`) ordered by `createdAt` desc, joined with user displayName via `$lookup` on `users` |
 
 ---
 
