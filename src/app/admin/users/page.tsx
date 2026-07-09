@@ -28,9 +28,10 @@ export default function UsersPage() {
   const [deleteUser, setDeleteUser] = useState<UserRow | null>(null)
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasLoaded = useRef(false)
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true)
+    if (!hasLoaded.current) setLoading(true)
     try {
       const params = new URLSearchParams()
       params.set("page", String(page))
@@ -46,6 +47,7 @@ export default function UsersPage() {
       if (data.success) {
         setUsers(data.data.users)
         setTotal(data.data.total)
+        hasLoaded.current = true
       }
     } catch (err) {
       console.error("Failed to fetch users:", err)
