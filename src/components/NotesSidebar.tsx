@@ -117,7 +117,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, ScrollText, BarChart3, Upload } from "lucide-react"
+import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, Users, ScrollText, Upload } from "lucide-react"
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -343,7 +343,6 @@ const SortableFolderItem = ({ folderId, dragType, children }: { folderId: string
 
 const adminItems = [
   { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard, iconColor: "text-violet-600 dark:text-violet-500" },
-  { route: "/admin/analytics", label: "Analytics",        icon: BarChart3,       iconColor: "text-cyan-700 dark:text-cyan-600" },
   { route: "/admin/backup",    label: "Backup & Restore", icon: Database,        iconColor: "text-teal-600 dark:text-teal-500" },
   { route: "/admin/users",     label: "User Management",  icon: Users,           iconColor: "text-blue-600 dark:text-blue-500" },
   { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText,      iconColor: "text-orange-600 dark:text-orange-500" },
