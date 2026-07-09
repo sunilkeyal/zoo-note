@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, ArrowUp } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +48,9 @@ interface Props {
   onToggleActive: (user: UserRow) => void
   onEdit: (user: UserRow) => void
   onDelete: (user: UserRow) => void
+  sortField: string
+  sortDir: "asc" | "desc"
+  onSortChange: (field: string) => void
 }
 
 export default function UsersTable({
@@ -56,6 +59,7 @@ export default function UsersTable({
   onSearchChange, onRoleFilterChange, onStatusFilterChange,
   onPageChange, onLimitChange,
   onToggleActive, onEdit, onDelete,
+  sortField, sortDir, onSortChange,
 }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -94,11 +98,46 @@ export default function UsersTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Name</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Email</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Role</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Status</th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap">Created</th>
+              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("displayName")}>
+                <div className="flex items-center gap-1">
+                  Name
+                  {sortField === "displayName" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </th>
+              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("email")}>
+                <div className="flex items-center gap-1">
+                  Email
+                  {sortField === "email" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </th>
+              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("role")}>
+                <div className="flex items-center gap-1">
+                  Role
+                  {sortField === "role" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </th>
+              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("isActive")}>
+                <div className="flex items-center gap-1">
+                  Status
+                  {sortField === "isActive" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </th>
+              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("createdAt")}>
+                <div className="flex items-center gap-1">
+                  Created
+                  {sortField === "createdAt" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </th>
               <th className="text-right p-2 md:p-3 font-medium whitespace-nowrap">Actions</th>
             </tr>
           </thead>
