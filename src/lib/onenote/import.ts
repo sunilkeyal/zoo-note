@@ -238,7 +238,7 @@ function stripTitleBlock(html: string): string {
   const titleMatch = html.match(/<div\s[^>]*class="title"[^>]*>/i)
   if (!titleMatch) return html
   let depth = 1
-  let i = titleMatch.index + titleMatch[0].length
+  let i = titleMatch.index! + titleMatch[0].length
   while (i < html.length && depth > 0) {
     const nextOpen = html.slice(i).match(/^<div[^>]*>/i)
     const nextClose = html.slice(i).match(/^<\/div>/i)
