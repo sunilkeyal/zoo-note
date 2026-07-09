@@ -2,6 +2,7 @@
 
 import React from "react"
 import { Input } from "@/components/ui/input"
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
 import {
   Select,
   SelectContent,
@@ -94,82 +95,82 @@ export default function UsersTable({
         </Select>
       </div>
 
-      <div className="rounded-lg border overflow-hidden overflow-x-auto md:overflow-x-visible">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("displayName")}>
+      <div className="rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("displayName")}>
                 <div className="flex items-center gap-1">
                   Name
                   {sortField === "displayName" && (
                     <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
                   )}
                 </div>
-              </th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("email")}>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("email")}>
                 <div className="flex items-center gap-1">
                   Email
                   {sortField === "email" && (
                     <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
                   )}
                 </div>
-              </th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("role")}>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("role")}>
                 <div className="flex items-center gap-1">
                   Role
                   {sortField === "role" && (
                     <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
                   )}
                 </div>
-              </th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("isActive")}>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("isActive")}>
                 <div className="flex items-center gap-1">
                   Status
                   {sortField === "isActive" && (
                     <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
                   )}
                 </div>
-              </th>
-              <th className="text-left p-2 md:p-3 font-medium whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("createdAt")}>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => onSortChange("createdAt")}>
                 <div className="flex items-center gap-1">
                   Created
                   {sortField === "createdAt" && (
                     <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
                   )}
                 </div>
-              </th>
-              <th className="text-right p-2 md:p-3 font-medium whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="p-2 md:p-3">
+              <TableRow>
+                <TableCell colSpan={6}>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Skeleton key={i} className="h-6 w-full mb-2" />
                   ))}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : users.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-4 md:p-6 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                   No users found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               users.map((u) => {
                 const isCurrentUser = currentUserId === u._id
                 return (
-                <tr key={u._id} className="border-b last:border-0 ">
-                  <td className="p-2 md:p-3 font-medium">
+                <TableRow key={u._id}>
+                  <TableCell className="font-medium">
                     {u.displayName}
                     {isCurrentUser && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}
-                  </td>
-                  <td className="p-2 md:p-3 text-muted-foreground">{u.email}</td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                  <TableCell>
                     <Badge variant="secondary">{u.role}</Badge>
-                  </td>
-                  <td className="p-2 md:p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       {isCurrentUser ? (
                         <TooltipProvider delay={0}>
@@ -192,11 +193,11 @@ export default function UsersTable({
                         </div>
                       )}
                     </div>
-                  </td>
-                  <td className="p-2 md:p-3 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
-                  </td>
-                  <td className="p-2 md:p-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <TooltipProvider>
                       <div className="flex justify-end gap-1">
                         <Tooltip>
@@ -213,13 +214,13 @@ export default function UsersTable({
                         </Tooltip>
                       </div>
                     </TooltipProvider>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 )
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <div className="flex items-center justify-between mt-4">
