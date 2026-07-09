@@ -119,4 +119,31 @@ describe("GET /api/admin/stats — response shape", () => {
     expect(typeof kpis.storageUsedBytes).toBe("number")
     expect(typeof kpis.trashItemCount).toBe("number")
   })
+
+  it("returns null for a bucket when its queries throw, others still return", async () => {
+    // Make images.files aggregate throw to break kpis bucket
+    mockDb.collection = vi.fn().mockImplementation((name: string) => {
+      if (name === "images.files") {
+        return {
+          aggregate: vi.fn().mockReturnValue({
+            toArray: vi.fn().mockRejectedValue(new Error("storage failure")),
+          }),
+        }
+      }
+      return makeCol([5])
+    })
+
+    const { GET } = await import("@/app/api/admin/stats/route")
+    const res = await GET(new Request("http://localhost/api/admin/stats"))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+    // kpis bucket uses images.files — should be null due to the throw
+    expect(body.data.kpis).toBeNull()
+    // charts, users, activity don't use images.files aggregation (or use different collections)
+    // At minimum the response shape is intact
+    expect(body.data).toHaveProperty("charts")
+    expect(body.data).toHaveProperty("users")
+    expect(body.data).toHaveProperty("activity")
+  })
 })

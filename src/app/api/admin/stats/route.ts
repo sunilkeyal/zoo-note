@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
           totalUsers,
           newThisWeek,
           totalNotes,
-          totalFolders,
           trashNotes,
           trashFolders,
           activeTodayIds,
@@ -53,7 +52,6 @@ export async function GET(request: NextRequest) {
           db.collection("users").countDocuments({}),
           db.collection("users").countDocuments({ createdAt: { $gte: weekAgo } }),
           db.collection("notes").countDocuments({ isDeleted: { $ne: true } }),
-          db.collection("folders").countDocuments({ isDeleted: { $ne: true } }),
           db.collection("notes").countDocuments({ isDeleted: true }),
           db.collection("folders").countDocuments({ isDeleted: true }),
           db.collection("notes").distinct("userId", { updatedAt: { $gte: today } }),
@@ -105,7 +103,13 @@ export async function GET(request: NextRequest) {
         return {
           notesPerDay: notesRaw.map((r: any) => ({ date: r._id as string, count: r.count as number })),
           activeUsersPerDay: activeUsersRaw.map((r: any) => ({ date: r._id as string, count: r.count as number })),
-          storageTrend: storageRaw.map((r: any) => ({ date: r._id as string, bytes: r.bytes as number })),
+          storageTrend: (() => {
+            let cumulative = 0
+            return storageRaw.map((r: any) => {
+              cumulative += r.bytes as number
+              return { date: r._id as string, bytes: cumulative }
+            })
+          })(),
         }
       } catch {
         return null
