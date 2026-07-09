@@ -180,15 +180,15 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
       const allSel = allCheckable.length > 0 && allCheckable.every((i) => prev.has(i.id))
       if (allSel) {
         const next = new Set(prev)
-        for (const i of items) if (!locked.has(i.id)) next.delete(i.id)
+        for (const i of displayItems) if (!locked.has(i.id)) next.delete(i.id)
         return next
       } else {
         const next = new Set(prev)
-        for (const item of items) {
+        for (const item of displayItems) {
           if (!next.has(item.id)) {
             next.add(item.id)
             if (item.type === "note" && item.folderId) {
-              const folder = items.find((f) => f.id === item.folderId)
+              const folder = displayItems.find((f) => f.id === item.folderId)
               if (folder) {
                 next.add(item.folderId)
                 locked.add(item.folderId)
