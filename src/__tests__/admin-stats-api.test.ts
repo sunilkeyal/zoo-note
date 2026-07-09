@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockDb = { collection: vi.fn() }
+const mockDb = { collection: vi.fn(), command: vi.fn() }
 
 vi.mock("@/lib/mongodb", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(mockDb),
@@ -67,12 +67,14 @@ describe("GET /api/admin/stats — response shape", () => {
 
     // Wire up collection stubs
     mockDb.collection = vi.fn().mockImplementation((name: string) => {
-      if (name === "users")       return makeCol([5])
-      if (name === "notes")       return makeCol([20])
-      if (name === "folders")     return makeCol([8])
+      if (name === "users")        return makeCol([5])
+      if (name === "notes")        return makeCol([20])
+      if (name === "folders")      return makeCol([8])
       if (name === "images.files") return makeCol([{ _id: null, total: 1024 * 1024 }])
       return makeCol([])
     })
+    // db.command({ dbStats: 1 }) used for total storage KPI
+    mockDb.command = vi.fn().mockResolvedValue({ storageSize: 2 * 1024 * 1024 })
   })
 
   it("returns 200 with kpis, charts, users, activity keys for range=7", async () => {
@@ -121,22 +123,16 @@ describe("GET /api/admin/stats — response shape", () => {
   })
 
   it("returns null for a bucket when its queries throw, others still return", async () => {
-    // Make images.files aggregate throw to break kpis and charts buckets
+    // Make db.command throw to break only the kpis bucket (storage now uses db.command)
+    mockDb.command = vi.fn().mockRejectedValue(new Error("dbStats failure"))
+    // images.files still works fine for charts
     mockDb.collection = vi.fn().mockImplementation((name: string) => {
-      if (name === "images.files") {
-        return {
-          aggregate: vi.fn().mockReturnValue({
-            toArray: vi.fn().mockRejectedValue(new Error("storage failure")),
-          }),
-        }
-      }
       // users bucket maps r._id.toString() — provide safe empty-array mock
       if (name === "users") {
         return {
-          aggregate: vi.fn().mockReturnValue({
-            toArray: vi.fn().mockResolvedValue([]),
-          }),
+          aggregate: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
           countDocuments: vi.fn().mockResolvedValue(0),
+          distinct: vi.fn().mockResolvedValue([]),
         }
       }
       return makeCol([5])
@@ -147,11 +143,10 @@ describe("GET /api/admin/stats — response shape", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.success).toBe(true)
-    // kpis bucket uses images.files — should be null due to the throw
+    // kpis bucket uses db.command — should be null due to the throw
     expect(body.data.kpis).toBeNull()
-    // charts also queries images.files so it will also be null
-    expect(body.data.charts).toBeNull()
-    // users and activity don't query images.files — they must return non-null
+    // charts, users, activity don't use db.command — must return non-null
+    expect(body.data.charts).not.toBeNull()
     expect(body.data.users).not.toBeNull()
     expect(body.data.activity).not.toBeNull()
   })

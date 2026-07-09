@@ -55,16 +55,14 @@ export async function GET(request: NextRequest) {
           db.collection("notes").countDocuments({ isDeleted: true }),
           db.collection("folders").countDocuments({ isDeleted: true }),
           db.collection("notes").distinct("userId", { updatedAt: { $gte: today } }),
-          db.collection("images.files").aggregate([
-            { $group: { _id: null, total: { $sum: "$length" } } },
-          ]).toArray(),
+          db.command({ dbStats: 1, scale: 1 }),
         ])
         return {
           totalUsers,
           newThisWeek,
           activeToday: activeTodayIds.length,
           totalNotes,
-          storageUsedBytes: (storageAgg[0]?.total as number) ?? 0,
+          storageUsedBytes: (storageAgg?.storageSize as number) ?? 0,
           trashItemCount: trashNotes + trashFolders,
         }
       } catch {
