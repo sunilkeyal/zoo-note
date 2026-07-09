@@ -337,7 +337,7 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
                 !folderNotes.every((n) => selected.has(n.id))
 
               return (
-                <tr key={item.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors even:bg-muted/5 ${isSelected ? "bg-muted/20" : ""}`}>
+                <tr key={item.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors even:bg-muted/10 ${isSelected ? "bg-muted/20" : ""}`}>
                   <td className="p-2 md:p-3">
                     <div className="flex items-center gap-1">
                       <Checkbox checked={isSelected} indeterminate={isIndet} disabled={isLocked} onChange={() => toggle(item.id)} />
