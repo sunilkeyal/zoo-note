@@ -200,6 +200,43 @@ describe("GET /api/admin/users", () => {
     expect(findCall.$or).toBeDefined()
   })
 
+  it("accepts sortField and sortDir params", async () => {
+    const { auth } = await import("@/lib/auth")
+    vi.mocked(auth).mockResolvedValue({ user: { role: "admin" } } as any)
+
+    const mockSort = vi.fn().mockReturnThis()
+    const mockSkip = vi.fn().mockReturnThis()
+    const mockLimit = vi.fn().mockReturnThis()
+    const mockToArray = vi.fn().mockResolvedValue([])
+    mockCollection.mockReturnValue({
+      find: vi.fn().mockReturnValue({ sort: mockSort, skip: mockSkip, limit: mockLimit, toArray: mockToArray }),
+      countDocuments: vi.fn().mockResolvedValue(0),
+    })
+
+    const { GET } = await import("@/app/api/admin/users/route")
+    const req = new Request("http://localhost/api/admin/users?sortField=email&sortDir=asc")
+    await GET(req)
+
+    expect(mockSort).toHaveBeenCalledWith({ email: 1 })
+  })
+
+  it("rejects invalid sortField by falling back to createdAt", async () => {
+    const { auth } = await import("@/lib/auth")
+    vi.mocked(auth).mockResolvedValue({ user: { role: "admin" } } as any)
+
+    const mockSort = vi.fn().mockReturnThis()
+    mockCollection.mockReturnValue({
+      find: vi.fn().mockReturnValue({ sort: mockSort, skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), toArray: vi.fn().mockResolvedValue([]) }),
+      countDocuments: vi.fn().mockResolvedValue(0),
+    })
+
+    const { GET } = await import("@/app/api/admin/users/route")
+    const req = new Request("http://localhost/api/admin/users?sortField=invalid&sortDir=asc")
+    await GET(req)
+
+    expect(mockSort).toHaveBeenCalledWith({ createdAt: 1 })
+  })
+
   it("clamps limit to max 50", async () => {
     const { auth } = await import("@/lib/auth")
     vi.mocked(auth).mockResolvedValue({ user: { role: "admin" } } as any)
