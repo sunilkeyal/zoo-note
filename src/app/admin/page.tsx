@@ -100,6 +100,13 @@ function KpiCard({
   )
 }
 
+// ── Chart config ─────────────────────────────────────────────────────────────
+
+const chartConfig = {
+  count: { label: "Count", color: "hsl(var(--chart-1))" },
+  bytes: { label: "Storage", color: "hsl(var(--chart-2))" },
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -131,11 +138,6 @@ export default function DashboardPage() {
   }, [fetchStats, range, pathname])
 
   const { kpis, charts, users, activity } = data ?? {}
-
-  const chartConfig = {
-    count: { label: "Count", color: "hsl(var(--chart-1))" },
-    bytes: { label: "Storage", color: "hsl(var(--chart-2))" },
-  }
 
   return (
     <div className="space-y-8">
@@ -257,6 +259,29 @@ export default function DashboardPage() {
                   <YAxis hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line type="monotone" dataKey="count" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-10">No data available</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Storage growth line chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Storage Growth — Last {range} Days</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading && !charts ? (
+              <Skeleton className="h-40 w-full" />
+            ) : charts?.storageTrend.length ? (
+              <ChartContainer config={chartConfig} className="h-40 w-full">
+                <LineChart data={charts.storageTrend}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                  <YAxis hide />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line type="monotone" dataKey="bytes" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} />
                 </LineChart>
               </ChartContainer>
             ) : (
