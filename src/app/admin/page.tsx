@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, RefreshCw, FileText, Users, HardDrive, Trash2, UserCheck } from "lucide-react"
+import { LayoutDashboard, RefreshCw, FileText, Users, HardDrive, Trash2, UserCheck, Sparkles } from "lucide-react"
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -114,6 +114,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cleanupPending, setCleanupPending] = useState(false)
+  const [cleanupResult, setCleanupResult] = useState<{ deletedCount: number; freedBytes: number } | null>(null)
+  const [cleanupConfirm, setCleanupConfirm] = useState(false)
   const pathname = usePathname()
 
   const fetchStats = useCallback(async (r: Range) => {
@@ -131,6 +134,23 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }, [])
+
+  const runCleanup = useCallback(async () => {
+    setCleanupPending(true)
+    setCleanupConfirm(false)
+    setCleanupResult(null)
+    try {
+      const res = await fetch("/api/admin/orphaned-images", { method: "DELETE" })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || "Cleanup failed")
+      setCleanupResult(json.data)
+      fetchStats(range)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Cleanup failed")
+    } finally {
+      setCleanupPending(false)
+    }
+  }, [fetchStats, range])
 
   // Re-fetch when navigating to this page or when range changes
   useEffect(() => {
@@ -185,7 +205,32 @@ export default function DashboardPage() {
 
       {/* ── KPI cards ──────────────────────────────────────────────────────── */}
       <section>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">System Overview</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">System Overview</p>
+          {!cleanupConfirm ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }}
+              disabled={cleanupPending}
+              className="text-xs h-7 gap-1"
+            >
+              <Sparkles className="size-3" />
+              {cleanupPending ? "Cleaning…" : "Clean up orphaned images"}
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Delete all images not referenced in any note?</span>
+              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runCleanup}>Yes, delete</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCleanupConfirm(false)}>Cancel</Button>
+            </div>
+          )}
+        </div>
+        {cleanupResult && (
+          <p className="text-xs text-green-600 dark:text-green-400 mb-3">
+            Cleaned up {cleanupResult.deletedCount} orphaned image{cleanupResult.deletedCount !== 1 ? "s" : ""}, freed {formatBytes(cleanupResult.freedBytes)}.
+          </p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Total Users"   value={kpis ? String(kpis.totalUsers)   : "—"} icon={Users}      loading={loading && !kpis} />
           <KpiCard label="Active Today"  value={kpis ? String(kpis.activeToday)  : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
