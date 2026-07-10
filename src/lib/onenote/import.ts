@@ -315,6 +315,24 @@ async function processLocalImages(
     return { cleanedHtml: html, imageCount: 0 }
   }
 
+  // Only upload images that are actually referenced in this page's HTML.
+  // Uploading all files in the directory would create orphaned storage files
+  // for every other page in the same section.
+  const referencedInHtml = new Set<string>()
+  const imgSrcRe = /<img[^>]+src="([^"]+)"[^>]*>/gi
+  let m: RegExpExecArray | null
+  while ((m = imgSrcRe.exec(html)) !== null) {
+    const src = m[1]
+    if (!src.startsWith('http') && !src.startsWith('data:') && !src.startsWith('//')) {
+      referencedInHtml.add(path.basename(src))
+    }
+  }
+  imageFiles = imageFiles.filter((f) => referencedInHtml.has(f))
+
+  if (imageFiles.length === 0) {
+    return { cleanedHtml: html, imageCount: 0 }
+  }
+
   const imageUrlMap = new Map<string, string>()
   for (const imageFile of imageFiles) {
     const imagePath = path.join(sectionDir, imageFile)

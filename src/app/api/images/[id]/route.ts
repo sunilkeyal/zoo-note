@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 import { connectToDatabase } from '@/lib/mongodb'
 import { getImageById } from '@/lib/gridfs'
+import { isR2, storagePublicUrl } from '@/lib/storage'
 
 export async function GET(
   _request: NextRequest,
@@ -14,6 +15,11 @@ export async function GET(
     objectId = new ObjectId(id)
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid image ID' }, { status: 400 })
+  }
+
+  // R2: redirect to the public CDN URL — no database lookup needed
+  if (isR2()) {
+    return NextResponse.redirect(storagePublicUrl(id), { status: 302 })
   }
 
   const db = await connectToDatabase()

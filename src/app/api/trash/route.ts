@@ -173,6 +173,25 @@ export async function DELETE(request: NextRequest) {
     }
   }
 
+  // Sweep for any remaining orphaned images belonging to this user.
+  // This catches images that were uploaded but never embedded in note content
+  // (e.g. from a buggy import), which the per-note cleanup above would miss.
+  const remainingImages = await db.collection("images")
+    .find({ "metadata.userId": session.user.id })
+    .project({ _id: 1 })
+    .toArray()
+
+  for (const img of remainingImages) {
+    const id = img._id.toString()
+    const referenced = await db.collection("notes").countDocuments({
+      userId: session.user.id,
+      content: { $regex: id },
+    })
+    if (referenced === 0) {
+      try { await deleteImageById(db, img._id) } catch { /* already gone */ }
+    }
+  }
+
   return NextResponse.json({
     success: true,
     data: { deletedNotes, deletedFolders },

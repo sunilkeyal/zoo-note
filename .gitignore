@@ -41,3 +41,6 @@ next-env.d.ts
 
 # test data (large files, not part of source)
 /test-data/
+# Local image uploads (stored in filesystem, not in git)
+/public/uploads/*
+!/public/uploads/.gitkeep
