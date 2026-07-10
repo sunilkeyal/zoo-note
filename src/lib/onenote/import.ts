@@ -1,6 +1,7 @@
-import { Db, GridFSBucket, ObjectId } from "mongodb"
-import { getBucket, imageUrl } from "@/lib/gridfs"
+import { Db, ObjectId } from "mongodb"
+import { saveImage, imageUrl } from "@/lib/gridfs"
 import { convertOneNote } from "./convert"
+import { compressImage } from "@/lib/image-compress"
 import path from "path"
 import fs from "fs/promises"
 import os from "os"
@@ -59,8 +60,6 @@ export async function importOneNote(
 
   try {
     await convertOneNote(inputPath, outputDir, tmpDir)
-
-    const bucket = await getBucket()
 
     const pageEntries: { filePath: string; folderName: string }[] = []
     const entries = await fs.readdir(outputDir, { withFileTypes: true })
@@ -145,15 +144,15 @@ export async function importOneNote(
         }
 
         const sectionDir = path.dirname(htmlPath)
-        const localResult = await processLocalImages(html, sectionDir, bucket, userId)
+        const localResult = await processLocalImages(html, sectionDir, db, userId)
         html = localResult.cleanedHtml
         result.imagesImported += localResult.imageCount
 
-        const { cleanedHtml, imageCount } = await processImages(html, bucket, userId)
+        const { cleanedHtml, imageCount } = await processImages(html, db, userId)
         html = cleanedHtml
         result.imagesImported += imageCount
 
-        const svgResult = await processSvgNodes(html, bucket, userId)
+        const svgResult = await processSvgNodes(html, db, userId)
         html = svgResult.cleanedHtml
         result.imagesImported += svgResult.imageCount
 
@@ -301,7 +300,7 @@ export function replaceLocalImageRefs(
 async function processLocalImages(
   html: string,
   sectionDir: string,
-  bucket: GridFSBucket,
+  db: Db,
   userId: string
 ): Promise<{ cleanedHtml: string; imageCount: number }> {
   let imageFiles: string[] = []
@@ -324,15 +323,13 @@ async function processLocalImages(
       const ext = path.extname(imageFile).toLowerCase().slice(1)
       const uploadId = new ObjectId()
 
-      await new Promise<void>((resolve, reject) => {
-        const uploadStream = bucket.openUploadStreamWithId(uploadId, imageFile, {
-          contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
-          metadata: { userId, uploadedAt: new Date() },
-        })
-        uploadStream.end(data)
-        uploadStream.on("finish", () => resolve())
-        uploadStream.on("error", reject)
-      })
+      const compressed = await compressImage(data).catch(() => data)
+
+      await saveImage(db, uploadId, imageFile,
+        `image/${ext === "jpg" ? "jpeg" : ext}`,
+        compressed,
+        { userId, originalName: imageFile, uploadedAt: new Date() },
+      )
 
       imageUrlMap.set(imageFile, imageUrl(uploadId.toHexString()))
     } catch {
@@ -349,7 +346,7 @@ async function processLocalImages(
 
 async function processImages(
   html: string,
-  bucket: GridFSBucket,
+  db: Db,
   userId: string
 ): Promise<{ cleanedHtml: string; imageCount: number }> {
   let imageCount = 0
@@ -363,20 +360,15 @@ async function processImages(
     const ext = match[1]
     const base64Data = match[2]
     const uploadId = new ObjectId()
+    const data = Buffer.from(base64Data, "base64")
 
-    await new Promise<void>((resolve, reject) => {
-      const uploadStream = bucket.openUploadStreamWithId(
-        uploadId,
-        `image-${uploadId.toHexString()}.${ext}`,
-        {
-          contentType: `image/${ext === "svg" ? "svg+xml" : ext}`,
-          metadata: { userId, uploadedAt: new Date() },
-        }
-      )
-      uploadStream.end(Buffer.from(base64Data, "base64"))
-      uploadStream.on("finish", () => resolve())
-      uploadStream.on("error", reject)
-    })
+    const compressed = await compressImage(data).catch(() => data)
+
+    await saveImage(db, uploadId, `image-${uploadId.toHexString()}.${ext}`,
+      `image/${ext === "svg" ? "svg+xml" : ext}`,
+      compressed,
+      { userId, originalName: `image-${uploadId.toHexString()}.${ext}`, uploadedAt: new Date() },
+    )
 
     imageCount++
     replacements.push({
@@ -399,7 +391,7 @@ async function processImages(
 
 async function processSvgNodes(
   html: string,
-  bucket: GridFSBucket,
+  db: Db,
   userId: string
 ): Promise<{ cleanedHtml: string; imageCount: number }> {
   const svgRegex = /<svg[^>]*>[\s\S]*?<\/svg>/gi
@@ -415,15 +407,11 @@ async function processSvgNodes(
     svgIndex++
     const uploadId = new ObjectId()
 
-    await new Promise<void>((resolve, reject) => {
-      const uploadStream = bucket.openUploadStreamWithId(uploadId, `drawing-${svgIndex}.svg`, {
-        contentType: "image/svg+xml",
-        metadata: { userId, uploadedAt: new Date() },
-      })
-      uploadStream.end(Buffer.from(svgContent, "utf-8"))
-      uploadStream.on("finish", () => resolve())
-      uploadStream.on("error", reject)
-    })
+    await saveImage(db, uploadId, `drawing-${svgIndex}.svg`,
+      "image/svg+xml",
+      Buffer.from(svgContent, "utf-8"),
+      { userId, originalName: `drawing-${svgIndex}.svg`, uploadedAt: new Date() },
+    )
 
     imageCount++
     parts.push(`<img src="${imageUrl(uploadId.toHexString())}" alt="Drawing" />`)

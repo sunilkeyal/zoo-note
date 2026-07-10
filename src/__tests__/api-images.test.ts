@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockBucket = {
-  find: vi.fn(),
-  openDownloadStream: vi.fn(),
-}
+const mockDb = { collection: vi.fn() }
+
+vi.mock('@/lib/mongodb', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(mockDb),
+}))
 
 vi.mock('@/lib/gridfs', () => ({
-  getBucket: vi.fn().mockResolvedValue(mockBucket),
+  getImageById: vi.fn(),
 }))
 
 describe('GET /api/images/[id]', () => {
@@ -30,8 +31,9 @@ describe('GET /api/images/[id]', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 404 when image file is not found', async () => {
-    mockBucket.find.mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) })
+  it('returns 404 when image is not found', async () => {
+    const { getImageById } = await import('@/lib/gridfs')
+    vi.mocked(getImageById).mockResolvedValue(null)
 
     const { GET } = await import('@/app/api/images/[id]/route')
     const params = Promise.resolve({ id: '507f1f77bcf86cd799439011' })
@@ -42,11 +44,14 @@ describe('GET /api/images/[id]', () => {
   })
 
   it('returns 200 with image when found and sets correct content type', async () => {
-    const mockFile = { contentType: 'image/png' }
-    mockBucket.find.mockReturnValue({ toArray: vi.fn().mockResolvedValue([mockFile]) })
-
-    const mockStream = { on: vi.fn() }
-    mockBucket.openDownloadStream.mockReturnValue(mockStream)
+    const { getImageById } = await import('@/lib/gridfs')
+    vi.mocked(getImageById).mockResolvedValue({
+      contentType: 'image/png',
+      data: Buffer.from('img-data'),
+      length: 8,
+      filename: 'photo.png',
+      metadata: {},
+    })
 
     const { GET } = await import('@/app/api/images/[id]/route')
     const params = Promise.resolve({ id: '507f1f77bcf86cd799439011' })
@@ -57,9 +62,14 @@ describe('GET /api/images/[id]', () => {
   })
 
   it('defaults to image/jpeg when contentType is missing', async () => {
-    const mockFile = {}
-    mockBucket.find.mockReturnValue({ toArray: vi.fn().mockResolvedValue([mockFile]) })
-    mockBucket.openDownloadStream.mockReturnValue({ on: vi.fn() })
+    const { getImageById } = await import('@/lib/gridfs')
+    vi.mocked(getImageById).mockResolvedValue({
+      contentType: '',
+      data: Buffer.from('img-data'),
+      length: 8,
+      filename: 'photo.jpg',
+      metadata: {},
+    })
 
     const { GET } = await import('@/app/api/images/[id]/route')
     const params = Promise.resolve({ id: '507f1f77bcf86cd799439011' })

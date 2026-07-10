@@ -70,7 +70,7 @@ describe("GET /api/admin/stats — response shape", () => {
       if (name === "users")        return makeCol([5])
       if (name === "notes")        return makeCol([20])
       if (name === "folders")      return makeCol([8])
-      if (name === "images.files") return makeCol([{ _id: null, total: 1024 * 1024 }])
+      if (name === "images") return makeCol([{ _id: null, total: 1024 * 1024 }])
       return makeCol([])
     })
     // db.command({ dbStats: 1 }) used for total storage KPI
@@ -125,7 +125,6 @@ describe("GET /api/admin/stats — response shape", () => {
   it("returns null for a bucket when its queries throw, others still return", async () => {
     // Make db.command throw to break only the kpis bucket (storage now uses db.command)
     mockDb.command = vi.fn().mockRejectedValue(new Error("dbStats failure"))
-    // images.files still works fine for charts
     mockDb.collection = vi.fn().mockImplementation((name: string) => {
       // users bucket maps r._id.toString() — provide safe empty-array mock
       if (name === "users") {

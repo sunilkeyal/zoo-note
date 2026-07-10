@@ -1,6 +1,6 @@
 import { MongoClient, Db } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/zoo-note-bar';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/zoo-note';
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
@@ -48,6 +48,11 @@ export async function connectToDatabase(): Promise<Db> {
   await cachedDb.collection("users").createIndex(
     { email: 1 },
     { unique: true, background: true }
+  ).catch(() => {});
+
+  await cachedDb.collection("images").createIndex(
+    { "metadata.userId": 1 },
+    { background: true }
   ).catch(() => {});
 
   return cachedDb;

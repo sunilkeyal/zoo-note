@@ -1,6 +1,6 @@
 import { Db, ObjectId } from "mongodb"
 import AdmZip from "adm-zip"
-import { getBucket } from "@/lib/gridfs"
+import { saveImage } from "@/lib/gridfs"
 
 interface ExportManifest {
   version: number
@@ -60,14 +60,11 @@ export async function importFromZip(
     throw new Error(`Unsupported export version: ${manifest.version}`)
   }
 
-  const bucket = await getBucket()
-
-  // 1. Upload images from ZIP to GridFS
   const imageEntries = zip
     .getEntries()
     .filter((e) => e.entryName.startsWith("images/") && !e.isDirectory)
 
-  const imageIdMap = new Map<string, string>() // old filename → new GridFS id
+  const imageIdMap = new Map<string, string>()
 
   for (const entry of imageEntries) {
     try {
@@ -76,15 +73,11 @@ export async function importFromZip(
       const ext = filename.split(".").pop() || "jpg"
       const uploadId = new ObjectId()
 
-      await new Promise<void>((resolve, reject) => {
-        const uploadStream = bucket.openUploadStreamWithId(uploadId, filename, {
-          contentType: `image/${ext === "png" ? "png" : ext === "gif" ? "gif" : "jpeg"}`,
-          metadata: { userId, originalName: filename, uploadedAt: new Date() },
-        })
-        uploadStream.end(buffer)
-        uploadStream.on("finish", () => resolve())
-        uploadStream.on("error", reject)
-      })
+      await saveImage(db, uploadId, filename,
+        `image/${ext === "png" ? "png" : ext === "gif" ? "gif" : "jpeg"}`,
+        buffer,
+        { userId, originalName: filename, uploadedAt: new Date() },
+      )
 
       imageIdMap.set(filename, uploadId.toHexString())
       result.imagesImported++

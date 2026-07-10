@@ -23,13 +23,12 @@ const { mockTurndown, mockTurndownConstructor, mockDump, mockArchiveInstance, mo
   return { mockTurndown, mockTurndownConstructor, mockDump, mockArchiveInstance, mockZipArchive, archiveHandlers }
 })
 
-const { mockExtractImageIds, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream } = vi.hoisted(() => {
+const { mockExtractImageIds, mockObjectId, mockGetImageById } = vi.hoisted(() => {
   const mockExtractImageIds = vi.fn()
   const mockObjectId = vi.fn()
-  const mockBucketFind = vi.fn()
-  const mockBucketOpenDownloadStream = vi.fn()
+  const mockGetImageById = vi.fn()
 
-  return { mockExtractImageIds, mockObjectId, mockBucketFind, mockBucketOpenDownloadStream }
+  return { mockExtractImageIds, mockObjectId, mockGetImageById }
 })
 
 vi.mock('turndown', () => ({
@@ -45,10 +44,7 @@ vi.mock('archiver', () => ({
 }))
 
 vi.mock('@/lib/gridfs', () => ({
-  getBucket: () => ({
-    find: mockBucketFind,
-    openDownloadStream: mockBucketOpenDownloadStream,
-  }),
+  getImageById: mockGetImageById,
 }))
 
 vi.mock('@/lib/utils', () => ({
@@ -210,14 +206,12 @@ describe('export', () => {
       const { generateExportZip } = await import('@/lib/export')
       const imgId = '507f1f77bcf86cd799439011'
       mockExtractImageIds.mockReturnValue([imgId])
-      mockBucketFind.mockImplementation(() => ({
-        toArray: () => Promise.resolve([
-          { filename: 'photo.png', _id: imgId },
-        ]),
-      }))
-      // Download must succeed for the src rewrite to happen
-      mockBucketOpenDownloadStream.mockReturnValue({
-        [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true, value: undefined }) }),
+      mockGetImageById.mockResolvedValue({
+        contentType: 'image/png',
+        data: Buffer.from('img-data'),
+        length: 8,
+        filename: 'photo.png',
+        metadata: {},
       })
 
       await generateExportZip(
@@ -231,46 +225,32 @@ describe('export', () => {
       expect(manifest.notes[0].content).toBe(`<img src="images/${imgId}.png">`)
     })
 
-    it('extracts image IDs and fetches images from GridFS', async () => {
+    it('extracts image IDs and fetches images', async () => {
       const { generateExportZip } = await import('@/lib/export')
       const validId = '507f1f77bcf86cd799439011'
       mockExtractImageIds.mockReturnValue([validId])
-      mockBucketFind.mockImplementation((query: { _id: unknown }) => ({
-        toArray: () => Promise.resolve([
-          { filename: 'photo.png', _id: query._id },
-        ]),
-      }))
-      const mockStream = {
-        [Symbol.asyncIterator]: () => {
-          let emitted = false
-          return {
-            next: () => {
-              if (emitted) return Promise.resolve({ done: true, value: undefined })
-              emitted = true
-              return Promise.resolve({ done: false, value: Buffer.from('image-data') })
-            },
-          }
-        },
-      }
-      mockBucketOpenDownloadStream.mockReturnValue(mockStream)
+      mockGetImageById.mockResolvedValue({
+        contentType: 'image/png',
+        data: Buffer.from('image-data'),
+        length: 10,
+        filename: 'photo.png',
+        metadata: {},
+      })
 
       await generateExportZip([mockNote()], [], {} as never)
 
       expect(mockExtractImageIds).toHaveBeenCalledWith('<p>Hello</p>')
-      expect(mockBucketFind).toHaveBeenCalledTimes(1)
-      expect(mockBucketOpenDownloadStream).toHaveBeenCalledTimes(1)
+      expect(mockGetImageById).toHaveBeenCalledTimes(1)
       expect(mockArchiveInstance.append).toHaveBeenCalledWith(
         expect.any(Buffer),
         { name: `images/${validId}.png` }
       )
     })
 
-    it('skips images not found in GridFS', async () => {
+    it('skips images not found', async () => {
       const { generateExportZip } = await import('@/lib/export')
       mockExtractImageIds.mockReturnValue(['507f1f77bcf86cd799439011'])
-      mockBucketFind.mockImplementation(() => ({
-        toArray: () => Promise.resolve([]),
-      }))
+      mockGetImageById.mockResolvedValue(null)
 
       await generateExportZip([mockNote()], [], {} as never)
 
@@ -280,12 +260,7 @@ describe('export', () => {
     it('handles image fetch errors gracefully', async () => {
       const { generateExportZip } = await import('@/lib/export')
       mockExtractImageIds.mockReturnValue(['507f1f77bcf86cd799439011'])
-      mockBucketFind.mockImplementation(() => ({
-        toArray: () => Promise.resolve([{ filename: 'photo.jpg', _id: '507f1f77bcf86cd799439011' }]),
-      }))
-      mockBucketOpenDownloadStream.mockImplementation(() => {
-        throw new Error('Stream error')
-      })
+      mockGetImageById.mockRejectedValue(new Error('fetch error'))
 
       await generateExportZip([mockNote()], [], {} as never)
 
@@ -296,17 +271,13 @@ describe('export', () => {
       const { generateExportZip } = await import('@/lib/export')
       const validId = '507f1f77bcf86cd799439011'
       mockExtractImageIds.mockReturnValue([validId])
-      mockBucketFind.mockImplementation(() => ({
-        toArray: () => Promise.resolve([
-          { filename: 'photo.', _id: validId },
-        ]),
-      }))
-      const mockStream = {
-        [Symbol.asyncIterator]: () => ({
-          next: () => Promise.resolve({ done: true, value: undefined }),
-        }),
-      }
-      mockBucketOpenDownloadStream.mockReturnValue(mockStream)
+      mockGetImageById.mockResolvedValue({
+        contentType: 'image/jpeg',
+        data: Buffer.from('data'),
+        length: 4,
+        filename: 'photo.',
+        metadata: {},
+      })
 
       await generateExportZip([mockNote()], [], {} as never)
 

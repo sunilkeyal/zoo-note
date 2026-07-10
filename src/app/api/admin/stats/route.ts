@@ -91,12 +91,12 @@ export async function GET(request: NextRequest) {
             { $sort: { _id: 1 } },
           ]).toArray(),
 
-          db.collection("images.files").aggregate([
+          db.collection("images").aggregate([
             { $match: { uploadDate: { $lt: cutoff } } },
             { $group: { _id: null, total: { $sum: "$length" } } },
           ]).toArray(),
 
-          db.collection("images.files").aggregate([
+          db.collection("images").aggregate([
             { $match: { uploadDate: { $gte: cutoff } } },
             { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$uploadDate" } }, bytes: { $sum: "$length" } } },
             { $sort: { _id: 1 } },
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
           },
           {
             $lookup: {
-              from: "images.files",
+              from: "images",
               let: { uid: { $toString: "$_id" } },
               pipeline: [
                 { $match: { $expr: { $eq: ["$metadata.userId", "$$uid"] } } },

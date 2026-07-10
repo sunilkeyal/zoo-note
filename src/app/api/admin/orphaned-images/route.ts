@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
-import { GridFSBucket, ObjectId } from "mongodb"
+import { deleteImageById } from "@/lib/gridfs"
+import { ObjectId } from "mongodb"
 
 export async function DELETE() {
   const session = await auth()
@@ -13,10 +14,8 @@ export async function DELETE() {
   }
 
   const db = await connectToDatabase()
-  const bucket = new GridFSBucket(db, { bucketName: "images" })
 
-  // Load all images from GridFS
-  const allImages = await db.collection("images.files")
+  const allImages = await db.collection("images")
     .find({})
     .project({ _id: 1, length: 1, "metadata.userId": 1 })
     .toArray()
@@ -28,7 +27,6 @@ export async function DELETE() {
     const id = img._id.toString()
     const userId = img.metadata?.userId as string | undefined
 
-    // An image is orphaned if no note content references it
     const referenced = await db.collection("notes").countDocuments({
       ...(userId ? { userId } : {}),
       content: { $regex: id },
@@ -36,7 +34,7 @@ export async function DELETE() {
 
     if (referenced === 0) {
       try {
-        await bucket.delete(new ObjectId(id))
+        await deleteImageById(db, new ObjectId(id))
         deletedCount++
         freedBytes += img.length as number
       } catch {

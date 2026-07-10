@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
 import { NoteUpdate } from "@/types"
 import { ObjectId } from "mongodb"
-import { getBucket } from "@/lib/gridfs"
+import { deleteImageById } from "@/lib/gridfs"
 
 export async function PUT(
   request: NextRequest,
@@ -71,8 +71,7 @@ export async function PUT(
     )
     const orphanIds = [...oldIds].filter((id) => !newIds.has(id))
     if (orphanIds.length > 0) {
-      const bucket = await getBucket()
-      await Promise.allSettled(orphanIds.map((id) => bucket.delete(new ObjectId(id))))
+      await Promise.allSettled(orphanIds.map((id) => deleteImageById(db, new ObjectId(id))))
     }
   }
 

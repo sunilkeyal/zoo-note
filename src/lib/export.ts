@@ -3,7 +3,7 @@ import { Note, Folder } from "@/types"
 import * as yaml from "js-yaml"
 import * as archiver from "archiver"
 import { Db, ObjectId } from "mongodb"
-import { getBucket } from "@/lib/gridfs"
+import { getImageById } from "@/lib/gridfs"
 import { extractImageIds } from "@/lib/utils"
 
 const turndown = new TurndownService({
@@ -43,9 +43,8 @@ interface ExportManifest {
 export async function generateExportZip(
   notes: Note[],
   folders: Folder[],
-  _db: Db
+  db: Db
 ): Promise<Buffer> {
-  const bucket = await getBucket()
   const folderMap = new Map(folders.map((f) => [f._id, f.name]))
 
   const allImageIds = new Set<string>()
@@ -55,22 +54,14 @@ export async function generateExportZip(
     }
   }
 
-  // Download all images first. Only images that download successfully will have
-  // their srcs rewritten in the manifest — prevents a manifest with rewritten
-  // relative paths that point at zip entries that don't exist.
   const successImages: { id: string; ext: string; buffer: Buffer }[] = []
   await Promise.allSettled(
     Array.from(allImageIds).map(async (id) => {
       const objectId = new ObjectId(id)
-      const files = await bucket.find({ _id: objectId }).toArray()
-      if (files.length === 0) return
-      const ext = files[0].filename.split(".").pop() || "jpg"
-      const imageChunks: Buffer[] = []
-      const stream = bucket.openDownloadStream(objectId)
-      for await (const chunk of stream) {
-        imageChunks.push(chunk)
-      }
-      successImages.push({ id, ext, buffer: Buffer.concat(imageChunks) })
+      const img = await getImageById(db, objectId)
+      if (!img) return
+      const ext = img.filename.split(".").pop() || "jpg"
+      successImages.push({ id, ext, buffer: img.data })
     })
   )
 

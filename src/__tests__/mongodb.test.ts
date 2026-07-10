@@ -105,12 +105,12 @@ describe('connectToDatabase', () => {
     )
   })
 
-  it('creates all 6 indexes', async () => {
+  it('creates all indexes', async () => {
     const { connectToDatabase } = await import('@/lib/mongodb')
 
     await connectToDatabase()
 
-    expect(mockCreateIndex).toHaveBeenCalledTimes(6)
+    expect(mockCreateIndex).toHaveBeenCalledTimes(8)
   })
 
   it('returns cached db on second call', async () => {

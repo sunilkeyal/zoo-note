@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
 import { Note, Folder } from "@/types"
 import { ObjectId } from "mongodb"
-import { getBucket } from "@/lib/gridfs"
+import { deleteImageById } from "@/lib/gridfs"
 import { extractImageIds } from "@/lib/utils"
 
 export async function GET() {
@@ -115,17 +115,14 @@ export async function DELETE(request: NextRequest) {
     })
     deletedNotes = result.deletedCount
 
-    // Delete GridFS image files — but only those no longer referenced by any
-    // surviving note (e.g. the same image pasted into two notes).
     if (noteImageIds.size > 0) {
-      const bucket = await getBucket()
       for (const imgId of noteImageIds) {
         const stillReferenced = await notesCollection.countDocuments({
           userId: session.user.id,
           content: { $regex: imgId },
         })
         if (stillReferenced === 0) {
-          try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+          try { await deleteImageById(db, new ObjectId(imgId)) } catch { /* already gone */ }
         }
       }
     }
@@ -163,16 +160,14 @@ export async function DELETE(request: NextRequest) {
       userId: session.user.id,
     })
 
-    // Delete GridFS image files — only those no longer referenced by any surviving note
     if (folderImageIds.size > 0) {
-      const bucket = await getBucket()
       for (const imgId of folderImageIds) {
         const stillReferenced = await notesCollection.countDocuments({
           userId: session.user.id,
           content: { $regex: imgId },
         })
         if (stillReferenced === 0) {
-          try { await bucket.delete(new ObjectId(imgId)) } catch { /* already gone */ }
+          try { await deleteImageById(db, new ObjectId(imgId)) } catch { /* already gone */ }
         }
       }
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
-import { getBucket } from '@/lib/gridfs'
+import { connectToDatabase } from '@/lib/mongodb'
+import { getImageById } from '@/lib/gridfs'
 
 export async function GET(
   _request: NextRequest,
@@ -15,28 +16,18 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Invalid image ID' }, { status: 400 })
   }
 
-  const bucket = await getBucket()
+  const db = await connectToDatabase()
 
   try {
-    const files = await bucket.find({ _id: objectId }).toArray()
-    if (files.length === 0) {
+    const img = await getImageById(db, objectId)
+    if (!img) {
       return NextResponse.json({ success: false, error: 'Image not found' }, { status: 404 })
     }
-    const file = files[0]
 
-    const downloadStream = bucket.openDownloadStream(objectId)
-    const readable = new ReadableStream({
-      start(controller) {
-        downloadStream.on('data', (chunk) => controller.enqueue(chunk))
-        downloadStream.on('end', () => controller.close())
-        downloadStream.on('error', (err) => controller.error(err))
-      },
-    })
-
-    return new NextResponse(readable, {
+    return new NextResponse(new Uint8Array(img.data), {
       status: 200,
       headers: {
-        'Content-Type': file.contentType || 'image/jpeg',
+        'Content-Type': img.contentType || 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     })

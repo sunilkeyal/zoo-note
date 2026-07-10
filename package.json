@@ -1,5 +1,5 @@
 {
-  "name": "zoo-note-bar",
+  "name": "zoo-note",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,8 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:compact": "node --input-type=module --eval \"import { MongoClient } from 'mongodb'; const c = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017/zoo-note-bar'); await c.connect(); const db = c.db(); for (const col of ['images.chunks','images.files','notes','folders','users']) { try { await db.command({ compact: col }); console.log('compacted', col); } catch { console.log('skipped', col); } } await c.close();\""
+    "db:migrate": "node scripts/migrate-gridfs-to-flat.mjs",
+"db:migrate:dry-run": "node scripts/migrate-gridfs-to-flat.mjs --dry-run"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.2",
