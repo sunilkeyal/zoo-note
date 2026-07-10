@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 import { connectToDatabase } from '@/lib/mongodb'
 import { getImageById } from '@/lib/gridfs'
-import { isR2, storagePublicUrl } from '@/lib/storage'
+import { auth } from '@/lib/auth'
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Images are private — require authentication
+  const session = await auth()
+  if (!session?.user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { id } = await params
 
   let objectId: ObjectId
@@ -15,18 +21,6 @@ export async function GET(
     objectId = new ObjectId(id)
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid image ID' }, { status: 400 })
-  }
-
-  // R2: redirect to the public CDN URL — no database lookup needed
-  if (isR2()) {
-    const url = storagePublicUrl(id)
-    if (!url.startsWith('http')) {
-      return NextResponse.json(
-        { success: false, error: 'R2_PUBLIC_URL env var is not configured' },
-        { status: 500 }
-      )
-    }
-    return NextResponse.redirect(url, { status: 302 })
   }
 
   const db = await connectToDatabase()
@@ -37,11 +31,17 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Image not found' }, { status: 404 })
     }
 
+    // Ownership check — only the uploader may view the image
+    if (img.metadata.userId && img.metadata.userId !== session.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+
     return new NextResponse(new Uint8Array(img.data), {
       status: 200,
       headers: {
         'Content-Type': img.contentType || 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        // private: browsers may cache but CDNs/proxies must not
+        'Cache-Control': 'private, max-age=3600',
       },
     })
   } catch {
