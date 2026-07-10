@@ -1,38 +1,41 @@
 import sharp from 'sharp'
 
-const DEFAULT_MAX_BYTES = 100 * 1024
-const DEFAULT_MAX_WIDTH = 1200
+const MAX_BYTES = 100 * 1024
+const MAX_WIDTHS = [1200, 800, 600, 400, 200]
 
-export async function compressImage(
-  buffer: Buffer,
-  maxBytes: number = DEFAULT_MAX_BYTES,
-  maxWidth: number = DEFAULT_MAX_WIDTH
-): Promise<Buffer> {
+export async function compressImage(buffer: Buffer): Promise<Buffer> {
   const metadata = await sharp(buffer).metadata()
-  const width = metadata.width || maxWidth
-  const pipeline = sharp(buffer)
-    .resize(Math.min(width, maxWidth), undefined, { fit: 'inside', withoutEnlargement: true })
-    .jpeg()
+  const originalWidth = metadata.width || MAX_WIDTHS[0]
 
-  let lo = 1, hi = 100
-  let best: Buffer | null = null
-  let bestSize = Infinity
+  for (const maxWidth of MAX_WIDTHS) {
+    const targetWidth = Math.min(originalWidth, maxWidth)
+    const pipeline = sharp(buffer)
+      .resize(targetWidth, undefined, { fit: 'inside', withoutEnlargement: true })
+      .jpeg()
 
-  for (let i = 0; i < 15; i++) {
-    if (lo > hi) break
-    const mid = Math.round((lo + hi) / 2)
-    if (mid < 1 || mid > 100) break
-    const buf = await pipeline.clone().jpeg({ quality: mid }).toBuffer()
-    const size = buf.length
-    if (size <= maxBytes && (maxBytes - size) < (maxBytes - bestSize)) {
-      best = buf
-      bestSize = size
+    let lo = 1, hi = 100
+    let best: Buffer | null = null
+    let bestSize = 0
+
+    for (let i = 0; i < 15; i++) {
+      if (lo > hi) break
+      const mid = Math.round((lo + hi) / 2)
+      const buf = await pipeline.clone().jpeg({ quality: mid }).toBuffer()
+      const size = buf.length
+      if (size <= MAX_BYTES && size > bestSize) {
+        best = buf
+        bestSize = size
+      }
+      if (size > MAX_BYTES) hi = mid - 1
+      else lo = mid + 1
     }
-    if (Math.abs(size - maxBytes) < maxBytes * 0.15) { best = buf; break }
-    if (size > maxBytes) hi = mid - 1
-    else lo = mid + 1
+
+    if (best) return best
   }
 
-  if (!best) best = await pipeline.jpeg({ quality: 15 }).toBuffer()
-  return best
+  const buf = await sharp(buffer)
+    .resize(200, undefined, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 1 })
+    .toBuffer()
+  return buf
 }
