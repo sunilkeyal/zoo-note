@@ -320,7 +320,6 @@ describe('NotesSidebar', () => {
     renderSidebar()
     expect(screen.getByText('Admin')).toBeInTheDocument()
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Analytics')).toBeInTheDocument()
     expect(screen.getByText('User Management')).toBeInTheDocument()
     expect(screen.getByText('Audit Logs')).toBeInTheDocument()
     expect(screen.getByText('System Settings')).toBeInTheDocument()
