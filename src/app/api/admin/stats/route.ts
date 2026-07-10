@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import { MongoClient } from "mongodb"
 import { auth } from "@/lib/auth"
 import { connectToDatabase } from "@/lib/mongodb"
+
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/zoo-note"
 
 const VALID_RANGES = [7, 30, 90] as const
 type Range = (typeof VALID_RANGES)[number]
@@ -44,6 +47,7 @@ export async function GET(request: NextRequest) {
           totalUsers,
           newThisWeek,
           totalNotes,
+          totalFolders,
           trashNotes,
           trashFolders,
           activeTodayIds,
@@ -52,17 +56,42 @@ export async function GET(request: NextRequest) {
           db.collection("users").countDocuments({}),
           db.collection("users").countDocuments({ createdAt: { $gte: weekAgo } }),
           db.collection("notes").countDocuments({ isDeleted: { $ne: true } }),
+          db.collection("folders").countDocuments({ isDeleted: { $ne: true } }),
           db.collection("notes").countDocuments({ isDeleted: true }),
           db.collection("folders").countDocuments({ isDeleted: true }),
           db.collection("notes").distinct("userId", { updatedAt: { $gte: today } }),
           db.command({ dbStats: 1, scale: 1 }),
         ])
+
+        let storageBreakdown: { databases: { name: string; sizeOnDisk: number; isAppDb: boolean }[]; totalBytes: number } | null = null
+        try {
+          const client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
+          await client.connect()
+          const appDbName = client.options?.dbName || db.databaseName
+          const adminDb = client.db("admin")
+          const listResult = await adminDb.command({ listDatabases: 1 } as any)
+          const databases = (listResult.databases as any[])
+            .filter((d: any) => !["admin", "local"].includes(d.name))
+            .map((d: any) => ({ name: d.name as string, sizeOnDisk: d.sizeOnDisk as number, isAppDb: d.name === appDbName }))
+          const totalBytes = databases.reduce((sum: number, d: any) => sum + d.sizeOnDisk, 0)
+          storageBreakdown = { databases, totalBytes }
+          await client.close()
+        } catch {
+          // fallback: use dbStats for current database
+          storageBreakdown = {
+            databases: [{ name: db.databaseName, sizeOnDisk: (storageAgg?.storageSize as number) ?? 0, isAppDb: true }],
+            totalBytes: (storageAgg?.storageSize as number) ?? 0,
+          }
+        }
+
         return {
           totalUsers,
           newThisWeek,
           activeToday: activeTodayIds.length,
           totalNotes,
+          totalFolders,
           storageUsedBytes: (storageAgg?.storageSize as number) ?? 0,
+          storageBreakdown,
           trashItemCount: trashNotes + trashFolders,
         }
       } catch {

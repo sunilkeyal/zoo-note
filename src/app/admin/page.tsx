@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, RefreshCw, FileText, Users, HardDrive, Trash2, UserCheck, Sparkles } from "lucide-react"
+import { LayoutDashboard, RefreshCw, FileText, Folder, Users, HardDrive, Trash2, UserCheck, Sparkles } from "lucide-react"
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -28,7 +29,12 @@ type StatsData = {
     activeToday: number
     newThisWeek: number
     totalNotes: number
+    totalFolders: number
     storageUsedBytes: number
+    storageBreakdown: {
+      databases: { name: string; sizeOnDisk: number }[]
+      totalBytes: number
+    } | null
     trashItemCount: number
   } | null
   charts: {
@@ -61,6 +67,10 @@ function formatBytes(bytes: number): string {
   const units = ["B", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[Math.min(i, units.length - 1)]}`
+}
+
+function percent(total: number, part: number): number {
+  return total > 0 ? Math.round((part / total) * 1000) / 10 : 0
 }
 
 function timeAgo(iso: string): string {
@@ -236,8 +246,58 @@ export default function DashboardPage() {
           <KpiCard label="Active Today"  value={kpis ? String(kpis.activeToday)  : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
           <KpiCard label="New This Week" value={kpis ? String(kpis.newThisWeek)  : "—"} icon={Users}      loading={loading && !kpis} />
           <KpiCard label="Total Notes"   value={kpis ? kpis.totalNotes.toLocaleString() : "—"} icon={FileText}  loading={loading && !kpis} />
-          <KpiCard label="DB Storage"    value={kpis ? formatBytes(kpis.storageUsedBytes) : "—"} sub="of 512 MB free tier" icon={HardDrive} loading={loading && !kpis} />
+          <KpiCard label="Total Folders" value={kpis ? kpis.totalFolders.toLocaleString() : "—"} icon={Folder} loading={loading && !kpis} />
           <KpiCard label="Trash Items"   value={kpis ? String(kpis.trashItemCount) : "—"} icon={Trash2}    loading={loading && !kpis} />
+        </div>
+
+        {/* Storage row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
+          <Card className="lg:col-span-2">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <HardDrive className="size-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground font-medium">Cluster Storage</p>
+              </div>
+              {loading && !kpis ? (
+                <Skeleton className="h-8 w-32 mt-1" />
+              ) : kpis?.storageBreakdown ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold">{formatBytes(kpis.storageBreakdown.totalBytes)}</p>
+                    <p className="text-xs text-muted-foreground">/ 512 MB ({percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}%)</p>
+                  </div>
+                  <Progress value={percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)} className="h-1.5 mt-2" />
+
+                  {/* Primary database */}
+                  {kpis.storageBreakdown.databases.filter((d) => d.isAppDb).map((db) => (
+                    <div key={db.name} className="mt-2">
+                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold">{db.name}</span>
+                        <span className="font-medium">{formatBytes(db.sizeOnDisk)}</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* System databases */}
+                  {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).length > 0 && (
+                    <>
+                      <div className="border-t my-1.5" />
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">System</p>
+                      {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).map((db) => (
+                        <div key={db.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{db.name}</span>
+                          <span>{formatBytes(db.sizeOnDisk)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </section>
 
