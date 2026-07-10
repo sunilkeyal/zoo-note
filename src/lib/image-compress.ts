@@ -1,6 +1,6 @@
 import sharp from 'sharp'
 
-const MAX_BYTES = 50 * 1024
+const MAX_BYTES = 100 * 1024
 const MAX_WIDTHS = [1200, 800, 600, 400, 200]
 
 export async function compressImage(buffer: Buffer): Promise<Buffer> {
