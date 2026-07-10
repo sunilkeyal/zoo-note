@@ -32,7 +32,7 @@ type StatsData = {
     totalFolders: number
     storageUsedBytes: number
     storageBreakdown: {
-      databases: { name: string; sizeOnDisk: number }[]
+      databases: { name: string; sizeOnDisk: number; isAppDb: boolean }[]
       totalBytes: number
     } | null
     trashItemCount: number
