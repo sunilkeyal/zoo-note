@@ -19,7 +19,14 @@ export async function GET(
 
   // R2: redirect to the public CDN URL — no database lookup needed
   if (isR2()) {
-    return NextResponse.redirect(storagePublicUrl(id), { status: 302 })
+    const url = storagePublicUrl(id)
+    if (!url.startsWith('http')) {
+      return NextResponse.json(
+        { success: false, error: 'R2_PUBLIC_URL env var is not configured' },
+        { status: 500 }
+      )
+    }
+    return NextResponse.redirect(url, { status: 302 })
   }
 
   const db = await connectToDatabase()
