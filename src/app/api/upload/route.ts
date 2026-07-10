@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
-import { saveImage } from '@/lib/gridfs'
+import { saveImage, deleteImageById } from '@/lib/gridfs'
 import { compressImage } from '@/lib/image-compress'
 import { ObjectId } from 'mongodb'
 
@@ -37,6 +37,22 @@ export async function POST(request: NextRequest) {
     originalName: file.name,
     uploadedAt: new Date(),
   })
+
+  // Lazy-cleanup: remove unreferenced images older than 1 hour
+  const oneHourAgo = new Date(Date.now() - 3600000)
+  const oldOrphans = await db.collection("images").find({
+    "metadata.userId": session.user.id,
+    uploadDate: { $lt: oneHourAgo },
+  }).toArray()
+  for (const img of oldOrphans) {
+    const refCount = await db.collection("notes").countDocuments({
+      userId: session.user.id,
+      content: { $regex: img._id.toString() },
+    })
+    if (refCount === 0) {
+      await deleteImageById(db, img._id)
+    }
+  }
 
   return NextResponse.json({
     success: true,

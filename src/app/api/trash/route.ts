@@ -97,7 +97,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid note ID format" }, { status: 400 })
     }
 
-    // Collect image IDs before deleting so we can clean up GridFS
+    // Collect image IDs before deleting so we can orphan the ones not referenced elsewhere
     const noteDocs = await notesCollection
       .find({ _id: { $in: noteObjectIds }, userId: session.user.id })
       .project({ content: 1 })
