@@ -77,7 +77,6 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
           r2StorageAdaptiveGroups(
             limit: 10000
             filter: { datetime_geq: $startDate, datetime_leq: $endDate, bucketName: $bucketName }
-            orderBy: [datetime_DESC]
           ) {
             max {
               objectCount

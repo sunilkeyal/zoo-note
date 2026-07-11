@@ -35,6 +35,10 @@ export async function GET(request: NextRequest) {
     const db = await connectToDatabase()
     let data: unknown
 
+    if (!process.env.CF_API_TOKEN) {
+      console.error("R2 API: CF_API_TOKEN env var is not set")
+    }
+
     switch (metric) {
       case "storage":
         data = await getR2StorageMetrics(db)
@@ -66,8 +70,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error("R2 metrics error:", error)
+    const message = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch R2 metrics" },
+      { success: false, error: `Failed to fetch R2 metrics: ${message}` },
       { status: 500 }
     )
   }
