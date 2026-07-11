@@ -2,19 +2,25 @@ import { Db } from "mongodb"
 import { connectToDatabase } from "@/lib/mongodb"
 
 const CF_API_BASE = "https://api.cloudflare.com/client/v4"
-const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID!
-const BUCKET_NAME = process.env.R2_BUCKET_NAME!
-const CF_API_TOKEN = process.env.CF_API_TOKEN!
+
+function getAccountId(): string {
+  return process.env.CLOUDFLARE_ACCOUNT_ID ?? ""
+}
+function getBucketName(): string {
+  return process.env.R2_BUCKET_NAME ?? ""
+}
 
 function cfHeaders(): Record<string, string> {
+  const token = process.env.CF_API_TOKEN
+  if (!token) throw new Error("CF_API_TOKEN env var is not set")
   return {
-    Authorization: `Bearer ${CF_API_TOKEN}`,
+    Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   }
 }
 
 function cfUrl(path: string): string {
-  return `${CF_API_BASE}/accounts/${ACCOUNT_ID}${path}`
+  return `${CF_API_BASE}/accounts/${getAccountId()}${path}`
 }
 
 // --- Cache helpers ---
@@ -78,7 +84,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   const { S3Client, ListBucketsCommand, ListObjectsV2Command } = await import("@aws-sdk/client-s3")
   const s3 = new S3Client({
     region: "auto",
-    endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    endpoint: `https://${getAccountId()}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
@@ -110,7 +116,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
           }
         }
       }`,
-      { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString() }
+      { accountTag: getAccountId(), startDate, endDate: now.toISOString() }
     )
     const groups = data.viewer.accounts[0]?.r2StorageAdaptiveGroups ?? []
     bucketNames = [...new Set(groups.map((g: any) => g.dimensions.bucketName).filter(Boolean) as string[])]
@@ -150,7 +156,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
       name,
       objectCount,
       payloadSize,
-      isPrimary: name === BUCKET_NAME,
+      isPrimary: name === getBucketName(),
     })
   }
 
@@ -208,7 +214,7 @@ export async function getR2RequestMetrics(range: number, db?: Db): Promise<R2Req
         }
       }
     }`,
-    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString() }
+    { accountTag: getAccountId(), startDate, endDate: now.toISOString() }
   )
 
   const groups = data.viewer.accounts[0]?.r2OperationsAdaptiveGroups ?? []
@@ -255,7 +261,7 @@ export async function getR2ObjectList(
   const { S3Client, ListObjectsV2Command } = await import("@aws-sdk/client-s3")
   const s3 = new S3Client({
     region: "auto",
-    endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    endpoint: `https://${getAccountId()}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
@@ -263,7 +269,7 @@ export async function getR2ObjectList(
   })
 
   const res = await s3.send(new ListObjectsV2Command({
-    Bucket: BUCKET_NAME,
+    Bucket: getBucketName(),
     MaxKeys: options.limit ?? 20,
     ContinuationToken: options.cursor || undefined,
   }))

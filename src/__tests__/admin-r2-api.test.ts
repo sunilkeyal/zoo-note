@@ -20,6 +20,10 @@ vi.mock("@/lib/cf-r2", () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   vi.resetModules()
+  process.env.STORAGE_PROVIDER = 'r2'
+  process.env.CF_API_TOKEN = 'test-cf-token'
+  process.env.R2_ACCESS_KEY_ID = 'test-key'
+  process.env.R2_BUCKET_NAME = 'test-bucket'
 })
 
 describe("GET /api/admin/r2 — auth guards", () => {

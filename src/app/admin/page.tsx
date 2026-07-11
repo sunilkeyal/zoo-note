@@ -238,6 +238,11 @@ export default function DashboardPage() {
       fetch(`/api/admin/r2?metric=cost&range=${r}`).then(r => r.json()),
       fetch("/api/admin/r2?metric=objects&limit=10").then(r => r.json()),
     ]).then(([storage, requests, cost, objects]) => {
+      if (storage.notConfigured) {
+        setR2Error(JSON.stringify({ storageProvider: storage.storageProvider, missingVars: storage.missingVars }))
+        setR2Loading(false)
+        return
+      }
       if (!storage.success) throw new Error(storage.error || "Failed to load storage metrics")
       setR2Storage(storage.data)
       setR2Requests(requests.data)
@@ -455,13 +460,38 @@ export default function DashboardPage() {
       {/* ── Infrastructure ─────────────────────────────────────────────────── */}
       <CollapsibleSection title="Infrastructure" icon={HardDrive}>
         {/* R2 error */}
-        {r2Error && (
-          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive mb-4">
-            <p className="font-medium">Failed to load R2 metrics</p>
-            <p className="text-xs mt-1">{r2Error}</p>
-            <p className="text-xs mt-1 text-muted-foreground">Check that CF_API_TOKEN is set in .env.local with "Account Analytics Read" permission.</p>
-          </div>
-        )}
+        {r2Error && (() => {
+          let parsed: { storageProvider?: string; missingVars?: string[] } | null = null
+          try { parsed = JSON.parse(r2Error) } catch { /* plain error string */ }
+
+          if (parsed?.storageProvider === "local") {
+            return (
+              <div className="rounded-md bg-muted border p-3 text-sm text-muted-foreground mb-4">
+                <p className="font-medium">R2 metrics unavailable in local mode</p>
+                <p className="text-xs mt-1">Using local filesystem storage (<code>STORAGE_PROVIDER=local</code>). R2 metrics are only shown when deployed with <code>STORAGE_PROVIDER=r2</code>.</p>
+              </div>
+            )
+          }
+
+          if (parsed?.storageProvider === "r2" && parsed.missingVars?.length) {
+            return (
+              <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-300 mb-4">
+                <p className="font-medium">R2 credentials incomplete</p>
+                <p className="text-xs mt-1">Storage provider is set to R2 but the following env vars are missing:</p>
+                <ul className="text-xs mt-1 list-disc list-inside">
+                  {parsed.missingVars.map(v => <li key={v}><code>{v}</code></li>)}
+                </ul>
+              </div>
+            )
+          }
+
+          return (
+            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive mb-4">
+              <p className="font-medium">Failed to load R2 metrics</p>
+              <p className="text-xs mt-1">{r2Error}</p>
+            </div>
+          )
+        })()}
 
         {/* Storage cards side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

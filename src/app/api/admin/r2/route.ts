@@ -35,8 +35,27 @@ export async function GET(request: NextRequest) {
     const db = await connectToDatabase()
     let data: unknown
 
-    if (!process.env.CF_API_TOKEN) {
-      console.error("R2 API: CF_API_TOKEN env var is not set")
+    const storageProvider = process.env.STORAGE_PROVIDER ?? "local"
+
+    // If using local storage, R2 metrics are simply not applicable.
+    if (storageProvider === "local") {
+      return NextResponse.json({ success: false, notConfigured: true, storageProvider: "local" }, { status: 200 })
+    }
+
+    // STORAGE_PROVIDER=r2 — verify all required credentials are present.
+    const missingVars = [
+      !process.env.CF_API_TOKEN && "CF_API_TOKEN",
+      !process.env.R2_ACCESS_KEY_ID && "R2_ACCESS_KEY_ID",
+      !process.env.R2_BUCKET_NAME && "R2_BUCKET_NAME",
+    ].filter(Boolean) as string[]
+
+    if (missingVars.length > 0) {
+      return NextResponse.json({
+        success: false,
+        notConfigured: true,
+        storageProvider: "r2",
+        missingVars,
+      }, { status: 200 })
     }
 
     switch (metric) {
@@ -63,7 +82,13 @@ export async function GET(request: NextRequest) {
       case "objects": {
         const limit = parseInt(params.get("limit") || "20", 10)
         const cursor = params.get("cursor") || undefined
-        data = await getR2ObjectList({ limit, cursor })
+        try {
+          data = await getR2ObjectList({ limit, cursor })
+        } catch {
+          // S3 API may be blocked on restricted networks (e.g. corporate proxy).
+          // Return an empty list rather than a 500.
+          data = { objects: [], cursor: null, unavailable: true }
+        }
         break
       }
     }

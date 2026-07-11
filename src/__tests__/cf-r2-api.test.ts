@@ -25,6 +25,7 @@ beforeEach(() => {
   process.env.R2_ACCESS_KEY_ID = "test-key"
   process.env.R2_SECRET_ACCESS_KEY = "test-secret"
   process.env.CLOUDFLARE_ACCOUNT_ID = "test-account"
+  process.env.CF_API_TOKEN = "test-cf-token"
 })
 
 describe("getR2StorageMetrics", () => {
