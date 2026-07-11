@@ -127,9 +127,9 @@ describe("getR2RequestMetrics", () => {
           viewer: {
             accounts: [{
               r2OperationsAdaptiveGroups: [
-                { sum: { requests: 5000 }, dimensions: { actionType: "readObject" } },
-                { sum: { requests: 200 }, dimensions: { actionType: "writeObject" } },
-                { sum: { requests: 50 }, dimensions: { actionType: "deleteObject" } },
+                { sum: { requests: 5000 }, dimensions: { actionType: "GetObject" } },
+                { sum: { requests: 200 }, dimensions: { actionType: "PutObject" } },
+                { sum: { requests: 50 }, dimensions: { actionType: "DeleteObject" } },
               ],
             }],
           },
@@ -145,7 +145,7 @@ describe("getR2RequestMetrics", () => {
     expect(result.requests.delete).toBe(50)
   })
 
-  it("aggregates listObjects and getBucket as Class A", async () => {
+  it("aggregates ListObjects and PutBucket as Class A", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({}),
@@ -162,9 +162,9 @@ describe("getR2RequestMetrics", () => {
           viewer: {
             accounts: [{
               r2OperationsAdaptiveGroups: [
-                { sum: { requests: 100 }, dimensions: { actionType: "listObjects" } },
-                { sum: { requests: 50 }, dimensions: { actionType: "getBucket" } },
-                { sum: { requests: 300 }, dimensions: { actionType: "headObject" } },
+                { sum: { requests: 100 }, dimensions: { actionType: "ListObjects" } },
+                { sum: { requests: 50 }, dimensions: { actionType: "PutBucket" } },
+                { sum: { requests: 300 }, dimensions: { actionType: "HeadObject" } },
               ],
             }],
           },

@@ -102,10 +102,10 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   return result
 }
 
-// Class A operations: writeObject, listObjects, getBucket
-const CLASS_A_OPS = new Set(["writeObject", "listObjects", "getBucket"])
-// Class B operations: readObject, headObject
-const CLASS_B_OPS = new Set(["readObject", "headObject"])
+// Class A operations: PutObject, ListObjects, PutBucket, ListMultipartUploads, DeleteMultipleObjects
+const CLASS_A_OPS = new Set(["PutObject", "ListObjects", "PutBucket", "ListMultipartUploads", "DeleteMultipleObjects"])
+// Class B operations: GetObject, HeadObject, HeadBucket, CopyObject, SelectObject
+const CLASS_B_OPS = new Set(["GetObject", "HeadObject", "HeadBucket", "CopyObject", "SelectObject"])
 
 export interface R2RequestMetrics {
   requests: { get: number; put: number; delete: number }
@@ -156,7 +156,7 @@ export async function getR2RequestMetrics(range: number, db?: Db): Promise<R2Req
       put += requests
     } else if (CLASS_B_OPS.has(actionType)) {
       get += requests
-    } else if (actionType === "deleteObject" || actionType === "deleteMultipleObjects") {
+    } else if (actionType === "DeleteObject") {
       delete_ += requests
     } else {
       // Unknown action type, count as Class A to be safe
@@ -182,24 +182,30 @@ export interface R2ObjectEntry {
 export async function getR2ObjectList(
   options: { limit?: number; cursor?: string } = {}
 ): Promise<{ objects: R2ObjectEntry[]; cursor: string | null }> {
-  const params = new URLSearchParams()
-  if (options.limit) params.set("limit", String(options.limit))
-  if (options.cursor) params.set("cursor", options.cursor)
+  // Use S3-compatible API for object listing (CF GraphQL token may lack r2:read)
+  const { S3Client, ListObjectsV2Command } = await import("@aws-sdk/client-s3")
+  const s3 = new S3Client({
+    region: "auto",
+    endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
 
-  const res = await fetch(
-    cfUrl(`/r2/buckets/${BUCKET_NAME}/objects?${params}`),
-    { headers: cfHeaders() }
-  )
-  if (!res.ok) throw new Error(`CF API error: ${res.status}`)
-  const json = await res.json()
+  const res = await s3.send(new ListObjectsV2Command({
+    Bucket: BUCKET_NAME,
+    MaxKeys: options.limit ?? 20,
+    ContinuationToken: options.cursor || undefined,
+  }))
 
   return {
-    objects: (json.result ?? []).map((o: any) => ({
-      key: o.key,
-      size: o.size,
-      lastModified: o.lastModified,
+    objects: (res.Contents ?? []).map((o) => ({
+      key: o.Key ?? "",
+      size: o.Size ?? 0,
+      lastModified: o.LastModified?.toISOString() ?? "",
     })),
-    cursor: json.result_info?.cursor ?? null,
+    cursor: res.IsTruncated ? (res.NextContinuationToken ?? null) : null,
   }
 }
 
