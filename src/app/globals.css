@@ -230,6 +230,10 @@
 }
 
 /* Table styles */
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}
 .ProseMirror table {
   border-collapse: collapse;
   width: auto;
@@ -251,6 +255,12 @@
   background: var(--muted);
   font-weight: 600;
   text-align: left;
+}
+/* Paragraphs inside cells must have no margin — the global p rule adds 10px
+   bottom margin which creates visible bottom-heavy padding asymmetry */
+.ProseMirror table td p,
+.ProseMirror table th p {
+  margin: 0;
 }
 .ProseMirror table .selectedCell::after {
   z-index: 2;

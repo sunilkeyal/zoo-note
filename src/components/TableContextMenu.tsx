@@ -9,6 +9,7 @@ import {
   ArrowRightToLine,
   TableProperties,
   Trash2,
+  X,
 } from "lucide-react"
 
 interface Props {
@@ -91,7 +92,9 @@ export function TableContextMenu({ editor, editorContainerRef }: Props) {
     { label: "Add Column Right", icon: ArrowRightToLine, onClick: () => editor.chain().focus().addColumnAfter().run() },
     { label: "Delete Column", icon: Trash2, onClick: () => editor.chain().focus().deleteColumn().run(), destructive: true },
     null,
-    { label: "Set as Header Row", icon: TableProperties, onClick: () => editor.chain().focus().toggleHeaderRow().run(), disabled: hasHeader },
+    hasHeader
+      ? { label: "Remove Header Row", icon: X, onClick: () => editor.chain().focus().toggleHeaderRow().run() }
+      : { label: "Set First Row as Header", icon: TableProperties, onClick: () => editor.chain().focus().toggleHeaderRow().run() },
     { label: "Delete Table", icon: Trash2, onClick: () => editor.chain().focus().deleteTable().run(), destructive: true },
   ]
 
