@@ -60,9 +60,17 @@ type StatsData = {
   }[] | null
 }
 
+type R2BucketInfo = {
+  name: string
+  objectCount: number
+  payloadSize: number
+  isPrimary: boolean
+}
+
 type R2StorageData = {
   totalObjects: number
   totalBytes: number
+  buckets: R2BucketInfo[]
 } | null
 
 type R2RequestData = {
@@ -462,6 +470,53 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Storage breakdown card */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <HardDrive className="size-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground font-medium">Account Storage</p>
+            </div>
+            {r2Loading ? (
+              <Skeleton className="h-8 w-32 mt-1" />
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold">{formatBytes(r2Storage?.totalBytes ?? 0)}</p>
+                  <p className="text-xs text-muted-foreground">/ 10 GB ({percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)}%)</p>
+                </div>
+                <Progress value={percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)} className="h-1.5 mt-2" />
+
+                {/* Primary bucket */}
+                {r2Storage?.buckets.filter((b) => b.isPrimary).map((b) => (
+                  <div key={b.name} className="mt-2">
+                    <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold">{b.name}</span>
+                      <span className="font-medium">{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Other buckets */}
+                {(r2Storage?.buckets.filter((b) => !b.isPrimary).length ?? 0) > 0 && (
+                  <>
+                    <div className="border-t my-1.5" />
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Other Buckets</p>
+                    {r2Storage?.buckets.filter((b) => !b.isPrimary).map((b) => (
+                      <div key={b.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>{b.name}</span>
+                        <span>{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Operations KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <KpiCard
             label="Total Objects"
@@ -470,8 +525,8 @@ export default function DashboardPage() {
             loading={r2Loading}
           />
           <KpiCard
-            label="Storage Used"
-            value={r2Loading ? "" : formatBytes(r2Storage?.totalBytes ?? 0)}
+            label="Total Buckets"
+            value={r2Loading ? "" : String(r2Storage?.buckets?.length ?? 0)}
             icon={HardDrive}
             loading={r2Loading}
           />

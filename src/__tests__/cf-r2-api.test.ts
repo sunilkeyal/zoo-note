@@ -14,6 +14,7 @@ vi.mock("@/lib/mongodb", () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   vi.resetModules()
+  process.env.R2_BUCKET_NAME = "zoo-note-local"
 })
 
 describe("getR2StorageMetrics", () => {
@@ -38,6 +39,9 @@ describe("getR2StorageMetrics", () => {
                   objectCount: 150,
                   payloadSize: 5368709120,
                 },
+                dimensions: {
+                  bucketName: "zoo-note-local",
+                },
               }],
             }],
           },
@@ -51,6 +55,12 @@ describe("getR2StorageMetrics", () => {
     expect(result).toEqual({
       totalObjects: 150,
       totalBytes: 5368709120,
+      buckets: [{
+        name: "zoo-note-local",
+        objectCount: 150,
+        payloadSize: 5368709120,
+        isPrimary: true,
+      }],
     })
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/graphql"),
@@ -105,7 +115,7 @@ describe("getR2StorageMetrics", () => {
     const { getR2StorageMetrics } = await import("@/lib/cf-r2")
     const result = await getR2StorageMetrics()
 
-    expect(result).toEqual({ totalObjects: 0, totalBytes: 0 })
+    expect(result).toEqual({ totalObjects: 0, totalBytes: 0, buckets: [] })
   })
 })
 

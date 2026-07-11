@@ -57,9 +57,17 @@ async function gqlQuery(query: string, variables: Record<string, unknown>): Prom
 
 // --- Public API ---
 
+export interface R2BucketInfo {
+  name: string
+  objectCount: number
+  payloadSize: number
+  isPrimary: boolean
+}
+
 export interface R2StorageMetrics {
   totalObjects: number
   totalBytes: number
+  buckets: R2BucketInfo[]
 }
 
 export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
@@ -106,14 +114,28 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
 
   let totalObjects = 0
   let totalBytes = 0
-  for (const b of byBucket.values()) {
+  const buckets: R2BucketInfo[] = []
+  for (const [name, b] of byBucket) {
     totalObjects += b.objectCount
     totalBytes += b.payloadSize
+    buckets.push({
+      name,
+      objectCount: b.objectCount,
+      payloadSize: b.payloadSize,
+      isPrimary: name === BUCKET_NAME,
+    })
   }
+  // Sort: primary first, then by size descending
+  buckets.sort((a, b) => {
+    if (a.isPrimary) return -1
+    if (b.isPrimary) return 1
+    return b.payloadSize - a.payloadSize
+  })
 
   const result: R2StorageMetrics = {
     totalObjects,
     totalBytes,
+    buckets,
   }
 
   await setCache(resolvedDb, "storage", result)
