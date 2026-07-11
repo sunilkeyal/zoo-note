@@ -228,3 +228,58 @@
     display: none;
   }
 }
+
+/* Table styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75em 0;
+  table-layout: fixed;
+  overflow: hidden;
+}
+.ProseMirror table td,
+.ProseMirror table th {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  min-width: 40px;
+  vertical-align: top;
+  position: relative;
+  box-sizing: border-box;
+}
+.ProseMirror table th {
+  background: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+.ProseMirror table .selectedCell::after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: oklch(0.205 0 0 / 0.06);
+  pointer-events: none;
+}
+.dark .ProseMirror table .selectedCell::after {
+  background: oklch(0.922 0 0 / 0.10);
+}
+.ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+  opacity: 0;
+  cursor: col-resize;
+  pointer-events: all;
+}
+.ProseMirror table .column-resize-handle:hover,
+.ProseMirror.resize-cursor table .column-resize-handle {
+  opacity: 0.3;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
