@@ -12,7 +12,7 @@ Enhance the ZooNote admin dashboard with real Cloudflare R2 storage/bandwidth/re
 
 ### New lib: `src/lib/cf-r2.ts`
 
-Wraps the Cloudflare R2 Analytics API. Endpoints used:
+Wraps the Cloudflare R2 Analytics API. Endpoints used (verify exact paths against CF API docs during implementation):
 
 - `GET /accounts/{account_id}/r2/buckets/{bucket_name}/metrics/summary` — total objects, bytes stored
 - `GET /accounts/{account_id}/r2/buckets/{bucket_name}/metrics/requests` — GET/PUT/DELETE counts, egress/ingress bytes
@@ -137,7 +137,7 @@ Functions:
 - `createBackup()` — runs `mongodump` to temp dir, compresses to `.gz`, uploads to `backups/` prefix in storage. Records metadata in `backups` collection.
 - `listBackups()` — queries `backups` collection
 - `deleteBackup(id)` — removes from storage and metadata
-- `restoreBackup(id)` — downloads from storage, runs `mongorestore`
+- `restoreBackup(id)` — downloads from storage, runs `mongorestore` against the same database configured in `MONGODB_URI`. Drops and replaces collections from the backup.
 
 ### New MongoDB collection: `backups`
 
