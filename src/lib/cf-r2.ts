@@ -75,56 +75,54 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   const cached = await getCached(resolvedDb, "storage")
   if (cached) return cached as R2StorageMetrics
 
-  const now = new Date()
-  const startDate = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000).toISOString()
+  // Use S3-compatible API to get real-time per-bucket data (more accurate than CF GraphQL analytics)
+  const { S3Client, ListBucketsCommand, ListObjectsV2Command } = await import("@aws-sdk/client-s3")
+  const s3 = new S3Client({
+    region: "auto",
+    endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+  })
 
-  const data = await gqlQuery(
-    `query R2Storage($accountTag: string!, $startDate: Time, $endDate: Time) {
-      viewer {
-        accounts(filter: { accountTag: $accountTag }) {
-          r2StorageAdaptiveGroups(
-            limit: 10000
-            filter: { datetime_geq: $startDate, datetime_leq: $endDate }
-          ) {
-            max {
-              objectCount
-              payloadSize
-            }
-            dimensions {
-              bucketName
-            }
-          }
-        }
-      }
-    }`,
-    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString() }
-  )
+  // 1. List all buckets
+  const bucketsRes = await s3.send(new ListBucketsCommand({}))
+  const bucketNames = (bucketsRes.Buckets ?? []).map((b) => b.Name ?? "")
 
-  const groups = data.viewer.accounts[0]?.r2StorageAdaptiveGroups ?? []
-
-  // Sum across all buckets — take the latest data point per bucket
-  const byBucket = new Map<string, { objectCount: number; payloadSize: number }>()
-  for (const group of groups) {
-    const bucket = group.dimensions.bucketName
-    const existing = byBucket.get(bucket)
-    if (!existing || (group.max.objectCount ?? 0) > existing.objectCount) {
-      byBucket.set(bucket, { objectCount: group.max.objectCount ?? 0, payloadSize: group.max.payloadSize ?? 0 })
-    }
-  }
-
+  // 2. For each bucket, list objects and sum sizes
+  const buckets: R2BucketInfo[] = []
   let totalObjects = 0
   let totalBytes = 0
-  const buckets: R2BucketInfo[] = []
-  for (const [name, b] of byBucket) {
-    totalObjects += b.objectCount
-    totalBytes += b.payloadSize
+
+  for (const name of bucketNames) {
+    let objectCount = 0
+    let payloadSize = 0
+    let continuationToken: string | undefined
+
+    do {
+      const res = await s3.send(new ListObjectsV2Command({
+        Bucket: name,
+        MaxKeys: 1000,
+        ContinuationToken: continuationToken,
+      }))
+      for (const obj of res.Contents ?? []) {
+        objectCount++
+        payloadSize += obj.Size ?? 0
+      }
+      continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    totalObjects += objectCount
+    totalBytes += payloadSize
     buckets.push({
       name,
-      objectCount: b.objectCount,
-      payloadSize: b.payloadSize,
+      objectCount,
+      payloadSize,
       isPrimary: name === BUCKET_NAME,
     })
   }
+
   // Sort: primary first, then by size descending
   buckets.sort((a, b) => {
     if (a.isPrimary) return -1

@@ -11,68 +11,67 @@ vi.mock("@/lib/mongodb", () => ({
   connectToDatabase: vi.fn().mockResolvedValue(mockDb),
 }))
 
+const mockS3Send = vi.fn()
+vi.mock("@aws-sdk/client-s3", () => ({
+  S3Client: class { send = mockS3Send },
+  ListBucketsCommand: vi.fn(),
+  ListObjectsV2Command: vi.fn(),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.resetModules()
   process.env.R2_BUCKET_NAME = "zoo-note-local"
+  process.env.R2_ACCESS_KEY_ID = "test-key"
+  process.env.R2_SECRET_ACCESS_KEY = "test-secret"
+  process.env.CLOUDFLARE_ACCOUNT_ID = "test-account"
 })
 
 describe("getR2StorageMetrics", () => {
-  it("returns total objects and bytes from CF GraphQL API", async () => {
+  it("returns total objects and bytes from S3 API", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({}),
     }
     mockDb.collection.mockImplementation((name: string) => {
       if (name === "r2_metrics") return metricsCol
-      return { findOne: vi.fn(), insertOne: vi.fn() }
+      return {}
     })
 
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        data: {
-          viewer: {
-            accounts: [{
-              r2StorageAdaptiveGroups: [{
-                max: {
-                  objectCount: 150,
-                  payloadSize: 5368709120,
-                },
-                dimensions: {
-                  bucketName: "zoo-note-local",
-                },
-              }],
-            }],
-          },
-        },
-      }),
+    // Mock S3 ListBucketsCommand
+    mockS3Send.mockResolvedValueOnce({
+      Buckets: [{ Name: "zoo-note-local" }],
+    })
+    // Mock S3 ListObjectsV2Command for zoo-note-local
+    mockS3Send.mockResolvedValueOnce({
+      Contents: [
+        { Key: "file1.png", Size: 100000 },
+        { Key: "file2.jpg", Size: 200000 },
+      ],
+      IsTruncated: false,
     })
 
     const { getR2StorageMetrics } = await import("@/lib/cf-r2")
     const result = await getR2StorageMetrics()
 
     expect(result).toEqual({
-      totalObjects: 150,
-      totalBytes: 5368709120,
+      totalObjects: 2,
+      totalBytes: 300000,
       buckets: [{
         name: "zoo-note-local",
-        objectCount: 150,
-        payloadSize: 5368709120,
+        objectCount: 2,
+        payloadSize: 300000,
         isPrimary: true,
       }],
     })
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/graphql"),
-      expect.objectContaining({ method: "POST" })
-    )
+    expect(mockS3Send).toHaveBeenCalledTimes(2)
   })
 
   it("returns cached metrics when cache is fresh", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue({
         metric: "storage",
-        data: { totalObjects: 100, totalBytes: 1000 },
+        data: { totalObjects: 100, totalBytes: 1000, buckets: [] },
         updatedAt: new Date(),
       }),
       updateOne: vi.fn(),
@@ -85,11 +84,11 @@ describe("getR2StorageMetrics", () => {
     const { getR2StorageMetrics } = await import("@/lib/cf-r2")
     const result = await getR2StorageMetrics()
 
-    expect(result).toEqual({ totalObjects: 100, totalBytes: 1000 })
-    expect(mockFetch).not.toHaveBeenCalled()
+    expect(result).toEqual({ totalObjects: 100, totalBytes: 1000, buckets: [] })
+    expect(mockS3Send).not.toHaveBeenCalled()
   })
 
-  it("returns zeros when no storage data exists", async () => {
+  it("returns zeros when no buckets exist", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({}),
@@ -99,23 +98,60 @@ describe("getR2StorageMetrics", () => {
       return {}
     })
 
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        data: {
-          viewer: {
-            accounts: [{
-              r2StorageAdaptiveGroups: [],
-            }],
-          },
-        },
-      }),
+    mockS3Send.mockResolvedValueOnce({
+      Buckets: [],
     })
 
     const { getR2StorageMetrics } = await import("@/lib/cf-r2")
     const result = await getR2StorageMetrics()
 
     expect(result).toEqual({ totalObjects: 0, totalBytes: 0, buckets: [] })
+  })
+
+  it("counts only existing buckets (no stale deleted buckets)", async () => {
+    const metricsCol = {
+      findOne: vi.fn().mockResolvedValue(null),
+      updateOne: vi.fn().mockResolvedValue({}),
+    }
+    mockDb.collection.mockImplementation((name: string) => {
+      if (name === "r2_metrics") return metricsCol
+      return {}
+    })
+
+    // Only 2 buckets exist (myfirstbucket was deleted)
+    mockS3Send.mockResolvedValueOnce({
+      Buckets: [{ Name: "zoo-note" }, { Name: "zoo-note-local" }],
+    })
+    // zoo-note: 4 objects
+    mockS3Send.mockResolvedValueOnce({
+      Contents: [
+        { Key: "a.png", Size: 100 },
+        { Key: "b.jpg", Size: 200 },
+        { Key: "c.png", Size: 300 },
+        { Key: "d.jpg", Size: 400 },
+      ],
+      IsTruncated: false,
+    })
+    // zoo-note-local: 4 objects
+    mockS3Send.mockResolvedValueOnce({
+      Contents: [
+        { Key: "x.png", Size: 500 },
+        { Key: "y.jpg", Size: 600 },
+        { Key: "z.png", Size: 700 },
+        { Key: "w.jpg", Size: 800 },
+      ],
+      IsTruncated: false,
+    })
+
+    const { getR2StorageMetrics } = await import("@/lib/cf-r2")
+    const result = await getR2StorageMetrics()
+
+    expect(result.totalObjects).toBe(8)
+    expect(result.buckets).toHaveLength(2)
+    expect(result.buckets.find(b => b.name === "zoo-note")?.objectCount).toBe(4)
+    expect(result.buckets.find(b => b.name === "zoo-note-local")?.objectCount).toBe(4)
+    // myfirstbucket should NOT appear
+    expect(result.buckets.find(b => b.name === "myfirstbucket")).toBeUndefined()
   })
 })
 
