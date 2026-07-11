@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
           totalBytes: storage.totalBytes,
           requestsGet: requests.requests.get,
           requestsPut: requests.requests.put,
+          egressBytes: 0, // Default value for egress bytes
         })
         data = { storage, requests, cost }
         break

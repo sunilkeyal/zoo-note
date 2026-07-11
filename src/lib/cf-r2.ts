@@ -113,7 +113,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
       { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString() }
     )
     const groups = data.viewer.accounts[0]?.r2StorageAdaptiveGroups ?? []
-    bucketNames = [...new Set(groups.map((g: any) => g.dimensions.bucketName).filter(Boolean))]
+    bucketNames = [...new Set(groups.map((g: any) => g.dimensions.bucketName).filter(Boolean) as string[])]
   }
 
   // For each bucket, list objects and sum sizes via S3

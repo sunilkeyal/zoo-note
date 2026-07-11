@@ -151,14 +151,12 @@ function CollapsibleSection({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <Card>
-        <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-xl">
-            <div className="flex items-center gap-2">
-              <Icon className="size-4 text-muted-foreground" />
-              <p className="text-sm font-semibold">{title}</p>
-            </div>
-            {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
-          </button>
+        <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-xl">
+          <div className="flex items-center gap-2">
+            <Icon className="size-4 text-muted-foreground" />
+            <p className="text-sm font-semibold">{title}</p>
+          </div>
+          {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0">{children}</CardContent>
