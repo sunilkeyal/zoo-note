@@ -60,6 +60,27 @@ type StatsData = {
   }[] | null
 }
 
+type R2StorageData = {
+  totalObjects: number
+  totalBytes: number
+} | null
+
+type R2RequestData = {
+  requests: { get: number; put: number; delete: number }
+  bandwidth: { egress: number; ingress: number }
+} | null
+
+type R2CostData = {
+  storage: R2StorageData
+  requests: R2RequestData
+  cost: number
+} | null
+
+type R2ObjectData = {
+  objects: { key: string; size: number; lastModified: string }[]
+  cursor: string | null
+} | null
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
@@ -127,6 +148,11 @@ export default function DashboardPage() {
   const [cleanupPending, setCleanupPending] = useState(false)
   const [cleanupResult, setCleanupResult] = useState<{ deletedCount: number; freedBytes: number } | null>(null)
   const [cleanupConfirm, setCleanupConfirm] = useState(false)
+  const [r2Storage, setR2Storage] = useState<R2StorageData>(null)
+  const [r2Requests, setR2Requests] = useState<R2RequestData>(null)
+  const [r2Cost, setR2Cost] = useState<R2CostData>(null)
+  const [r2Objects, setR2Objects] = useState<R2ObjectData>(null)
+  const [r2Loading, setR2Loading] = useState(true)
   const pathname = usePathname()
 
   const fetchStats = useCallback(async (r: Range) => {
@@ -166,6 +192,22 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchStats(range)
   }, [fetchStats, range, pathname])
+
+  useEffect(() => {
+    setR2Loading(true)
+    Promise.all([
+      fetch("/api/admin/r2?metric=storage").then(r => r.json()),
+      fetch(`/api/admin/r2?metric=requests&range=${range}`).then(r => r.json()),
+      fetch(`/api/admin/r2?metric=cost&range=${range}`).then(r => r.json()),
+      fetch("/api/admin/r2?metric=objects&limit=10").then(r => r.json()),
+    ]).then(([storage, requests, cost, objects]) => {
+      setR2Storage(storage.data)
+      setR2Requests(requests.data)
+      setR2Cost(cost.data)
+      setR2Objects(objects.data)
+      setR2Loading(false)
+    }).catch(() => setR2Loading(false))
+  }, [range])
 
   const { kpis, charts, users, activity } = data ?? {}
 
@@ -398,6 +440,95 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </section>
+
+      {/* --- R2 Storage KPIs --- */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <HardDrive className="size-5" />
+          Cloudflare R2 Storage
+        </h2>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <KpiCard
+            label="Total Objects"
+            value={r2Loading ? "" : String(r2Storage?.totalObjects ?? 0)}
+            icon={FileText}
+            loading={r2Loading}
+          />
+          <KpiCard
+            label="Storage Used"
+            value={r2Loading ? "" : formatBytes(r2Storage?.totalBytes ?? 0)}
+            icon={HardDrive}
+            loading={r2Loading}
+          />
+          <KpiCard
+            label="Egress (period)"
+            value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.egress ?? 0)}
+            icon={FileText}
+            loading={r2Loading}
+          />
+          <KpiCard
+            label="Ingress (period)"
+            value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.ingress ?? 0)}
+            icon={FileText}
+            loading={r2Loading}
+          />
+          <KpiCard
+            label="GET Requests"
+            value={r2Loading ? "" : (r2Requests?.requests.get ?? 0).toLocaleString()}
+            icon={FileText}
+            loading={r2Loading}
+          />
+          <KpiCard
+            label="PUT Requests"
+            value={r2Loading ? "" : (r2Requests?.requests.put ?? 0).toLocaleString()}
+            icon={FileText}
+            loading={r2Loading}
+          />
+        </div>
+
+        {/* Cost estimate */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="size-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground font-medium">Estimated Monthly Cost</p>
+            </div>
+            {r2Loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <p className="text-2xl font-bold">${(r2Cost?.cost ?? 0).toFixed(2)}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Largest files table */}
+        {r2Objects && r2Objects.objects.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Largest Files</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>File</TableHead>
+                    <TableHead className="text-right">Size</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {r2Objects.objects.map((obj) => (
+                    <TableRow key={obj.key}>
+                      <TableCell className="font-mono text-xs">{obj.key}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatBytes(obj.size)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* ── Recent activity feed ────────────────────────────────────────────── */}
       <section>
