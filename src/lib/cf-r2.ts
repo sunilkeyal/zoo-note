@@ -71,30 +71,49 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   const startDate = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000).toISOString()
 
   const data = await gqlQuery(
-    `query R2Storage($accountTag: string!, $startDate: Time, $endDate: Time, $bucketName: string) {
+    `query R2Storage($accountTag: string!, $startDate: Time, $endDate: Time) {
       viewer {
         accounts(filter: { accountTag: $accountTag }) {
           r2StorageAdaptiveGroups(
             limit: 10000
-            filter: { datetime_geq: $startDate, datetime_leq: $endDate, bucketName: $bucketName }
+            filter: { datetime_geq: $startDate, datetime_leq: $endDate }
           ) {
             max {
               objectCount
               payloadSize
             }
+            dimensions {
+              bucketName
+            }
           }
         }
       }
     }`,
-    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString(), bucketName: BUCKET_NAME }
+    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString() }
   )
 
   const groups = data.viewer.accounts[0]?.r2StorageAdaptiveGroups ?? []
-  const latest = groups[0]?.max ?? {}
+
+  // Sum across all buckets — take the latest data point per bucket
+  const byBucket = new Map<string, { objectCount: number; payloadSize: number }>()
+  for (const group of groups) {
+    const bucket = group.dimensions.bucketName
+    const existing = byBucket.get(bucket)
+    if (!existing || (group.max.objectCount ?? 0) > existing.objectCount) {
+      byBucket.set(bucket, { objectCount: group.max.objectCount ?? 0, payloadSize: group.max.payloadSize ?? 0 })
+    }
+  }
+
+  let totalObjects = 0
+  let totalBytes = 0
+  for (const b of byBucket.values()) {
+    totalObjects += b.objectCount
+    totalBytes += b.payloadSize
+  }
 
   const result: R2StorageMetrics = {
-    totalObjects: latest.objectCount ?? 0,
-    totalBytes: latest.payloadSize ?? 0,
+    totalObjects,
+    totalBytes,
   }
 
   await setCache(resolvedDb, "storage", result)
@@ -121,12 +140,12 @@ export async function getR2RequestMetrics(range: number, db?: Db): Promise<R2Req
   const startDate = new Date(now.getTime() - range * 24 * 60 * 60 * 1000).toISOString()
 
   const data = await gqlQuery(
-    `query R2Operations($accountTag: string!, $startDate: Time, $endDate: Time, $bucketName: string) {
+    `query R2Operations($accountTag: string!, $startDate: Time, $endDate: Time) {
       viewer {
         accounts(filter: { accountTag: $accountTag }) {
           r2OperationsAdaptiveGroups(
             limit: 10000
-            filter: { datetime_geq: $startDate, datetime_leq: $endDate, bucketName: $bucketName }
+            filter: { datetime_geq: $startDate, datetime_leq: $endDate }
           ) {
             sum {
               requests
@@ -138,7 +157,7 @@ export async function getR2RequestMetrics(range: number, db?: Db): Promise<R2Req
         }
       }
     }`,
-    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString(), bucketName: BUCKET_NAME }
+    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString() }
   )
 
   const groups = data.viewer.accounts[0]?.r2OperationsAdaptiveGroups ?? []
