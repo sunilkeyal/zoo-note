@@ -18,6 +18,7 @@ import TableRow from "@tiptap/extension-table-row"
 import TableHeader from "@tiptap/extension-table-header"
 import TableCell from "@tiptap/extension-table-cell"
 import { ImageNode } from "@/extensions/ImageNode"
+import { TableMaxWidth } from "@/extensions/TableMaxWidth"
 import SearchHighlight from "@/extensions/SearchHighlight"
 import { TableGridPicker } from "@/components/TableGridPicker"
 import { TableContextMenu } from "@/components/TableContextMenu"
@@ -606,6 +607,7 @@ export default function MainArea() {
       TableRow,
       TableHeader,
       TableCell,
+      TableMaxWidth,
     ],
     content: activeNote?.content || "<p></p>",
     editorProps: {

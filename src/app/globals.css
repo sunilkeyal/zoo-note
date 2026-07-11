@@ -240,9 +240,10 @@
   margin: 0.75em 0;
   table-layout: fixed;
   overflow: hidden;
-  /* Tiptap's column-resize plugin sets inline style="min-width:Xpx" on the
-     table element after every drag. !important overrides that inline style,
-     preventing the table from ever exceeding the container width. */
+  /* Tiptap sets inline style="min-width:Xpx" on the table after every drag.
+     !important overrides that so max-width can act as a real ceiling.
+     The TableMaxWidth extension prevents colwidths from summing > container
+     width, so this safety net only fires on window resize. */
   min-width: 0 !important;
   max-width: 100%;
 }
@@ -250,9 +251,7 @@
 .ProseMirror table th {
   border: 1px solid var(--border);
   padding: 3px 8px;
-  /* !important overrides Tiptap's inline style="min-width:Xpx" on each cell,
-     so the container's max-width can actually constrain column widths. */
-  min-width: 80px !important;
+  min-width: 80px;
   width: 120px;
   vertical-align: top;
   position: relative;
