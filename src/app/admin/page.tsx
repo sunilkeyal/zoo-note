@@ -488,7 +488,7 @@ export default function DashboardPage() {
                 <Progress value={percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)} className="h-1.5 mt-2" />
 
                 {/* Primary bucket */}
-                {r2Storage?.buckets.filter((b) => b.isPrimary).map((b) => (
+                {(r2Storage?.buckets ?? []).filter((b) => b.isPrimary).map((b) => (
                   <div key={b.name} className="mt-2">
                     <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
                     <div className="flex items-center justify-between text-[11px]">
@@ -499,11 +499,11 @@ export default function DashboardPage() {
                 ))}
 
                 {/* Other buckets */}
-                {(r2Storage?.buckets.filter((b) => !b.isPrimary).length ?? 0) > 0 && (
+                {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).length > 0 && (
                   <>
                     <div className="border-t my-1.5" />
                     <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Other Buckets</p>
-                    {r2Storage?.buckets.filter((b) => !b.isPrimary).map((b) => (
+                    {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).map((b) => (
                       <div key={b.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
                         <span>{b.name}</span>
                         <span>{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
