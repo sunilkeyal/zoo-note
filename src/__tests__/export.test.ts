@@ -31,6 +31,15 @@ const { mockExtractImageIds, mockObjectId, mockGetImageById } = vi.hoisted(() =>
   return { mockExtractImageIds, mockObjectId, mockGetImageById }
 })
 
+const { mockTables } = vi.hoisted(() => {
+  const mockTables = vi.fn()
+  return { mockTables }
+})
+
+vi.mock('turndown-plugin-gfm', () => ({
+  tables: mockTables,
+}))
+
 vi.mock('turndown', () => ({
   default: mockTurndownConstructor,
 }))
@@ -58,7 +67,7 @@ describe('export', () => {
     vi.resetModules()
 
     mockTurndownConstructor.mockImplementation(function() {
-      return { turndown: mockTurndown }
+      return { turndown: mockTurndown, use: vi.fn() }
     })
     mockTurndown.mockImplementation((html: string) => `md(${html})`)
     mockDump.mockImplementation((data: Record<string, string>) =>
@@ -72,6 +81,20 @@ describe('export', () => {
   })
 
   describe('convertHtmlToMarkdown', () => {
+    it('registers the turndown-plugin-gfm tables plugin at module load', async () => {
+      const { convertHtmlToMarkdown } = await import('@/lib/export')
+      const instance = mockTurndownConstructor.mock.results[0]?.value
+      expect(instance.use).toHaveBeenCalledWith(mockTables)
+    })
+
+    it('delegates conversion to turndown', async () => {
+      mockTurndown.mockReturnValueOnce('| col1 | col2 |\n|------|------|\n| a    | b    |')
+      const { convertHtmlToMarkdown } = await import('@/lib/export')
+      const result = convertHtmlToMarkdown('<table><tr><td>a</td><td>b</td></tr></table>')
+      expect(result).toContain('|')
+      expect(mockTurndown).toHaveBeenCalled()
+    })
+
     it('converts HTML to Markdown via turndown', async () => {
       const { convertHtmlToMarkdown } = await import('@/lib/export')
       const result = convertHtmlToMarkdown('<p>Hello</p>')
