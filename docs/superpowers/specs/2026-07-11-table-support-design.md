@@ -93,7 +93,47 @@ Column resizing (`resizable: true`) is enabled on the Table extension.
 
 ## Data & Persistence
 
-Tables are stored as standard Tiptap/ProseMirror JSON in the note's `content` field — no schema changes. The existing debounced `updateNote` path saves them automatically. Export (PDF/HTML) renders tables via the existing serialization path without changes.
+Tables are stored as standard Tiptap/ProseMirror HTML in the note's `content` field — no schema changes. The existing debounced `updateNote` path saves them automatically.
+
+---
+
+## Export Support
+
+### ZIP Export (`src/lib/export.ts`)
+
+The ZIP export stores raw HTML — Tiptap's table HTML (`<table>`, `<tr>`, `<th>`, `<td>`) is already included in the content string. No code change needed for ZIP export.
+
+### ZIP Import (`src/lib/import.ts`)
+
+Imported HTML content is loaded directly into the editor. With the Tiptap Table extension registered, the editor will parse standard table HTML into its node structure on load. No code change needed.
+
+### PDF Export (`src/lib/pdf.ts`)
+
+The inline `EDITOR_STYLES` constant currently has no table CSS. Table styles must be added:
+
+```css
+table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+th, td { border: 1px solid #d1d5db; padding: 6px 10px; text-align: left; }
+th { background: #f3f4f6; font-weight: 600; }
+```
+
+### Markdown Export (`src/lib/export.ts`)
+
+`convertHtmlToMarkdown` uses Turndown, which does not handle `<table>` tags by default (renders them as raw HTML). To produce clean GFM pipe-table syntax, install `turndown-plugin-gfm` and register the `tables` plugin on the Turndown service instance.
+
+---
+
+## OneNote Import (`src/lib/onenote/import.ts`)
+
+The OneNote vendor converter outputs HTML files that may contain `<table>` elements. Tiptap will parse standard `<table>/<tr>/<td>/<th>` HTML correctly, but OneNote tables often carry inline styles, `<colgroup>`/`<col>` elements, `border` attributes, and complex cell styling that conflicts with the app's table CSS.
+
+A new `normalizeOneNoteTables(html: string): string` function is added to `src/lib/onenote/import.ts`. It:
+
+1. Removes `<colgroup>` and `<col>` elements (Tiptap does not use them)
+2. Strips `border`, `cellpadding`, `cellspacing`, `width`, `height` attributes from `<table>`, `<tr>`, `<td>`, `<th>` tags (the existing `stripFontStyles` covers inline style properties but not HTML attributes)
+3. Converts OneNote's `<th scope="col">` header cells to plain `<th>` (scope attribute is not meaningful to Tiptap)
+
+This function is called in the per-page processing pipeline after `extractBodyContent` and `stripFontStyles`. Rowspan/colspan attributes are preserved as-is (they round-trip through Tiptap's HTML parser, even though merge/split UI is out of scope for this iteration).
 
 ---
 
@@ -104,6 +144,7 @@ Tables are stored as standard Tiptap/ProseMirror JSON in the note's `content` fi
 - Toggle header row uses Tiptap's built-in `toggleHeaderRow` command
 - Cell merging is explicitly out of scope for this iteration
 - Context menu only intercepts right-clicks when cursor is inside a table; all other right-clicks are unaffected
+- `normalizeOneNoteTables` is a best-effort pass; malformed or deeply nested OneNote tables degrade gracefully (raw HTML renders in the editor rather than crashing)
 
 ---
 
@@ -112,4 +153,6 @@ Tables are stored as standard Tiptap/ProseMirror JSON in the note's `content` fi
 - Unit tests for `TableGridPicker`: grid renders 64 cells, hover highlights correct region, click calls `insertTable` with correct row/col counts
 - Unit tests for `TableFloatingToolbar`: shows when `editor.isActive("table")` is true, hides otherwise; each button calls the correct Tiptap command
 - Unit tests for `TableContextMenu`: intercepts contextmenu event inside table, passes through outside table
+- Unit test for `normalizeOneNoteTables`: removes colgroup, strips HTML attributes, leaves rowspan/colspan intact
 - Integration test: insert table via grid picker → toolbar actions add/delete rows and columns → content persists in note JSON
+- Integration test: ZIP export round-trip — table HTML is preserved in exported content and re-imports correctly
