@@ -14,7 +14,7 @@ const DEFAULTS: Record<string, string> = {
   allow_signup: "true",
 }
 
-const ENV_OVERRIDES: Record<string, string | undefined> = {
+const ENV_OVERRIDES: Record<string, string> = {
   storage_provider: process.env.STORAGE_PROVIDER ?? "local",
   r2_bucket_name: process.env.R2_BUCKET_NAME ?? "",
   r2_account_id: process.env.CLOUDFLARE_ACCOUNT_ID ?? "",

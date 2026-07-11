@@ -84,7 +84,7 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Backup not found" }, { status: 404 })
     }
 
-    return new NextResponse(result.data, {
+    return new NextResponse(new Uint8Array(result.data), {
       headers: {
         "Content-Type": "application/gzip",
         "Content-Disposition": `attachment; filename="${result.filename}"`,
