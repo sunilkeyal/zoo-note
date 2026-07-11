@@ -60,7 +60,6 @@ import {
   ListOrdered,
   ListChecks,
   Image,
-  Table as TableIcon,
 } from "lucide-react"
 
 const FONT_SIZES = ["10", "11", "12", "13", "14", "15", "16", "18", "20", "22"]
