@@ -41,6 +41,20 @@ async function setCache(db: Db, metric: string, data: unknown): Promise<void> {
   )
 }
 
+// --- GraphQL helpers ---
+
+async function gqlQuery(query: string, variables: Record<string, unknown>): Promise<any> {
+  const res = await fetch(`${CF_API_BASE}/graphql`, {
+    method: "POST",
+    headers: cfHeaders(),
+    body: JSON.stringify({ query, variables }),
+  })
+  if (!res.ok) throw new Error(`CF GraphQL API error: ${res.status}`)
+  const json = await res.json()
+  if (json.errors) throw new Error(`CF GraphQL errors: ${JSON.stringify(json.errors)}`)
+  return json.data
+}
+
 // --- Public API ---
 
 export interface R2StorageMetrics {
@@ -53,20 +67,45 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   const cached = await getCached(resolvedDb, "storage")
   if (cached) return cached as R2StorageMetrics
 
-  const res = await fetch(cfUrl(`/r2/buckets/${BUCKET_NAME}/metrics/summary`), {
-    headers: cfHeaders(),
-  })
-  if (!res.ok) throw new Error(`CF API error: ${res.status}`)
-  const json = await res.json()
+  const now = new Date()
+  const startDate = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000).toISOString()
+
+  const data = await gqlQuery(
+    `query R2Storage($accountTag: string!, $startDate: Time, $endDate: Time, $bucketName: string) {
+      viewer {
+        accounts(filter: { accountTag: $accountTag }) {
+          r2StorageAdaptiveGroups(
+            limit: 10000
+            filter: { datetime_geq: $startDate, datetime_leq: $endDate, bucketName: $bucketName }
+            orderBy: [datetime_DESC]
+          ) {
+            max {
+              objectCount
+              payloadSize
+            }
+          }
+        }
+      }
+    }`,
+    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString(), bucketName: BUCKET_NAME }
+  )
+
+  const groups = data.viewer.accounts[0]?.r2StorageAdaptiveGroups ?? []
+  const latest = groups[0]?.max ?? {}
 
   const result: R2StorageMetrics = {
-    totalObjects: json.objects?.total ?? 0,
-    totalBytes: json.storage?.totalBytes ?? 0,
+    totalObjects: latest.objectCount ?? 0,
+    totalBytes: latest.payloadSize ?? 0,
   }
 
   await setCache(resolvedDb, "storage", result)
   return result
 }
+
+// Class A operations: writeObject, listObjects, getBucket
+const CLASS_A_OPS = new Set(["writeObject", "listObjects", "getBucket"])
+// Class B operations: readObject, headObject
+const CLASS_B_OPS = new Set(["readObject", "headObject"])
 
 export interface R2RequestMetrics {
   requests: { get: number; put: number; delete: number }
@@ -79,24 +118,55 @@ export async function getR2RequestMetrics(range: number, db?: Db): Promise<R2Req
   const cached = await getCached(resolvedDb, cacheKey)
   if (cached) return cached as R2RequestMetrics
 
-  const since = new Date(Date.now() - range * 24 * 60 * 60 * 1000).toISOString()
-  const res = await fetch(
-    cfUrl(`/r2/buckets/${BUCKET_NAME}/metrics/requests?since=${since}`),
-    { headers: cfHeaders() }
+  const now = new Date()
+  const startDate = new Date(now.getTime() - range * 24 * 60 * 60 * 1000).toISOString()
+
+  const data = await gqlQuery(
+    `query R2Operations($accountTag: string!, $startDate: Time, $endDate: Time, $bucketName: string) {
+      viewer {
+        accounts(filter: { accountTag: $accountTag }) {
+          r2OperationsAdaptiveGroups(
+            limit: 10000
+            filter: { datetime_geq: $startDate, datetime_leq: $endDate, bucketName: $bucketName }
+          ) {
+            sum {
+              requests
+            }
+            dimensions {
+              actionType
+            }
+          }
+        }
+      }
+    }`,
+    { accountTag: ACCOUNT_ID, startDate, endDate: now.toISOString(), bucketName: BUCKET_NAME }
   )
-  if (!res.ok) throw new Error(`CF API error: ${res.status}`)
-  const json = await res.json()
+
+  const groups = data.viewer.accounts[0]?.r2OperationsAdaptiveGroups ?? []
+
+  let get = 0
+  let put = 0
+  let delete_ = 0
+
+  for (const group of groups) {
+    const actionType: string = group.dimensions.actionType
+    const requests: number = group.sum.requests ?? 0
+
+    if (CLASS_A_OPS.has(actionType)) {
+      put += requests
+    } else if (CLASS_B_OPS.has(actionType)) {
+      get += requests
+    } else if (actionType === "deleteObject" || actionType === "deleteMultipleObjects") {
+      delete_ += requests
+    } else {
+      // Unknown action type, count as Class A to be safe
+      put += requests
+    }
+  }
 
   const result: R2RequestMetrics = {
-    requests: {
-      get: json.requests?.get ?? 0,
-      put: json.requests?.put ?? 0,
-      delete: json.requests?.delete ?? 0,
-    },
-    bandwidth: {
-      egress: json.bandwidth?.egress ?? 0,
-      ingress: json.bandwidth?.ingress ?? 0,
-    },
+    requests: { get, put, delete: delete_ },
+    bandwidth: { egress: 0, ingress: 0 }, // Not available via GraphQL, estimated client-side
   }
 
   await setCache(resolvedDb, cacheKey, result)

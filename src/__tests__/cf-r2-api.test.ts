@@ -17,7 +17,7 @@ beforeEach(() => {
 })
 
 describe("getR2StorageMetrics", () => {
-  it("returns total objects and bytes from CF API", async () => {
+  it("returns total objects and bytes from CF GraphQL API", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({}),
@@ -30,8 +30,18 @@ describe("getR2StorageMetrics", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
-        objects: { total: 150 },
-        storage: { totalBytes: 5368709120 },
+        data: {
+          viewer: {
+            accounts: [{
+              r2StorageAdaptiveGroups: [{
+                max: {
+                  objectCount: 150,
+                  payloadSize: 5368709120,
+                },
+              }],
+            }],
+          },
+        },
       }),
     })
 
@@ -43,8 +53,8 @@ describe("getR2StorageMetrics", () => {
       totalBytes: 5368709120,
     })
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/r2/buckets/"),
-      expect.objectContaining({ headers: expect.any(Object) })
+      expect.stringContaining("/graphql"),
+      expect.objectContaining({ method: "POST" })
     )
   })
 
@@ -68,10 +78,8 @@ describe("getR2StorageMetrics", () => {
     expect(result).toEqual({ totalObjects: 100, totalBytes: 1000 })
     expect(mockFetch).not.toHaveBeenCalled()
   })
-})
 
-describe("getR2RequestMetrics", () => {
-  it("returns request counts and bandwidth", async () => {
+  it("returns zeros when no storage data exists", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({}),
@@ -84,18 +92,112 @@ describe("getR2RequestMetrics", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
-        requests: { get: 5000, put: 200, delete: 50 },
-        bandwidth: { egress: 1073741824, ingress: 524288000 },
+        data: {
+          viewer: {
+            accounts: [{
+              r2StorageAdaptiveGroups: [],
+            }],
+          },
+        },
+      }),
+    })
+
+    const { getR2StorageMetrics } = await import("@/lib/cf-r2")
+    const result = await getR2StorageMetrics()
+
+    expect(result).toEqual({ totalObjects: 0, totalBytes: 0 })
+  })
+})
+
+describe("getR2RequestMetrics", () => {
+  it("returns request counts from CF GraphQL API", async () => {
+    const metricsCol = {
+      findOne: vi.fn().mockResolvedValue(null),
+      updateOne: vi.fn().mockResolvedValue({}),
+    }
+    mockDb.collection.mockImplementation((name: string) => {
+      if (name === "r2_metrics") return metricsCol
+      return {}
+    })
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        data: {
+          viewer: {
+            accounts: [{
+              r2OperationsAdaptiveGroups: [
+                { sum: { requests: 5000 }, dimensions: { actionType: "readObject" } },
+                { sum: { requests: 200 }, dimensions: { actionType: "writeObject" } },
+                { sum: { requests: 50 }, dimensions: { actionType: "deleteObject" } },
+              ],
+            }],
+          },
+        },
       }),
     })
 
     const { getR2RequestMetrics } = await import("@/lib/cf-r2")
     const result = await getR2RequestMetrics(30)
 
-    expect(result).toEqual({
-      requests: { get: 5000, put: 200, delete: 50 },
-      bandwidth: { egress: 1073741824, ingress: 524288000 },
+    expect(result.requests.get).toBe(5000)
+    expect(result.requests.put).toBe(200)
+    expect(result.requests.delete).toBe(50)
+  })
+
+  it("aggregates listObjects and getBucket as Class A", async () => {
+    const metricsCol = {
+      findOne: vi.fn().mockResolvedValue(null),
+      updateOne: vi.fn().mockResolvedValue({}),
+    }
+    mockDb.collection.mockImplementation((name: string) => {
+      if (name === "r2_metrics") return metricsCol
+      return {}
     })
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        data: {
+          viewer: {
+            accounts: [{
+              r2OperationsAdaptiveGroups: [
+                { sum: { requests: 100 }, dimensions: { actionType: "listObjects" } },
+                { sum: { requests: 50 }, dimensions: { actionType: "getBucket" } },
+                { sum: { requests: 300 }, dimensions: { actionType: "headObject" } },
+              ],
+            }],
+          },
+        },
+      }),
+    })
+
+    const { getR2RequestMetrics } = await import("@/lib/cf-r2")
+    const result = await getR2RequestMetrics(30)
+
+    expect(result.requests.get).toBe(300) // headObject = Class B
+    expect(result.requests.put).toBe(150) // listObjects + getBucket = Class A
+  })
+
+  it("returns cached request metrics when cache is fresh", async () => {
+    const metricsCol = {
+      findOne: vi.fn().mockResolvedValue({
+        metric: "requests_30",
+        data: { requests: { get: 999, put: 888, delete: 777 }, bandwidth: { egress: 0, ingress: 0 } },
+        updatedAt: new Date(),
+      }),
+      updateOne: vi.fn(),
+    }
+    mockDb.collection.mockImplementation((name: string) => {
+      if (name === "r2_metrics") return metricsCol
+      return {}
+    })
+
+    const { getR2RequestMetrics } = await import("@/lib/cf-r2")
+    const result = await getR2RequestMetrics(30)
+
+    expect(result.requests.get).toBe(999)
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 })
 
