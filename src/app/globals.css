@@ -231,7 +231,7 @@
 
 /* Table styles */
 .ProseMirror .tableWrapper {
-  overflow-x: auto;
+  overflow-x: hidden;
   max-width: 100%;
 }
 .ProseMirror table {
@@ -240,12 +240,19 @@
   margin: 0.75em 0;
   table-layout: fixed;
   overflow: hidden;
+  /* Tiptap's column-resize plugin sets inline style="min-width:Xpx" on the
+     table element after every drag. !important overrides that inline style,
+     preventing the table from ever exceeding the container width. */
+  min-width: 0 !important;
+  max-width: 100%;
 }
 .ProseMirror table td,
 .ProseMirror table th {
   border: 1px solid var(--border);
   padding: 3px 8px;
-  min-width: 80px;
+  /* !important overrides Tiptap's inline style="min-width:Xpx" on each cell,
+     so the container's max-width can actually constrain column widths. */
+  min-width: 80px !important;
   width: 120px;
   vertical-align: top;
   position: relative;
