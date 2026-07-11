@@ -231,13 +231,13 @@ export default function DashboardPage() {
     fetchStats(range)
   }, [fetchStats, range, pathname])
 
-  useEffect(() => {
+  const fetchR2Metrics = useCallback((r: Range) => {
     setR2Loading(true)
     setR2Error(null)
     Promise.all([
       fetch("/api/admin/r2?metric=storage").then(r => r.json()),
-      fetch(`/api/admin/r2?metric=requests&range=${range}`).then(r => r.json()),
-      fetch(`/api/admin/r2?metric=cost&range=${range}`).then(r => r.json()),
+      fetch(`/api/admin/r2?metric=requests&range=${r}`).then(r => r.json()),
+      fetch(`/api/admin/r2?metric=cost&range=${r}`).then(r => r.json()),
       fetch("/api/admin/r2?metric=objects&limit=10").then(r => r.json()),
     ]).then(([storage, requests, cost, objects]) => {
       if (!storage.success) throw new Error(storage.error || "Failed to load storage metrics")
@@ -250,7 +250,11 @@ export default function DashboardPage() {
       setR2Error(e instanceof Error ? e.message : "Failed to load R2 metrics")
       setR2Loading(false)
     })
-  }, [range])
+  }, [])
+
+  useEffect(() => {
+    fetchR2Metrics(range)
+  }, [fetchR2Metrics, range])
 
   const { kpis, charts, users, activity } = data ?? {}
 
@@ -281,7 +285,7 @@ export default function DashboardPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchStats(range)}
+          onClick={() => { fetchStats(range); fetchR2Metrics(range) }}
           disabled={loading}
           className="shrink-0"
         >
