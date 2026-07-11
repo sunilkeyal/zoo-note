@@ -27,6 +27,15 @@ vi.mock('@tiptap/react', () => {
         unsetFontFamily: vi.fn(() => ({ run: vi.fn() })),
         setFontFamily: vi.fn(() => ({ run: vi.fn() })),
         setFontSize: vi.fn(() => ({ run: vi.fn() })),
+        insertTable: vi.fn(() => ({ run: vi.fn() })),
+        addRowBefore: vi.fn(() => ({ run: vi.fn() })),
+        addRowAfter: vi.fn(() => ({ run: vi.fn() })),
+        deleteRow: vi.fn(() => ({ run: vi.fn() })),
+        addColumnBefore: vi.fn(() => ({ run: vi.fn() })),
+        addColumnAfter: vi.fn(() => ({ run: vi.fn() })),
+        deleteColumn: vi.fn(() => ({ run: vi.fn() })),
+        toggleHeaderRow: vi.fn(() => ({ run: vi.fn() })),
+        deleteTable: vi.fn(() => ({ run: vi.fn() })),
       })),
     })),
     getAttributes: vi.fn(() => ({})),
@@ -82,6 +91,17 @@ vi.mock('lucide-react', () => ({
   ListOrdered: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-ListOrdered', ...props }),
   ListChecks: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-ListChecks', ...props }),
   Image: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Image', ...props }),
+  Table: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Table', ...props }),
+}))
+
+vi.mock('@/components/TableGridPicker', () => ({
+  TableGridPicker: () => React.createElement('div', { 'data-testid': 'table-grid-picker' }),
+}))
+vi.mock('@/components/TableFloatingToolbar', () => ({
+  TableFloatingToolbar: () => null,
+}))
+vi.mock('@/components/TableContextMenu', () => ({
+  TableContextMenu: () => null,
 }))
 
 vi.mock('@/components/NoteEditor', () => ({

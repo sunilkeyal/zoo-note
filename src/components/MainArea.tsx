@@ -19,6 +19,9 @@ import TableHeader from "@tiptap/extension-table-header"
 import TableCell from "@tiptap/extension-table-cell"
 import { ImageNode } from "@/extensions/ImageNode"
 import SearchHighlight from "@/extensions/SearchHighlight"
+import { TableGridPicker } from "@/components/TableGridPicker"
+import { TableFloatingToolbar } from "@/components/TableFloatingToolbar"
+import { TableContextMenu } from "@/components/TableContextMenu"
 import {
   Tooltip,
   TooltipContent,
@@ -57,6 +60,7 @@ import {
   ListOrdered,
   ListChecks,
   Image,
+  Table as TableIcon,
 } from "lucide-react"
 
 const FONT_SIZES = ["10", "11", "12", "13", "14", "15", "16", "18", "20", "22"]
@@ -365,6 +369,10 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
           onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
         />
+
+        <Separator orientation="vertical" className="mx-1 h-6" />
+
+        <TableGridPicker editor={editor} />
       </div>
       </TooltipProvider>
     </div>
@@ -499,6 +507,11 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
       >
         <Image className="h-5 w-5" />
       </button>
+
+      <TableGridPicker
+        editor={editor}
+        triggerClassName="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+      />
 
       <Popover>
         <PopoverTrigger className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground font-bold text-lg leading-none">
@@ -707,6 +720,7 @@ export default function MainArea() {
   }, [updateNote])
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const editorContainerRef = useRef<HTMLDivElement | null>(null)
 
   const uploadImage = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return
@@ -750,8 +764,17 @@ export default function MainArea() {
         <Separator className="mt-2" />
       </div>
 
-      <div className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 pb-16 md:pb-4">
+      <div
+        ref={editorContainerRef}
+        className="flex-1 overflow-auto relative px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 pb-16 md:pb-4"
+      >
         <NoteEditor note={activeNote} editor={editor} />
+        {editor && (
+          <>
+            <TableFloatingToolbar editor={editor} editorContainerRef={editorContainerRef} />
+            <TableContextMenu editor={editor} editorContainerRef={editorContainerRef} />
+          </>
+        )}
       </div>
     </div>
   )
