@@ -97,9 +97,6 @@ vi.mock('lucide-react', () => ({
 vi.mock('@/components/TableGridPicker', () => ({
   TableGridPicker: () => React.createElement('div', { 'data-testid': 'table-grid-picker' }),
 }))
-vi.mock('@/components/TableFloatingToolbar', () => ({
-  TableFloatingToolbar: () => null,
-}))
 vi.mock('@/components/TableContextMenu', () => ({
   TableContextMenu: () => null,
 }))

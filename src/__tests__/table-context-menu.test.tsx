@@ -9,6 +9,10 @@ function makeEditor(inTable: boolean) {
   const cmd = () => ({ run: runMock })
   return {
     isActive: vi.fn(() => inTable),
+    state: {
+      doc: { nodesBetween: vi.fn() },
+      selection: { from: 0, to: 0 },
+    },
     chain: vi.fn(() => ({
       focus: vi.fn(() => ({
         addRowBefore: vi.fn(cmd),

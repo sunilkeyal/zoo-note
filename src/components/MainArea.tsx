@@ -20,7 +20,6 @@ import TableCell from "@tiptap/extension-table-cell"
 import { ImageNode } from "@/extensions/ImageNode"
 import SearchHighlight from "@/extensions/SearchHighlight"
 import { TableGridPicker } from "@/components/TableGridPicker"
-import { TableFloatingToolbar } from "@/components/TableFloatingToolbar"
 import { TableContextMenu } from "@/components/TableContextMenu"
 import {
   Tooltip,
@@ -603,7 +602,7 @@ export default function MainArea() {
       TaskList,
       CustomTaskItem.configure({ nested: true }),
       ImageNode,
-      Table.configure({ resizable: true }),
+      Table.configure({ resizable: true, cellMinWidth: 80 }),
       TableRow,
       TableHeader,
       TableCell,
@@ -770,7 +769,6 @@ export default function MainArea() {
         <NoteEditor note={activeNote} editor={editor} />
         {editor && (
           <>
-            <TableFloatingToolbar editor={editor} editorContainerRef={editorContainerRef} />
             <TableContextMenu editor={editor} editorContainerRef={editorContainerRef} />
           </>
         )}

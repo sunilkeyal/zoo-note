@@ -232,7 +232,7 @@
 /* Table styles */
 .ProseMirror table {
   border-collapse: collapse;
-  width: 100%;
+  width: auto;
   margin: 0.75em 0;
   table-layout: fixed;
   overflow: hidden;
@@ -240,8 +240,9 @@
 .ProseMirror table td,
 .ProseMirror table th {
   border: 1px solid var(--border);
-  padding: 6px 10px;
-  min-width: 40px;
+  padding: 3px 8px;
+  min-width: 80px;
+  width: 120px;
   vertical-align: top;
   position: relative;
   box-sizing: border-box;
