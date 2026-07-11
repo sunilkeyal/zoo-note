@@ -2,50 +2,90 @@
 
 **Date:** 2026-07-10
 **Status:** Approved
-**Approach:** Server-side Cloudflare API wrapper with MongoDB caching (Option A)
+**Approach:** Server-side S3 API (primary) + CF GraphQL Analytics API (fallback) with MongoDB caching
 
 ## Overview
 
-Enhance the ZooNote admin dashboard with real Cloudflare R2 storage/bandwidth/request KPIs via the CF API, and fill in the three placeholder admin pages (Settings, Audit Logs, Backup & Restore) with real functionality.
+Enhance the ZooNote admin dashboard with real Cloudflare R2 storage/request KPIs, reorganize the dashboard into collapsible sections, and fill in the Settings page with real functionality. Backup and Audit pages use "Coming Soon" placeholders.
 
-## 1. R2 Storage KPIs via Cloudflare API
+## 1. R2 Storage & Request KPIs
 
 ### New lib: `src/lib/cf-r2.ts`
 
-Wraps the Cloudflare R2 Analytics API. Endpoints used (verify exact paths against CF API docs during implementation):
+Wraps Cloudflare R2 using two APIs:
 
-- `GET /accounts/{account_id}/r2/buckets/{bucket_name}/metrics/summary` — total objects, bytes stored
-- `GET /accounts/{account_id}/r2/buckets/{bucket_name}/metrics/requests` — GET/PUT/DELETE counts, egress/ingress bytes
-- `GET /accounts/{account_id}/r2/buckets/{bucket_name}/objects` — paginated object listing with sizes
+**Storage (S3 API — primary):**
+- `ListBucketsCommand` — enumerates all R2 buckets
+- `ListObjectsV2Command` — lists objects per bucket, sums sizes
 
-Exposed functions:
+If S3 `ListBuckets` is denied (requires account-level `s3:ListBucket` permission), falls back to:
+- CF GraphQL `r2StorageAdaptiveGroups` — enumerates bucket names
 
-- `getR2StorageMetrics()` — total objects, total bytes, largest files
-- `getR2RequestMetrics(range)` — request counts by type, bandwidth in/out
-- `getR2ObjectList(options)` — paginated object listing with size
+**Requests (CF GraphQL Analytics API):**
+- `r2OperationsAdaptiveGroups` — request counts by `actionType`
+
+Action types are PascalCase: `PutObject`, `GetObject`, `DeleteObject`, `ListObjects`, `HeadBucket`, `PutBucket`, `ListMultipartUploads`, `DeleteMultipleObjects`, etc.
+
+Classified as:
+- **Class A** (PUT/etc): `PutObject`, `ListObjects`, `PutBucket`, `ListMultipartUploads`, `DeleteMultipleObjects`
+- **Class B** (GET/etc): `GetObject`, `HeadObject`, `HeadBucket`, `CopyObject`, `SelectObject`
+- **DELETE**: `DeleteObject`
+
+**Object listing (S3 API):**
+- `ListObjectsV2Command` — paginated object listing with cursor support
+
+Exposed interfaces:
+
+```typescript
+interface R2BucketInfo {
+  name: string
+  objectCount: number
+  payloadSize: number
+  isPrimary: boolean
+}
+
+interface R2StorageMetrics {
+  totalObjects: number
+  totalBytes: number
+  buckets: R2BucketInfo[]
+}
+
+interface R2RequestMetrics {
+  requests: { get: number; put: number; delete: number }
+  bandwidth: { egress: number; ingress: number } // egress/ingress: not available via GraphQL, always 0
+}
+
+interface R2ObjectEntry {
+  key: string
+  size: number
+  lastModified: string
+}
+```
 
 ### Caching layer
 
-Results cached in a MongoDB `r2_metrics` collection with a `ttl` index (5-min expiry). Each query checks cache first, fetches from CF if stale/missing.
+Results cached in a MongoDB `r2_metrics` collection with manual 5-min TTL (check `updatedAt` age). Each query checks cache first, fetches from APIs if stale/missing. Cache is bypassed by explicit refresh from the dashboard.
 
 ### New API route
 
-`GET /api/admin/r2` — Accepts `?metric=storage|requests|objects&range=7|30|90`. Returns cached or fresh CF data. Admin-only.
+`GET /api/admin/r2` — Accepts `?metric=storage|requests|cost|objects&range=7|30|90`. Returns cached or fresh data. Admin-only.
 
 ### Dashboard integration
 
-Add an "R2 Storage" section to the main admin dashboard below existing charts.
+Dashboard reorganized into **Option B (collapsible) layout**:
 
-| KPI Card | Value | Source |
-|----------|-------|--------|
-| Total Objects | Count | CF API storage summary |
-| Storage Used | Bytes (formatted) | CF API storage summary |
-| Egress (period) | Bytes (formatted) | CF API request metrics |
-| Ingress (period) | Bytes (formatted) | CF API request metrics |
-| GET Requests | Count (formatted) | CF API request metrics |
-| PUT Requests | Count (formatted) | CF API request metrics |
+| Section | Contents | Default |
+|---------|----------|---------|
+| **Summary KPIs** (always visible) | Total Users, Total Notes, MongoDB Storage, R2 Cost | — |
+| **Application Metrics** | Cleanup button, App KPIs (Active Today, New This Week, Folders, Trash, Users, Notes), Notes/Active Users charts, Top Users table | Open |
+| **Infrastructure** | R2 error banner, MongoDB vs R2 storage cards (with bucket breakdown), R2 operations KPIs, cost estimate, largest files table | Open |
+| **Activity** | Storage growth chart, recent activity feed | Open |
 
-Plus a bar chart showing request volume by type, and a table of largest files.
+Storage cards show:
+- **MongoDB**: total bytes / 512 MB with progress bar, primary/system database breakdown
+- **R2**: total bytes / 10 GB with progress bar, primary bucket (violet label) vs other buckets
+
+R2 Operations KPIs: Total Objects, Total Buckets, Egress, Ingress, GET Requests, PUT Requests.
 
 ### Cost estimation
 
@@ -53,6 +93,7 @@ Computed from metrics using R2 pricing:
 
 - Free tier: 10GB storage, 10M Class A (PUT/etc), 10M Class B (GET) requests/month, 1GB egress free
 - Overage: $0.015/GB storage, $4.50/M Class A, $0.36/M Class B, $0.00/egress (free)
+- Egress is free on R2 — not charged even beyond free tier
 
 ## 2. Settings Page
 
@@ -65,112 +106,48 @@ Key-value pairs with schema:
 
 ### Seeded defaults
 
-| Setting Key | Default | Description |
-|-------------|---------|-------------|
-| `app_name` | "ZooNote" | Application name |
-| `note_visibility` | "private" | Default note visibility |
-| `max_upload_size_mb` | "10" | Max upload size in MB |
-| `session_timeout_hours` | "24" | Session timeout |
-| `allow_signup` | "true" | Whether new users can register |
-| `storage_provider` | (from env) | Local or R2 |
-| `r2_bucket_name` | (from env) | R2 bucket name |
-| `r2_account_id` | (from env) | CF account ID (masked) |
+| Setting Key | Default | Description | Editable |
+|-------------|---------|-------------|----------|
+| `app_name` | "ZooNote" | Application name | Yes |
+| `note_visibility` | "private" | Default note visibility | Yes |
+| `max_upload_size_mb` | "10" | Max upload size in MB | Yes |
+| `session_timeout_hours` | "24" | Session timeout | Yes |
+| `allow_signup` | "true" | Whether new users can register | Yes |
+| `storage_provider` | (from env) | Local or R2 | No (read-only) |
+| `r2_bucket_name` | (from env) | R2 bucket name | No (read-only) |
+| `r2_account_id` | (from env) | CF account ID | No (read-only) |
 
 ### New API routes
 
-- `GET /api/admin/settings` — returns all settings
+- `GET /api/admin/settings` — returns all settings (DB + env overrides + defaults)
 - `PUT /api/admin/settings` — updates settings (validates types, range-checks numeric values)
 
 ### Settings page UI
 
-Grouped into sections: General (app name, visibility), Storage (provider, R2 bucket — read-only from env), Security (session timeout, signup toggle), Uploads (max file size). Edit button with inline editing, save/cancel. Env-controlled settings shown as read-only with a lock icon.
+Grouped into sections: General (app name, visibility), Security (session timeout, signup toggle), Uploads (max file size). Inline editing with save/cancel. Env-controlled settings shown as read-only with a lock icon.
 
 ## 3. Audit Logs Page
 
-### New MongoDB collection: `audit_logs`
+**Status: "Coming Soon" placeholder.**
 
-Schema:
-```
-{
-  _id: ObjectId,
-  userId: ObjectId,
-  userName: string,
-  action: string,        // "user.login", "note.create", "settings.update", "r2.object.delete"
-  target: string,        // what was affected
-  details: object,       // optional metadata (old/new values)
-  ip: string,
-  userAgent: string,
-  timestamp: Date
-}
-```
-
-### Audit middleware
-
-`logAuditEvent()` in `src/lib/audit.ts` — inserts into `audit_logs` collection. Called from key API routes:
-- Auth: login, logout, signup, password reset
-- Notes: create, update, delete, restore
-- Users: create, update, delete, role change
-- Settings: any update
-- Admin: orphaned image cleanup, backup/restore actions
-
-### Retention
-
-TTL index on `timestamp` — configurable, default 90 days. Old logs auto-purge.
-
-### New API route
-
-`GET /api/admin/audit` — Paginated, filterable:
-- `?userId=X` — filter by user
-- `?action=note.create` — filter by action type
-- `?from=ISO&to=ISO` — date range
-- `?page=1&limit=20` — pagination
-
-### Audit logs page UI
-
-Filterable table with columns: timestamp, user, action (color-coded badges), target, IP. Expandable rows for `details`. Date range picker (reuses existing dashboard pattern).
+Full audit logging deferred — requires instrumentation across all API routes (auth, notes, users, settings, admin actions). Planned features: filterable table with action color-coding, expandable details rows, date range filtering, configurable retention.
 
 ## 4. Backup & Restore Page
 
-### New lib: `src/lib/backup.ts`
+**Status: "Coming Soon" placeholder.**
 
-Functions:
-- `createBackup()` — runs `mongodump` to temp dir, compresses to `.gz`, uploads to `backups/` prefix in storage. Records metadata in `backups` collection.
-- `listBackups()` — queries `backups` collection
-- `deleteBackup(id)` — removes from storage and metadata
-- `restoreBackup(id)` — downloads from storage, runs `mongorestore` against the same database configured in `MONGODB_URI`. Drops and replaces collections from the backup.
+Full backup/restore deferred — `mongodump`/`mongorestore` CLI tools not available on Vercel serverless. Would require either:
+- Self-hosted MongoDB with CLI access, or
+- MongoDB Atlas API-based backup (paid tier)
 
-### New MongoDB collection: `backups`
-
-Schema:
-```
-{
-  _id: ObjectId,
-  filename: string,
-  size: number,
-  storagePath: string,
-  status: "completed" | "failed" | "in_progress",
-  createdAt: Date,
-  notes: string
-}
-```
-
-### New API routes
-
-- `POST /api/admin/backup` — triggers new backup (async)
-- `GET /api/admin/backup` — lists all backups
-- `DELETE /api/admin/backup/[id]` — deletes a backup
-- `POST /api/admin/backup/[id]/restore` — triggers restore (requires "RESTORE" confirmation)
-- `GET /api/admin/backup/[id]/download` — streams backup for download
-
-### Backup page UI
-
-"Create Backup" button with loading spinner. Table: filename, size, status badge, created date, actions (download, restore, delete). Restore dialog with warning and "RESTORE" confirmation input. Auto-refresh list every 30s if backup in_progress.
-
-**Note:** `mongodump`/`mongorestore` must be available on the server. If not installed, page shows setup instruction banner.
+Planned features: create/list/delete/restore backups with confirmation dialog, auto-refresh for in-progress backups.
 
 ## Scope
 
-- All four sections built in one pass
+- R2 metrics via S3 API (primary) + CF GraphQL Analytics (fallback)
+- Dashboard reorganized into collapsible sections (Option B)
+- Settings page with CRUD and validation
+- Audit and Backup pages as "Coming Soon" placeholders
 - No per-user R2 attribution (can be added later)
 - No real-time WebSocket updates (polling/caching sufficient)
-- Existing dashboard charts and KPIs remain unchanged
+- Existing dashboard charts and KPIs preserved within collapsible sections
