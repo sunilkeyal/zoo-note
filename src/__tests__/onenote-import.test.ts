@@ -4,7 +4,7 @@ vi.mock("@/lib/onenote/convert", () => ({
   convertOneNote: vi.fn(),
 }))
 
-import { detectOneNoteFormat, extractPageTitle, replaceLocalImageRefs, extractBodyContent, parsePageOrderFromToc, stripFontStyles } from "@/lib/onenote/import"
+import { detectOneNoteFormat, extractPageTitle, replaceLocalImageRefs, extractBodyContent, parsePageOrderFromToc, stripFontStyles, normalizeOneNoteTables } from "@/lib/onenote/import"
 
 describe("detectOneNoteFormat", () => {
   it("detects .one files by magic bytes", () => {
@@ -223,5 +223,59 @@ describe("stripFontStyles", () => {
   it("preserves non-font style properties", () => {
     const html = '<div style="margin-left: 36px;"><p>text</p></div>'
     expect(stripFontStyles(html)).toBe('<div style="margin-left: 36px"><p>text</p></div>')
+  })
+})
+
+describe('normalizeOneNoteTables', () => {
+  it('removes colgroup and col elements', () => {
+    const html = '<table><colgroup><col width="100"><col width="200"></colgroup><tr><td>a</td></tr></table>'
+    const result = normalizeOneNoteTables(html)
+    expect(result).not.toContain('<colgroup>')
+    expect(result).not.toContain('<col')
+    expect(result).toContain('<td>a</td>')
+  })
+
+  it('strips border, cellpadding, cellspacing, width, height from table tag', () => {
+    const html = '<table border="1" cellpadding="5" cellspacing="0" width="100%" height="200"><tr><td>x</td></tr></table>'
+    const result = normalizeOneNoteTables(html)
+    expect(result).not.toMatch(/\bborder=/)
+    expect(result).not.toMatch(/\bcellpadding=/)
+    expect(result).not.toMatch(/\bcellspacing=/)
+    expect(result).not.toMatch(/\bwidth=/)
+    expect(result).not.toMatch(/\bheight=/)
+    expect(result).toContain('<table')
+    expect(result).toContain('<td>x</td>')
+  })
+
+  it('strips visual attributes from td and th tags', () => {
+    const html = '<table><tr><td width="50" bgcolor="#fff" align="center" valign="top">cell</td><th scope="col" border="1">head</th></tr></table>'
+    const result = normalizeOneNoteTables(html)
+    expect(result).not.toMatch(/\bwidth=/)
+    expect(result).not.toMatch(/\bbgcolor=/)
+    expect(result).not.toMatch(/\balign=/)
+    expect(result).not.toMatch(/\bvalign=/)
+    expect(result).not.toMatch(/\bscope=/)
+    expect(result).toContain('cell')
+    expect(result).toContain('head')
+  })
+
+  it('preserves rowspan and colspan', () => {
+    const html = '<table><tr><td rowspan="2" colspan="3">merged</td></tr></table>'
+    const result = normalizeOneNoteTables(html)
+    expect(result).toContain('rowspan="2"')
+    expect(result).toContain('colspan="3"')
+  })
+
+  it('preserves style and class attributes', () => {
+    const html = '<table class="my-table" style="margin: 0"><tr><td style="color:red" class="cell">x</td></tr></table>'
+    const result = normalizeOneNoteTables(html)
+    expect(result).toContain('class="my-table"')
+    expect(result).toContain('style="margin: 0"')
+    expect(result).toContain('style="color:red"')
+  })
+
+  it('passes through html with no tables unchanged', () => {
+    const html = '<p>Hello <strong>world</strong></p>'
+    expect(normalizeOneNoteTables(html)).toBe(html)
   })
 })
