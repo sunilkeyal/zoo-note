@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, RefreshCw, FileText, Folder, Users, HardDrive, Trash2, UserCheck, Sparkles } from "lucide-react"
+import { LayoutDashboard, RefreshCw, FileText, Folder, Users, HardDrive, Trash2, UserCheck, Sparkles, ChevronDown, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   ChartContainer,
   ChartTooltip,
@@ -136,6 +137,34 @@ function KpiCard({
         )}
       </CardContent>
     </Card>
+  )
+}
+
+// ── Collapsible section wrapper ───────────────────────────────────────────────
+
+function CollapsibleSection({
+  title, icon: Icon, defaultOpen = true, children,
+}: {
+  title: string; icon: React.ElementType; defaultOpen?: boolean; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-xl">
+            <div className="flex items-center gap-2">
+              <Icon className="size-4 text-muted-foreground" />
+              <p className="text-sm font-semibold">{title}</p>
+            </div>
+            {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0">{children}</CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   )
 }
 
@@ -269,18 +298,34 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
+      {/* ── Summary KPIs ───────────────────────────────────────────────────── */}
       <section>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Total Users" value={kpis ? String(kpis.totalUsers) : "—"} sub={kpis ? `${kpis.activeToday} active today` : undefined} icon={Users} loading={loading && !kpis} />
+          <KpiCard label="Total Notes" value={kpis ? kpis.totalNotes.toLocaleString() : "—"} sub={kpis ? `+${kpis.newThisWeek} this week` : undefined} icon={FileText} loading={loading && !kpis} />
+          <KpiCard
+            label="MongoDB"
+            value={loading && !kpis ? "—" : kpis?.storageBreakdown ? formatBytes(kpis.storageBreakdown.totalBytes) : "—"}
+            sub={kpis?.storageBreakdown ? `${percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}% of 512 MB` : undefined}
+            icon={HardDrive}
+            loading={loading && !kpis}
+          />
+          <KpiCard
+            label="R2 Cost"
+            value={r2Loading ? "—" : `$${(r2Cost?.cost ?? 0).toFixed(2)}`}
+            sub={r2Storage?.totalBytes ? `${formatBytes(r2Storage.totalBytes)} stored` : undefined}
+            icon={Sparkles}
+            loading={r2Loading && !r2Cost}
+          />
+        </div>
+      </section>
+
+      {/* ── Application Metrics ────────────────────────────────────────────── */}
+      <CollapsibleSection title="Application Metrics" icon={FileText}>
+        {/* Cleanup banner */}
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">System Overview</p>
           {!cleanupConfirm ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }}
-              disabled={cleanupPending}
-              className="text-xs h-7 gap-1"
-            >
+            <Button variant="outline" size="sm" onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }} disabled={cleanupPending} className="text-xs h-7 gap-1">
               <Sparkles className="size-3" />
               {cleanupPending ? "Cleaning…" : "Clean up orphaned images"}
             </Button>
@@ -297,75 +342,21 @@ export default function DashboardPage() {
             Cleaned up {cleanupResult.deletedCount} orphaned image{cleanupResult.deletedCount !== 1 ? "s" : ""}, freed {formatBytes(cleanupResult.freedBytes)}.
           </p>
         )}
+
+        {/* App KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiCard label="Total Users"   value={kpis ? String(kpis.totalUsers)   : "—"} icon={Users}      loading={loading && !kpis} />
-          <KpiCard label="Active Today"  value={kpis ? String(kpis.activeToday)  : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
-          <KpiCard label="New This Week" value={kpis ? String(kpis.newThisWeek)  : "—"} icon={Users}      loading={loading && !kpis} />
-          <KpiCard label="Total Notes"   value={kpis ? kpis.totalNotes.toLocaleString() : "—"} icon={FileText}  loading={loading && !kpis} />
+          <KpiCard label="Active Today" value={kpis ? String(kpis.activeToday) : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
+          <KpiCard label="New This Week" value={kpis ? String(kpis.newThisWeek) : "—"} icon={Users} loading={loading && !kpis} />
           <KpiCard label="Total Folders" value={kpis ? kpis.totalFolders.toLocaleString() : "—"} icon={Folder} loading={loading && !kpis} />
-          <KpiCard label="Trash Items"   value={kpis ? String(kpis.trashItemCount) : "—"} icon={Trash2}    loading={loading && !kpis} />
+          <KpiCard label="Trash Items" value={kpis ? String(kpis.trashItemCount) : "—"} icon={Trash2} loading={loading && !kpis} />
+          <KpiCard label="Total Users" value={kpis ? String(kpis.totalUsers) : "—"} icon={Users} loading={loading && !kpis} />
+          <KpiCard label="Total Notes" value={kpis ? kpis.totalNotes.toLocaleString() : "—"} icon={FileText} loading={loading && !kpis} />
         </div>
 
-        {/* Storage row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
-          <Card className="lg:col-span-2">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <HardDrive className="size-4 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground font-medium">Cluster Storage</p>
-              </div>
-              {loading && !kpis ? (
-                <Skeleton className="h-8 w-32 mt-1" />
-              ) : kpis?.storageBreakdown ? (
-                <>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold">{formatBytes(kpis.storageBreakdown.totalBytes)}</p>
-                    <p className="text-xs text-muted-foreground">/ 512 MB ({percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}%)</p>
-                  </div>
-                  <Progress value={percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)} className="h-1.5 mt-2" />
-
-                  {/* Primary database */}
-                  {kpis.storageBreakdown.databases.filter((d) => d.isAppDb).map((db) => (
-                    <div key={db.name} className="mt-2">
-                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold">{db.name}</span>
-                        <span className="font-medium">{formatBytes(db.sizeOnDisk)}</span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* System databases */}
-                  {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).length > 0 && (
-                    <>
-                      <div className="border-t my-1.5" />
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">System</p>
-                      {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).map((db) => (
-                        <div key={db.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>{db.name}</span>
-                          <span>{formatBytes(db.sizeOnDisk)}</span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">—</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* ── Charts ─────────────────────────────────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Activity Trends — Last {range} Days</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          {/* Notes per day */}
+        {/* Charts */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Notes Created / Day</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Notes Created / Day</CardTitle></CardHeader>
             <CardContent>
               {loading && !charts ? (
                 <Skeleton className="h-32 w-full" />
@@ -383,12 +374,8 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Active users per day */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Active Users / Day</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Active Users / Day</CardTitle></CardHeader>
             <CardContent>
               {loading && !charts ? (
                 <Skeleton className="h-32 w-full" />
@@ -408,30 +395,215 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Note trend (full width line chart) */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Note Creation Trend — Last {range} Days</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading && !charts ? (
-              <Skeleton className="h-40 w-full" />
-            ) : charts?.notesPerDay.length ? (
-              <ChartContainer config={chartConfig} className="h-40 w-full">
-                <LineChart data={charts.notesPerDay}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
-                  <YAxis hide />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="count" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ChartContainer>
+        {/* Top Users */}
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Top Users (all time)</p>
+          <Card>
+            <CardContent className="p-0">
+              {loading && !users ? (
+                <div className="p-4 space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                </div>
+              ) : users?.length ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead className="text-right">Notes</TableHead>
+                      <TableHead className="text-right">Folders</TableHead>
+                      <TableHead className="text-right">Storage</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{u.displayName}</p>
+                            <p className="text-xs text-muted-foreground">{u.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{u.noteCount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{u.folderCount}</TableCell>
+                        <TableCell className="text-right">{formatBytes(u.storageBytes)}</TableCell>
+                        <TableCell>
+                          <Badge variant={u.isActive ? "default" : "secondary"}>
+                            {u.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">No users yet</p>
+              )}
+            </CardContent>
+          </Card>
+          <p className="text-xs text-muted-foreground mt-2">
+            Showing top 10 ·{" "}
+            <Link href="/admin/users" className="underline hover:text-foreground">
+              View all in User Management →
+            </Link>
+          </p>
+        </div>
+      </CollapsibleSection>
+
+      {/* ── Infrastructure ─────────────────────────────────────────────────── */}
+      <CollapsibleSection title="Infrastructure" icon={HardDrive}>
+        {/* R2 error */}
+        {r2Error && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive mb-4">
+            <p className="font-medium">Failed to load R2 metrics</p>
+            <p className="text-xs mt-1">{r2Error}</p>
+            <p className="text-xs mt-1 text-muted-foreground">Check that CF_API_TOKEN is set in .env.local with "Account Analytics Read" permission.</p>
+          </div>
+        )}
+
+        {/* Storage cards side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* MongoDB storage */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <HardDrive className="size-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground font-medium">MongoDB Storage</p>
+              </div>
+              {loading && !kpis ? (
+                <Skeleton className="h-8 w-32 mt-1" />
+              ) : kpis?.storageBreakdown ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold">{formatBytes(kpis.storageBreakdown.totalBytes)}</p>
+                    <p className="text-xs text-muted-foreground">/ 512 MB ({percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}%)</p>
+                  </div>
+                  <Progress value={percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)} className="h-1.5 mt-2" />
+                  {kpis.storageBreakdown.databases.filter((d) => d.isAppDb).map((db) => (
+                    <div key={db.name} className="mt-2">
+                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold">{db.name}</span>
+                        <span className="font-medium">{formatBytes(db.sizeOnDisk)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).length > 0 && (
+                    <>
+                      <div className="border-t my-1.5" />
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">System</p>
+                      {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).map((db) => (
+                        <div key={db.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{db.name}</span>
+                          <span>{formatBytes(db.sizeOnDisk)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* R2 storage */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <HardDrive className="size-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground font-medium">R2 Storage</p>
+              </div>
+              {r2Loading ? (
+                <Skeleton className="h-8 w-32 mt-1" />
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold">{formatBytes(r2Storage?.totalBytes ?? 0)}</p>
+                    <p className="text-xs text-muted-foreground">/ 10 GB ({percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)}%)</p>
+                  </div>
+                  <Progress value={percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)} className="h-1.5 mt-2" />
+                  {(r2Storage?.buckets ?? []).filter((b) => b.isPrimary).map((b) => (
+                    <div key={b.name} className="mt-2">
+                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold">{b.name}</span>
+                        <span className="font-medium">{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).length > 0 && (
+                    <>
+                      <div className="border-t my-1.5" />
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Other Buckets</p>
+                      {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).map((b) => (
+                        <div key={b.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{b.name}</span>
+                          <span>{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* R2 Operations KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+          <KpiCard label="Total Objects" value={r2Loading ? "" : String(r2Storage?.totalObjects ?? 0)} icon={FileText} loading={r2Loading} />
+          <KpiCard label="Total Buckets" value={r2Loading ? "" : String(r2Storage?.buckets?.length ?? 0)} icon={HardDrive} loading={r2Loading} />
+          <KpiCard label="Egress" value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.egress ?? 0)} icon={FileText} loading={r2Loading} />
+          <KpiCard label="Ingress" value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.ingress ?? 0)} icon={FileText} loading={r2Loading} />
+          <KpiCard label="GET Requests" value={r2Loading ? "" : (r2Requests?.requests.get ?? 0).toLocaleString()} icon={FileText} loading={r2Loading} />
+          <KpiCard label="PUT Requests" value={r2Loading ? "" : (r2Requests?.requests.put ?? 0).toLocaleString()} icon={FileText} loading={r2Loading} />
+        </div>
+
+        {/* Cost estimate */}
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="size-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground font-medium">Estimated Monthly Cost</p>
+            </div>
+            {r2Loading ? (
+              <Skeleton className="h-8 w-24" />
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-10">No data available</p>
+              <p className="text-2xl font-bold">${(r2Cost?.cost ?? 0).toFixed(2)}</p>
             )}
           </CardContent>
         </Card>
 
-        {/* Storage growth line chart */}
+        {/* Largest files */}
+        {r2Objects && r2Objects.objects.length > 0 && (
+          <Card className="mt-4">
+            <CardHeader><CardTitle className="text-sm">Largest Files (R2)</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>File</TableHead>
+                    <TableHead className="text-right">Size</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {r2Objects.objects.map((obj) => (
+                    <TableRow key={obj.key}>
+                      <TableCell className="font-mono text-xs">{obj.key}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatBytes(obj.size)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </CollapsibleSection>
+
+      {/* ── Activity ───────────────────────────────────────────────────────── */}
+      <CollapsibleSection title="Activity" icon={UserCheck}>
+        {/* Storage growth chart */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Storage Growth — Last {range} Days</CardTitle>
@@ -453,156 +625,10 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-      </section>
 
-      {/* --- R2 Storage KPIs --- */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <HardDrive className="size-5" />
-          Cloudflare R2 Storage
-        </h2>
-
-        {r2Error && (
-          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-            <p className="font-medium">Failed to load R2 metrics</p>
-            <p className="text-xs mt-1">{r2Error}</p>
-            <p className="text-xs mt-1 text-muted-foreground">Check that CF_API_TOKEN is set in .env.local with "Account Analytics Read" permission.</p>
-          </div>
-        )}
-
-        {/* Storage breakdown card */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <HardDrive className="size-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground font-medium">Account Storage</p>
-            </div>
-            {r2Loading ? (
-              <Skeleton className="h-8 w-32 mt-1" />
-            ) : (
-              <>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-2xl font-bold">{formatBytes(r2Storage?.totalBytes ?? 0)}</p>
-                  <p className="text-xs text-muted-foreground">/ 10 GB ({percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)}%)</p>
-                </div>
-                <Progress value={percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)} className="h-1.5 mt-2" />
-
-                {/* Primary bucket */}
-                {(r2Storage?.buckets ?? []).filter((b) => b.isPrimary).map((b) => (
-                  <div key={b.name} className="mt-2">
-                    <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold">{b.name}</span>
-                      <span className="font-medium">{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Other buckets */}
-                {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).length > 0 && (
-                  <>
-                    <div className="border-t my-1.5" />
-                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Other Buckets</p>
-                    {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).map((b) => (
-                      <div key={b.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>{b.name}</span>
-                        <span>{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Operations KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <KpiCard
-            label="Total Objects"
-            value={r2Loading ? "" : String(r2Storage?.totalObjects ?? 0)}
-            icon={FileText}
-            loading={r2Loading}
-          />
-          <KpiCard
-            label="Total Buckets"
-            value={r2Loading ? "" : String(r2Storage?.buckets?.length ?? 0)}
-            icon={HardDrive}
-            loading={r2Loading}
-          />
-          <KpiCard
-            label="Egress (period)"
-            value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.egress ?? 0)}
-            icon={FileText}
-            loading={r2Loading}
-          />
-          <KpiCard
-            label="Ingress (period)"
-            value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.ingress ?? 0)}
-            icon={FileText}
-            loading={r2Loading}
-          />
-          <KpiCard
-            label="GET Requests"
-            value={r2Loading ? "" : (r2Requests?.requests.get ?? 0).toLocaleString()}
-            icon={FileText}
-            loading={r2Loading}
-          />
-          <KpiCard
-            label="PUT Requests"
-            value={r2Loading ? "" : (r2Requests?.requests.put ?? 0).toLocaleString()}
-            icon={FileText}
-            loading={r2Loading}
-          />
-        </div>
-
-        {/* Cost estimate */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="size-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground font-medium">Estimated Monthly Cost</p>
-            </div>
-            {r2Loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <p className="text-2xl font-bold">${(r2Cost?.cost ?? 0).toFixed(2)}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Largest files table */}
-        {r2Objects && r2Objects.objects.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Largest Files</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>File</TableHead>
-                    <TableHead className="text-right">Size</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {r2Objects.objects.map((obj) => (
-                    <TableRow key={obj.key}>
-                      <TableCell className="font-mono text-xs">{obj.key}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{formatBytes(obj.size)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* ── Recent activity feed ────────────────────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Recent Activity</p>
-        <Card>
+        {/* Recent activity feed */}
+        <Card className="mt-4">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Recent Activity</CardTitle></CardHeader>
           <CardContent className="p-0">
             {loading && !activity ? (
               <div className="p-4 space-y-3">
@@ -627,61 +653,7 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-      </section>
-
-      {/* ── Top users table ─────────────────────────────────────────────────── */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Top Users (all time)</p>
-        <Card>
-          <CardContent className="p-0">
-            {loading && !users ? (
-              <div className="p-4 space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
-              </div>
-            ) : users?.length ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead className="text-right">Notes</TableHead>
-                    <TableHead className="text-right">Folders</TableHead>
-                    <TableHead className="text-right">Storage</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{u.displayName}</p>
-                          <p className="text-xs text-muted-foreground">{u.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{u.noteCount.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{u.folderCount}</TableCell>
-                      <TableCell className="text-right">{formatBytes(u.storageBytes)}</TableCell>
-                      <TableCell>
-                        <Badge variant={u.isActive ? "default" : "secondary"}>
-                          {u.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No users yet</p>
-            )}
-          </CardContent>
-        </Card>
-        <p className="text-xs text-muted-foreground mt-2">
-          Showing top 10 ·{" "}
-          <Link href="/admin/users" className="underline hover:text-foreground">
-            View all in User Management →
-          </Link>
-        </p>
-      </section>
+      </CollapsibleSection>
     </div>
   )
 }
