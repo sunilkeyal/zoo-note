@@ -1686,28 +1686,91 @@ git commit -m "feat: replace audit logs placeholder with functional paginated ta
 import { Db, ObjectId } from "mongodb"
 import { execSync } from "child_process"
 import { join } from "path"
-import { mkdtemp, readFile, rm } from "fs/promises"
+import { mkdtemp, readFile, writeFile, rm, mkdir } from "fs/promises"
 import { tmpdir } from "os"
-import { storageSave, storageRead, storageDelete } from "@/lib/storage"
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
+
+// --- Direct storage helpers (backup files don't use the image storage abstraction) ---
+
+const IS_R2 = (process.env.STORAGE_PROVIDER ?? "local") === "r2"
+const BACKUP_DIR = join(process.cwd(), "backups")
+
+let r2Client: S3Client | null = null
+function getR2Client(): S3Client {
+  if (!r2Client) {
+    r2Client = new S3Client({
+      region: "auto",
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      },
+    })
+  }
+  return r2Client
+}
+
+async function backupSave(key: string, data: Buffer): Promise<void> {
+  if (IS_R2) {
+    await getR2Client().send(
+      new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key, Body: data, ContentType: "application/gzip" })
+    )
+  } else {
+    await mkdir(BACKUP_DIR, { recursive: true })
+    await writeFile(join(BACKUP_DIR, key), data)
+  }
+}
+
+async function backupRead(key: string): Promise<Buffer | null> {
+  if (IS_R2) {
+    try {
+      const resp = await getR2Client().send(
+        new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key })
+      )
+      if (!resp.Body) return null
+      const chunks: Uint8Array[] = []
+      for await (const chunk of resp.Body as AsyncIterable<Uint8Array>) chunks.push(chunk)
+      return Buffer.concat(chunks)
+    } catch { return null }
+  }
+  try {
+    return await readFile(join(BACKUP_DIR, key))
+  } catch { return null }
+}
+
+async function backupDelete(key: string): Promise<void> {
+  if (IS_R2) {
+    await getR2Client().send(
+      new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key })
+    ).catch(() => {})
+  } else {
+    await rm(join(BACKUP_DIR, key)).catch(() => {})
+  }
+}
+
+// --- Backup entry type ---
 
 export interface BackupEntry {
   _id?: ObjectId
   filename: string
   size: number
-  storagePath: string
+  storageKey: string
   status: "completed" | "failed" | "in_progress"
   createdAt: Date
   notes: string
 }
 
+function backupStorageKey(id: ObjectId): string {
+  return `backups/backup-${id}.gz`
+}
+
 export async function createBackup(db: Db, notes: string = ""): Promise<BackupEntry> {
   const filename = `backup-${new Date().toISOString().replace(/[:.]/g, "-")}.gz`
-  const storagePath = `backups/${filename}`
 
   const entry: BackupEntry = {
     filename,
     size: 0,
-    storagePath,
+    storageKey: "", // set after insert
     status: "in_progress",
     createdAt: new Date(),
     notes,
@@ -1715,24 +1778,20 @@ export async function createBackup(db: Db, notes: string = ""): Promise<BackupEn
 
   const result = await db.collection<BackupEntry>("backups").insertOne(entry)
   entry._id = result.insertedId
+  entry.storageKey = backupStorageKey(result.insertedId)
 
   try {
     const tmpDir = await mkdtemp(join(tmpdir(), "zoo-backup-"))
-    const dumpPath = join(tmpDir, "dump")
-
-    const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/zoo-note"
-    execSync(`mongodump --uri="${mongoUri}" --out="${dumpPath}"`, { timeout: 300000 })
-
-    // Compress the dump directory (tar.gz on unix, we'll use mongodump's archive mode instead)
     const archivePath = join(tmpDir, "backup.gz")
+    const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/zoo-note"
     execSync(`mongodump --uri="${mongoUri}" --archive="${archivePath}" --gzip`, { timeout: 300000 })
 
     const data = await readFile(archivePath)
-    await storageSave(`backup-${result.insertedId}`, data, "application/gzip")
+    await backupSave(entry.storageKey, data)
 
     await db.collection<BackupEntry>("backups").updateOne(
       { _id: result.insertedId },
-      { $set: { size: data.length, status: "completed" } }
+      { $set: { size: data.length, storageKey: entry.storageKey, status: "completed" } }
     )
     entry.size = data.length
     entry.status = "completed"
@@ -1762,7 +1821,7 @@ export async function deleteBackup(db: Db, id: ObjectId): Promise<boolean> {
   const entry = await db.collection<BackupEntry>("backups").findOne({ _id: id })
   if (!entry) return false
 
-  await storageDelete(`backup-${id}`)
+  await backupDelete(entry.storageKey || backupStorageKey(id))
   const result = await db.collection<BackupEntry>("backups").deleteOne({ _id: id })
   return result.deletedCount > 0
 }
@@ -1772,12 +1831,12 @@ export async function restoreBackup(db: Db, id: ObjectId): Promise<void> {
   if (!entry) throw new Error("Backup not found")
   if (entry.status !== "completed") throw new Error("Backup is not in completed state")
 
-  const data = await storageRead(`backup-${id}`)
+  const key = entry.storageKey || backupStorageKey(id)
+  const data = await backupRead(key)
   if (!data) throw new Error("Backup file not found in storage")
 
   const tmpDir = await mkdtemp(join(tmpdir(), "zoo-restore-"))
   const archivePath = join(tmpDir, "backup.gz")
-  const { writeFile } = await import("fs/promises")
   await writeFile(archivePath, data)
 
   const mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/zoo-note"
@@ -1789,12 +1848,15 @@ export async function restoreBackup(db: Db, id: ObjectId): Promise<void> {
 }
 
 export async function downloadBackup(id: ObjectId): Promise<{ data: Buffer; filename: string } | null> {
-  const data = await storageRead(`backup-${id}`)
-  if (!data) return null
-
   const db = await (await import("@/lib/mongodb")).connectToDatabase()
   const entry = await db.collection<BackupEntry>("backups").findOne({ _id: id })
-  return { data, filename: entry?.filename ?? `backup-${id}.gz` }
+  if (!entry) return null
+
+  const key = entry.storageKey || backupStorageKey(id)
+  const data = await backupRead(key)
+  if (!data) return null
+
+  return { data, filename: entry.filename }
 }
 ```
 
