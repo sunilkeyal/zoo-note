@@ -13,6 +13,10 @@ import FontFamily from "@tiptap/extension-font-family"
 import { ParagraphSpacing } from "@/extensions/ParagraphSpacing"
 import TaskList from "@tiptap/extension-task-list"
 import { CustomTaskItem } from "@/extensions/TaskItem"
+import { Table } from "@tiptap/extension-table"
+import TableRow from "@tiptap/extension-table-row"
+import TableHeader from "@tiptap/extension-table-header"
+import TableCell from "@tiptap/extension-table-cell"
 import { ImageNode } from "@/extensions/ImageNode"
 import SearchHighlight from "@/extensions/SearchHighlight"
 import {
@@ -587,6 +591,10 @@ export default function MainArea() {
       TaskList,
       CustomTaskItem.configure({ nested: true }),
       ImageNode,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: activeNote?.content || "<p></p>",
     editorProps: {
