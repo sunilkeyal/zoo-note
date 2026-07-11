@@ -153,6 +153,7 @@ export default function DashboardPage() {
   const [r2Cost, setR2Cost] = useState<R2CostData>(null)
   const [r2Objects, setR2Objects] = useState<R2ObjectData>(null)
   const [r2Loading, setR2Loading] = useState(true)
+  const [r2Error, setR2Error] = useState<string | null>(null)
   const pathname = usePathname()
 
   const fetchStats = useCallback(async (r: Range) => {
@@ -195,18 +196,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setR2Loading(true)
+    setR2Error(null)
     Promise.all([
       fetch("/api/admin/r2?metric=storage").then(r => r.json()),
       fetch(`/api/admin/r2?metric=requests&range=${range}`).then(r => r.json()),
       fetch(`/api/admin/r2?metric=cost&range=${range}`).then(r => r.json()),
       fetch("/api/admin/r2?metric=objects&limit=10").then(r => r.json()),
     ]).then(([storage, requests, cost, objects]) => {
+      if (!storage.success) throw new Error(storage.error || "Failed to load storage metrics")
       setR2Storage(storage.data)
       setR2Requests(requests.data)
       setR2Cost(cost.data)
       setR2Objects(objects.data)
       setR2Loading(false)
-    }).catch(() => setR2Loading(false))
+    }).catch((e) => {
+      setR2Error(e instanceof Error ? e.message : "Failed to load R2 metrics")
+      setR2Loading(false)
+    })
   }, [range])
 
   const { kpis, charts, users, activity } = data ?? {}
@@ -447,6 +453,14 @@ export default function DashboardPage() {
           <HardDrive className="size-5" />
           Cloudflare R2 Storage
         </h2>
+
+        {r2Error && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+            <p className="font-medium">Failed to load R2 metrics</p>
+            <p className="text-xs mt-1">{r2Error}</p>
+            <p className="text-xs mt-1 text-muted-foreground">Check that CF_API_TOKEN is set in .env.local with "Account Analytics Read" permission.</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <KpiCard
