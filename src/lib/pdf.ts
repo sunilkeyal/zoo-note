@@ -58,6 +58,10 @@ const EDITOR_STYLES = `
   li[data-type="taskItem"] .task-content p { margin: 0; }
   li[data-type="taskItem"] .task-checkbox svg { display: none; }
   li[data-type="taskItem"] .task-checkbox[data-checked="true"] svg { display: block; }
+  table { border-collapse: collapse; width: auto; margin: 8px 0; table-layout: fixed; }
+  th, td { border: 1px solid #d1d5db; padding: 3px 8px; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; font-weight: 600; }
+  th p, td p { margin: 0; }
 `
 
 let browserPromise: Promise<Browser> | null = null

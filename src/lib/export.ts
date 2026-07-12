@@ -1,4 +1,5 @@
 import TurndownService from "turndown"
+import { tables } from "turndown-plugin-gfm"
 import { Note, Folder } from "@/types"
 import * as yaml from "js-yaml"
 import * as archiver from "archiver"
@@ -11,6 +12,7 @@ const turndown = new TurndownService({
   codeBlockStyle: "fenced",
   emDelimiter: "*",
 })
+turndown.use(tables)
 
 export function convertHtmlToMarkdown(html: string): string {
   return turndown.turndown(html || "")

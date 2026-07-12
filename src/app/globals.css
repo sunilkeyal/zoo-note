@@ -228,3 +228,87 @@
     display: none;
   }
 }
+
+/* Table styles */
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  /* Match shadcn ScrollBar appearance (horizontal orientation):
+     h-2.5 track, rounded-full bg-border thumb, p-px padding, transparent track */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar {
+  height: 10px;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+.ProseMirror table {
+  border-collapse: collapse;
+  width: auto;
+  margin: 0.75em 0;
+  table-layout: fixed;
+  overflow: hidden;
+}
+.ProseMirror table td,
+.ProseMirror table th {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  min-width: 80px;
+  width: 120px;
+  vertical-align: top;
+  position: relative;
+  box-sizing: border-box;
+}
+.ProseMirror table th {
+  background: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+/* Paragraphs inside cells must have no margin — the global p rule adds 10px
+   bottom margin which creates visible bottom-heavy padding asymmetry */
+.ProseMirror table td p,
+.ProseMirror table th p {
+  margin: 0;
+}
+.ProseMirror table .selectedCell::after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: oklch(0.205 0 0 / 0.06);
+  pointer-events: none;
+}
+.dark .ProseMirror table .selectedCell::after {
+  background: oklch(0.922 0 0 / 0.10);
+}
+.ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+  opacity: 0;
+  cursor: col-resize;
+  pointer-events: all;
+}
+.ProseMirror table .column-resize-handle:hover,
+.ProseMirror.resize-cursor table .column-resize-handle {
+  opacity: 0.3;
+}
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}

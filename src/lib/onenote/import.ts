@@ -120,6 +120,7 @@ export async function importOneNote(
         const title = extractPageTitle(html) || fileName.replace(/\.html$/, "")
         html = extractBodyContent(html)
         html = stripFontStyles(html)
+        html = normalizeOneNoteTables(html)
 
         const foldersCollection = db.collection("folders")
         let folderId: string | null = null
@@ -206,6 +207,30 @@ export function stripFontStyles(html: string): string {
     const joined = filtered.map((p) => p.trim()).join("; ")
     return `style="${joined.replace(/\x00Q\x00/g, "&quot;")}"`
   })
+}
+
+function stripHtmlAttributes(tag: string, attrs: string[]): string {
+  let result = tag
+  for (const attr of attrs) {
+    result = result.replace(new RegExp(`\\s${attr}(?:="[^"]*"|='[^']*'|=[^\\s>/]*)`, "gi"), "")
+  }
+  return result
+}
+
+export function normalizeOneNoteTables(html: string): string {
+  let result = html
+  // Remove colgroup and col elements (Tiptap does not use them)
+  result = result.replace(/<colgroup[^>]*>[\s\S]*?<\/colgroup>/gi, "")
+  result = result.replace(/<col\b[^>]*\/?>/gi, "")
+  // Strip visual HTML attributes from <table>
+  result = result.replace(/<table[^>]*>/gi, (tag) =>
+    stripHtmlAttributes(tag, ["border", "cellpadding", "cellspacing", "width", "height"])
+  )
+  // Strip visual HTML attributes from <td> and <th>
+  result = result.replace(/<(?:td|th)[^>]*>/gi, (tag) =>
+    stripHtmlAttributes(tag, ["border", "width", "height", "bgcolor", "align", "valign", "scope"])
+  )
+  return result
 }
 
 export function parsePageOrderFromToc(tocHtml: string): string[] {
