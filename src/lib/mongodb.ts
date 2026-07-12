@@ -55,6 +55,21 @@ export async function connectToDatabase(): Promise<Db> {
     { background: true }
   ).catch(() => {});
 
+  await cachedDb.collection("importJobs").createIndex(
+    { userId: 1, status: 1 },
+    { background: true }
+  ).catch(() => {});
+
+  await cachedDb.collection("importJobs").createIndex(
+    { createdAt: 1 },
+    { expireAfterSeconds: 604800, background: true }
+  ).catch(() => {});
+
+  await cachedDb.collection("importJobs").createIndex(
+    { userId: 1, createdAt: -1 },
+    { background: true }
+  ).catch(() => {});
+
   return cachedDb;
 }
 
