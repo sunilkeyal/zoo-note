@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import { toast } from "sonner"
 
 export type ImportJobStatus =
@@ -34,18 +34,30 @@ interface ImportContextValue {
   resetJob: () => void
 }
 
+const STORAGE_KEY = "zoo-note-import-job"
+const STORAGE_FILENAME_KEY = "zoo-note-import-filename"
+
 const ImportContext = createContext<ImportContextValue | null>(null)
 
 export function ImportProvider({ children }: { children: ReactNode }) {
-  const [job, setJob] = useState<ImportJobState>({
-    jobId: null,
-    status: "idle",
-    filename: null,
-    progress: null,
-    result: null,
-    error: null,
+  const [job, setJob] = useState<ImportJobState>(() => {
+    if (typeof window === "undefined") return { jobId: null, status: "idle", filename: null, progress: null, result: null, error: null }
+    const savedJobId = localStorage.getItem(STORAGE_KEY)
+    const savedFilename = localStorage.getItem(STORAGE_FILENAME_KEY)
+    if (savedJobId) {
+      return {
+        jobId: savedJobId,
+        status: "processing",
+        filename: savedFilename,
+        progress: { totalPages: 0, processedPages: 0, currentStage: "Resuming..." },
+        result: null,
+        error: null,
+      }
+    }
+    return { jobId: null, status: "idle", filename: null, progress: null, result: null, error: null }
   })
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const initializedRef = useRef(false)
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -75,12 +87,16 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
         if (data.status === "completed") {
           stopPolling()
-          setJob((prev) => ({
-            ...prev,
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(STORAGE_FILENAME_KEY)
+          setJob({
+            jobId: null,
             status: "completed",
+            filename: null,
             progress: data.progress,
             result: data.result,
-          }))
+            error: null,
+          })
           toast.success("Import complete!", {
             description: `${data.result.foldersCreated} folders, ${data.result.notesImported} notes, ${data.result.imagesImported} images imported.`,
           })
@@ -89,11 +105,16 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
         if (data.status === "failed") {
           stopPolling()
-          setJob((prev) => ({
-            ...prev,
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(STORAGE_FILENAME_KEY)
+          setJob({
+            jobId: null,
             status: "failed",
+            filename: null,
+            progress: null,
+            result: null,
             error: data.error,
-          }))
+          })
           toast.error("Import failed", {
             description: data.error || "An unexpected error occurred.",
           })
@@ -112,6 +133,58 @@ export function ImportProvider({ children }: { children: ReactNode }) {
       }
     }, 3000)
   }, [stopPolling])
+
+  // Resume polling from localStorage on mount
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+    const savedJobId = localStorage.getItem(STORAGE_KEY)
+    if (savedJobId) {
+      // Fetch current status once, then start polling
+      fetch(`/api/notes/import/onenote/status?jobId=${savedJobId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data) {
+            localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem(STORAGE_FILENAME_KEY)
+            setJob({ jobId: null, status: "idle", filename: null, progress: null, result: null, error: null })
+            return
+          }
+          if (data.status === "completed") {
+            localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem(STORAGE_FILENAME_KEY)
+            setJob({ jobId: null, status: "idle", filename: null, progress: data.progress, result: data.result, error: null })
+            toast.success("Import complete!", {
+              description: `${data.result.foldersCreated} folders, ${data.result.notesImported} notes, ${data.result.imagesImported} images imported.`,
+            })
+            return
+          }
+          if (data.status === "failed") {
+            localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem(STORAGE_FILENAME_KEY)
+            setJob({ jobId: null, status: "idle", filename: null, progress: null, result: null, error: data.error })
+            toast.error("Import failed", { description: data.error || "An unexpected error occurred." })
+            return
+          }
+          // Still running — resume polling
+          setJob({
+            jobId: savedJobId,
+            status: data.status as ImportJobStatus,
+            filename: localStorage.getItem(STORAGE_FILENAME_KEY),
+            progress: data.progress ?? null,
+            result: null,
+            error: null,
+          })
+          pollStatus(savedJobId)
+        })
+        .catch(() => {
+          // Network error on load — clear stale state
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(STORAGE_FILENAME_KEY)
+          setJob({ jobId: null, status: "idle", filename: null, progress: null, result: null, error: null })
+        })
+    }
+  }, [pollStatus])
 
   const startImport = useCallback(async (file: File) => {
     const ext = file.name.toLowerCase().split(".").pop()
@@ -184,6 +257,10 @@ export function ImportProvider({ children }: { children: ReactNode }) {
       toast.dismiss(uploadToast)
       toast.loading("Converting notebook...", { id: "import-stage" })
 
+      // Persist job ID so polling survives page reload
+      localStorage.setItem(STORAGE_KEY, jobId)
+      localStorage.setItem(STORAGE_FILENAME_KEY, file.name)
+
       setJob((prev) => ({
         ...prev,
         jobId,
@@ -223,6 +300,8 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
   const resetJob = useCallback(() => {
     stopPolling()
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(STORAGE_FILENAME_KEY)
     setJob({
       jobId: null,
       status: "idle",
