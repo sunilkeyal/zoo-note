@@ -10,7 +10,7 @@ interface ImportExportSheetProps {
 }
 
 type ExportState = "idle" | "loading"
-type ImportState = "idle" | "loading" | "success" | "error"
+type ImportState = "idle" | "loading" | "processing" | "success" | "error"
 
 export default function ImportExportSheet({ open, onClose }: ImportExportSheetProps) {
   const { fetchNotes, fetchFolders } = useNotes()
@@ -21,6 +21,8 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
   const [onenoteImportState, setOnenoteImportState] = useState<ImportState>("idle")
   const [onenoteImportMessage, setOnenoteImportMessage] = useState("")
   const onenoteFileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [onenoteJobId, setOnenoteJobId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -38,6 +40,8 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
       setImportMessage("")
       setOnenoteImportState("idle")
       setOnenoteImportMessage("")
+      setUploadProgress(0)
+      setOnenoteJobId(null)
     }
   }, [open])
 
@@ -114,42 +118,134 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
       return
     }
 
-    const MAX_UPLOAD_SIZE = 4 * 1024 * 1024
-    if (file.size > MAX_UPLOAD_SIZE) {
+    const MAX_IMPORT_SIZE = 50 * 1024 * 1024
+    if (file.size > MAX_IMPORT_SIZE) {
       setOnenoteImportState("error")
-      setOnenoteImportMessage("File too large (max 4MB). Try a smaller section (.one) or notebook (.onepkg).")
+      setOnenoteImportMessage("File too large (max 50MB).")
       return
     }
 
     setOnenoteImportState("loading")
-    setOnenoteImportMessage("")
-
-    const formData = new FormData()
-    formData.append("file", file)
+    setOnenoteImportMessage("Requesting upload URL...")
+    setUploadProgress(0)
 
     try {
-      const res = await fetch("/api/notes/import/onenote", {
+      // Step 1: Get presigned URL
+      const presignRes = await fetch("/api/notes/import/onenote/presign", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, fileSize: file.size }),
       })
+      const presignData = await presignRes.json()
+      if (!presignRes.ok || !presignData.success) {
+        setOnenoteImportState("error")
+        setOnenoteImportMessage(presignData.error || "Failed to start import")
+        return
+      }
+
+      const { jobId, uploadUrl } = presignData
+
+      // Step 2: Upload file directly to R2
+      setOnenoteImportMessage("Uploading to storage...")
+      await uploadFileToR2(uploadUrl, file, (progress) => {
+        setUploadProgress(progress)
+      })
+
+      // Step 3: Confirm upload and start conversion
+      setOnenoteImportState("processing")
+      setOnenoteImportMessage("Converting notebook...")
+      setOnenoteJobId(jobId)
+
+      const confirmRes = await fetch("/api/notes/import/onenote/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      })
+      const confirmData = await confirmRes.json()
+      if (!confirmRes.ok || !confirmData.success) {
+        setOnenoteImportState("error")
+        setOnenoteImportMessage(confirmData.error || "Conversion failed")
+        return
+      }
+
+      // Step 4: Poll for completion
+      await pollImportStatus(jobId)
+    } catch {
+      setOnenoteImportState("error")
+      setOnenoteImportMessage("Network error. Please try again.")
+    }
+  }
+
+  function uploadFileToR2(
+    url: string,
+    file: File,
+    onProgress: (percent: number) => void
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open("PUT", url, true)
+      xhr.setRequestHeader("Content-Type", "application/octet-stream")
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      })
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve()
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`))
+        }
+      })
+
+      xhr.addEventListener("error", () => reject(new Error("Upload failed")))
+      xhr.addEventListener("abort", () => reject(new Error("Upload aborted")))
+
+      xhr.send(file)
+    })
+  }
+
+  async function pollImportStatus(jobId: string) {
+    const pollInterval = 3000
+
+    while (true) {
+      await new Promise((r) => setTimeout(r, pollInterval))
+
+      const res = await fetch(`/api/notes/import/onenote/status?jobId=${jobId}`)
+      if (!res.ok) continue
+
       const data = await res.json()
-      if (!res.ok || !data.success) {
+
+      if (data.status === "processing") {
+        setOnenoteImportMessage(data.progress?.currentStage || "Importing...")
+        continue
+      }
+
+      if (data.status === "completed") {
+        setOnenoteImportState("success")
+        const r = data.result
+        setOnenoteImportMessage(
+          `Imported ${r.foldersCreated} folder${r.foldersCreated !== 1 ? "s" : ""}, ` +
+            `${r.notesImported} note${r.notesImported !== 1 ? "s" : ""}, ` +
+            `${r.imagesImported} image${r.imagesImported !== 1 ? "s" : ""}.`
+        )
+        fetchNotes()
+        fetchFolders()
+        return
+      }
+
+      if (data.status === "failed") {
         setOnenoteImportState("error")
         setOnenoteImportMessage(data.error || "Import failed")
         return
       }
-      const r = data.data
-      setOnenoteImportState("success")
-      setOnenoteImportMessage(
-        `Imported ${r.foldersCreated} folder${r.foldersCreated !== 1 ? "s" : ""}, ` +
-          `${r.notesImported} note${r.notesImported !== 1 ? "s" : ""}, ` +
-          `${r.imagesImported} image${r.imagesImported !== 1 ? "s" : ""}.`
-      )
-      fetchNotes()
-      fetchFolders()
-    } catch {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage("Network error. Please try again.")
+
+      // pending, uploading, converting — keep polling
+      if (data.progress?.currentStage) {
+        setOnenoteImportMessage(data.progress.currentStage)
+      }
     }
   }
 
@@ -256,17 +352,17 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">Import from OneNote</h3>
             </div>
             <p className="text-xs text-gray-500 mb-3">
-              Import a OneNote notebook (.onepkg) or section (.one). Folders and notes will be created automatically.
+              Import a OneNote notebook (.onepkg) or section (.one). Max 50MB. Folders and notes will be created automatically.
             </p>
             <button
               onClick={() => onenoteFileInputRef.current?.click()}
-              disabled={onenoteImportState === "loading"}
+              disabled={onenoteImportState === "loading" || onenoteImportState === "processing"}
               className="w-full rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
-              {onenoteImportState === "loading" ? (
+              {onenoteImportState === "loading" || onenoteImportState === "processing" ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Importing…
+                  {onenoteImportState === "loading" ? "Uploading..." : "Importing..."}
                 </>
               ) : (
                 "Select File"
@@ -279,10 +375,27 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
               className="hidden"
               onChange={handleOneNoteFileSelect}
             />
+            {(onenoteImportState === "loading" || onenoteImportState === "processing") && uploadProgress > 0 && (
+              <div className="mt-3">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                  <div
+                    className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1 text-center">{uploadProgress}%</p>
+              </div>
+            )}
             <div className="mt-2 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span>Best compatibility with <strong>OneNote 2016+ on Windows</strong>. Older versions and Mac exports may not work.</span>
             </div>
+            {onenoteImportState === "processing" && (
+              <div className="mt-3 flex items-start gap-2 text-xs text-blue-600 dark:text-blue-400">
+                <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" />
+                <span>{onenoteImportMessage || "Processing..."} You can close this window.</span>
+              </div>
+            )}
             {onenoteImportState === "success" && (
               <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">
                 <CheckCircle size={14} className="mt-0.5 shrink-0" />
