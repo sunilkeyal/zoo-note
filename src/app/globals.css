@@ -240,12 +240,6 @@
   margin: 0.75em 0;
   table-layout: fixed;
   overflow: hidden;
-  /* Tiptap sets inline style="min-width:Xpx" on the table after every drag.
-     !important overrides that so max-width can act as a real ceiling.
-     The TableMaxWidth extension prevents colwidths from summing > container
-     width, so this safety net only fires on window resize. */
-  min-width: 0 !important;
-  max-width: 100%;
 }
 .ProseMirror table td,
 .ProseMirror table th {
