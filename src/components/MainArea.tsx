@@ -15,8 +15,25 @@ import TaskList from "@tiptap/extension-task-list"
 import { CustomTaskItem } from "@/extensions/TaskItem"
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
-import TableHeader from "@tiptap/extension-table-header"
-import TableCell from "@tiptap/extension-table-cell"
+import TableHeaderBase from "@tiptap/extension-table-header"
+import TableCellBase from "@tiptap/extension-table-cell"
+
+// Override colwidth default from null → [120] so prosemirror-tables'
+// updateColumns() always has explicit widths for every column.
+// Without this, unresized columns fall back to cellMinWidth (80px) during
+// a drag, making them visually shrink while another column is being stretched.
+const TableCell = TableCellBase.extend({
+  addAttributes() {
+    const parent = this.parent?.() ?? {}
+    return { ...parent, colwidth: { ...parent.colwidth, default: [120] } }
+  },
+})
+const TableHeader = TableHeaderBase.extend({
+  addAttributes() {
+    const parent = this.parent?.() ?? {}
+    return { ...parent, colwidth: { ...parent.colwidth, default: [120] } }
+  },
+})
 import { ImageNode } from "@/extensions/ImageNode"
 import SearchHighlight from "@/extensions/SearchHighlight"
 import { TableGridPicker } from "@/components/TableGridPicker"
