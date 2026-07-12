@@ -263,12 +263,33 @@ export async function convertAndUploadToR2(
       }
     }
 
+    // Upload ToC files from root output directory (needed for page ordering)
+    if (subdirs.length > 0) {
+      for (const subdir of subdirs) {
+        const tocPath = path.join(outputDir, `${subdir.name}.html`)
+        try {
+          await fs.access(tocPath)
+          const r2Key = `${r2Prefix}/converted/${subdir.name}.html`
+          manifest.htmlFiles.push(r2Key)
+          filesToUpload.push({ localPath: tocPath, r2Key, contentType: "text/html" })
+        } catch {
+          // No ToC file for this section
+        }
+      }
+    }
+
     for (const { localPath, r2Key, contentType } of filesToUpload) {
       const data = await fs.readFile(localPath)
       await storageSaveRaw(r2Key, data, contentType)
     }
 
-    return { manifest, totalPages: manifest.htmlFiles.length }
+    // Count only page files (not ToC files) for totalPages
+    const pageFileCount = manifest.htmlFiles.filter((k) => {
+      const isToc = manifest.sections.some((s) => k.endsWith(`/${s}.html`) && !k.includes(`/${s}/`))
+      return !isToc
+    }).length
+
+    return { manifest, totalPages: pageFileCount }
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true })
   }
