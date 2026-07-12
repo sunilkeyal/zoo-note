@@ -343,6 +343,7 @@ const SortableFolderItem = ({ folderId, dragType, children }: { folderId: string
 
 const adminItems = [
   { route: "/admin",           label: "Dashboard",        icon: LayoutDashboard, iconColor: "text-violet-600 dark:text-violet-500" },
+  { route: "/admin/imports",   label: "Import Jobs",      icon: Upload,          iconColor: "text-purple-600 dark:text-purple-500" },
   { route: "/admin/backup",    label: "Backup & Restore", icon: Database,        iconColor: "text-teal-600 dark:text-teal-500" },
   { route: "/admin/users",     label: "User Management",  icon: Users,           iconColor: "text-blue-600 dark:text-blue-500" },
   { route: "/admin/audit",     label: "Audit Logs",       icon: ScrollText,      iconColor: "text-orange-600 dark:text-orange-500" },

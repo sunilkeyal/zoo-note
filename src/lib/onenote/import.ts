@@ -314,7 +314,8 @@ export async function processPagesBatch(
   userId: string,
   manifest: ImportJobManifest,
   processedCount: number,
-  batchSize: number = 10
+  batchSize: number = 10,
+  jobId: string = ""
 ): Promise<BatchResult> {
   const batchResult: BatchResult = {
     pagesProcessed: 0,
@@ -396,6 +397,7 @@ export async function processPagesBatch(
           name: folderName,
           position: 0,
           userId,
+          jobId,
           createdAt: now,
           updatedAt: now,
         })
@@ -403,7 +405,7 @@ export async function processPagesBatch(
         batchResult.foldersCreated++
       }
 
-      const localResult = await processLocalImagesFromR2(html, manifest.imageFiles, htmlKey, db, userId)
+      const localResult = await processLocalImagesFromR2(html, manifest.imageFiles, htmlKey, db, userId, jobId)
       html = localResult.cleanedHtml
       batchResult.imagesImported += localResult.imageCount
 
@@ -424,6 +426,7 @@ export async function processPagesBatch(
         folderId,
         position,
         userId,
+        jobId,
         createdAt: now,
         updatedAt: now,
       })
@@ -444,7 +447,8 @@ async function processLocalImagesFromR2(
   imageR2Keys: string[],
   pageHtmlKey: string,
   db: Db,
-  userId: string
+  userId: string,
+  jobId: string = ""
 ): Promise<{ cleanedHtml: string; imageCount: number }> {
   const pageDir = pageHtmlKey.substring(0, pageHtmlKey.lastIndexOf("/"))
   const sectionImages = imageR2Keys.filter((k) => k.startsWith(pageDir + "/"))
@@ -477,7 +481,7 @@ async function processLocalImagesFromR2(
       await saveImage(db, uploadId, filename,
         `image/${ext === "jpg" ? "jpeg" : ext}`,
         compressed,
-        { userId, originalName: filename, uploadedAt: new Date() },
+        { userId, originalName: filename, uploadedAt: new Date(), jobId },
       )
       imageUrlMap.set(filename, imageUrl(uploadId.toHexString()))
     } catch {
