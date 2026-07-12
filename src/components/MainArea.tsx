@@ -25,13 +25,15 @@ import TableCellBase from "@tiptap/extension-table-cell"
 const TableCell = TableCellBase.extend({
   addAttributes() {
     const parent = this.parent?.() ?? {}
-    return { ...parent, colwidth: { ...parent.colwidth, default: [120] } }
+    const colwidthConfig: Record<string, unknown> = { ...(parent as Record<string, unknown>).colwidth as Record<string, unknown>, default: [120] }
+    return { ...parent, colwidth: colwidthConfig }
   },
 })
 const TableHeader = TableHeaderBase.extend({
   addAttributes() {
     const parent = this.parent?.() ?? {}
-    return { ...parent, colwidth: { ...parent.colwidth, default: [120] } }
+    const colwidthConfig: Record<string, unknown> = { ...(parent as Record<string, unknown>).colwidth as Record<string, unknown>, default: [120] }
+    return { ...parent, colwidth: colwidthConfig }
   },
 })
 import { ImageNode } from "@/extensions/ImageNode"
