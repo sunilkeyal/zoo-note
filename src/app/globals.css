@@ -232,6 +232,25 @@
 /* Table styles */
 .ProseMirror .tableWrapper {
   overflow-x: auto;
+  /* Match shadcn ScrollBar appearance (horizontal orientation):
+     h-2.5 track, rounded-full bg-border thumb, p-px padding, transparent track */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar {
+  height: 10px;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.ProseMirror .tableWrapper::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
 }
 .ProseMirror table {
   border-collapse: collapse;
