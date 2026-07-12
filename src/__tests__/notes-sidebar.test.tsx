@@ -15,6 +15,15 @@ vi.mock('@/contexts/SidebarDensityContext', () => ({
   useSidebarDensity: vi.fn(() => ({ density: 'default', setDensity: vi.fn() })),
 }))
 
+vi.mock('@/contexts/ImportContext', () => ({
+  ImportProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useImport: vi.fn(() => ({
+    job: { jobId: null, status: 'idle', filename: null, progress: null, result: null, error: null },
+    startImport: vi.fn(),
+    resetJob: vi.fn(),
+  })),
+}))
+
 vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),
   signOut: vi.fn(),
