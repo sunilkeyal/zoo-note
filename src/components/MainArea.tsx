@@ -18,6 +18,7 @@ import TableRow from "@tiptap/extension-table-row"
 import TableHeader from "@tiptap/extension-table-header"
 import TableCell from "@tiptap/extension-table-cell"
 import { ImageNode } from "@/extensions/ImageNode"
+import { TableResizeConstraint } from "@/extensions/TableResizeConstraint"
 import SearchHighlight from "@/extensions/SearchHighlight"
 import { TableGridPicker } from "@/components/TableGridPicker"
 import { TableContextMenu } from "@/components/TableContextMenu"
@@ -606,6 +607,7 @@ export default function MainArea() {
       TableRow,
       TableHeader,
       TableCell,
+      TableResizeConstraint,
     ],
     content: activeNote?.content || "<p></p>",
     editorProps: {
@@ -719,60 +721,6 @@ export default function MainArea() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const editorContainerRef = useRef<HTMLDivElement | null>(null)
-
-  // Prevent column resize from pushing the table wider than the editor.
-  // Strategy: capture-phase mousemove interception.
-  // When a resize handle drag starts, we calculate the maximum clientX the
-  // mouse can reach before the table would exceed the editor width. Any
-  // mousemove beyond that point has stopImmediatePropagation() called so
-  // prosemirror-tables never sees it — neither the live-preview DOM update
-  // (displayColumnWidth) nor the final commit (updateColumnWidth) can
-  // produce a table wider than the container.
-  useEffect(() => {
-    if (!editor) return
-    const container = editorContainerRef.current
-    if (!container) return
-
-    let isDragging = false
-    let maxAllowedX = Infinity
-
-    const blockOverflow = (e: MouseEvent) => {
-      if (!isDragging || e.clientX <= maxAllowedX) return
-      e.stopImmediatePropagation()
-    }
-
-    const endDrag = () => {
-      isDragging = false
-      maxAllowedX = Infinity
-      window.removeEventListener('mousemove', blockOverflow, { capture: true })
-    }
-
-    const startDrag = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.classList.contains('column-resize-handle')) return
-
-      isDragging = true
-      const editorWidth = editor.view.dom.clientWidth
-
-      const tableEl = target.closest('table') as HTMLTableElement | null
-      if (tableEl) {
-        const cells = tableEl.querySelectorAll<HTMLElement>(
-          'tr:first-child > td, tr:first-child > th'
-        )
-        const totalWidth = Array.from(cells).reduce((sum, c) => sum + c.offsetWidth, 0)
-        maxAllowedX = e.clientX + Math.max(0, editorWidth - totalWidth)
-      }
-
-      window.addEventListener('mousemove', blockOverflow, { capture: true })
-      window.addEventListener('mouseup', endDrag, { once: true })
-    }
-
-    container.addEventListener('mousedown', startDrag)
-    return () => {
-      container.removeEventListener('mousedown', startDrag)
-      window.removeEventListener('mousemove', blockOverflow, { capture: true })
-    }
-  }, [editor])
 
   const uploadImage = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return
