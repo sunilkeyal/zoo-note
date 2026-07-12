@@ -16,7 +16,8 @@
  *     R2_PUBLIC_URL           — public base URL (e.g. https://<hash>.r2.dev)
  */
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { writeFile, readFile, unlink, mkdir } from 'fs/promises'
 import { join } from 'path'
 
@@ -108,6 +109,37 @@ async function r2Read(key: string): Promise<Buffer | null> {
   }
 }
 
+async function r2GetPresignedUrl(key: string, contentType: string, expiresIn: number): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME!,
+    Key: key,
+    ContentType: contentType,
+  })
+  return getSignedUrl(getR2Client(), command, { expiresIn })
+}
+
+async function r2DeleteByPrefix(prefix: string): Promise<void> {
+  const listResp = await getR2Client().send(
+    new ListObjectsV2Command({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Prefix: prefix,
+    })
+  )
+  if (!listResp.Contents || listResp.Contents.length === 0) return
+  await Promise.all(
+    listResp.Contents.map((obj) =>
+      obj.Key
+        ? getR2Client().send(
+            new DeleteObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME!,
+              Key: obj.Key,
+            })
+          )
+        : Promise.resolve()
+    )
+  )
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /** The storage key (filename) for a given image ID. Always .jpg since we compress to JPEG. */
@@ -174,4 +206,50 @@ export function storagePublicUrl(id: string): string {
     return `${base}/${storageKey(id)}`
   }
   return `/uploads/${storageKey(id)}`
+}
+
+/**
+ * Generate a presigned PUT URL for direct client-to-R2 upload.
+ * The URL is time-limited and scoped to a specific key.
+ */
+export async function getPresignedUploadUrl(
+  key: string,
+  contentType: string,
+  expiresIn: number = 900
+): Promise<string> {
+  if (!isR2()) {
+    throw new Error("Presigned URLs require R2 storage provider")
+  }
+  return r2GetPresignedUrl(key, contentType, expiresIn)
+}
+
+/**
+ * Delete all objects under a given R2 prefix.
+ * Used to clean up temporary import files.
+ */
+export async function deleteByPrefix(prefix: string): Promise<void> {
+  if (isR2()) {
+    await r2DeleteByPrefix(prefix)
+  }
+}
+
+/**
+ * Save raw bytes to an arbitrary key (bypasses image key mapping).
+ * Used for temporary import files during async OneNote processing.
+ */
+export async function storageSaveRaw(key: string, data: Buffer, contentType: string): Promise<void> {
+  if (isR2()) {
+    await r2Save(key, data, contentType)
+  } else {
+    await localSave(key, data)
+  }
+}
+
+/**
+ * Read raw bytes from an arbitrary key (bypasses image key mapping).
+ * Returns null if not found.
+ */
+export async function storageReadRaw(key: string): Promise<Buffer | null> {
+  if (isR2()) return r2Read(key)
+  return localRead(key)
 }
