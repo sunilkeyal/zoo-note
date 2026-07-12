@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import { toast } from "sonner"
+import { useNotes } from "@/contexts/NoteContext"
 
 export type ImportJobStatus =
   | "idle"
@@ -40,6 +41,7 @@ const STORAGE_FILENAME_KEY = "zoo-note-import-filename"
 const ImportContext = createContext<ImportContextValue | null>(null)
 
 export function ImportProvider({ children }: { children: ReactNode }) {
+  const { fetchNotes, fetchFolders } = useNotes()
   const [job, setJob] = useState<ImportJobState>(() => {
     if (typeof window === "undefined") return { jobId: null, status: "idle", filename: null, progress: null, result: null, error: null }
     const savedJobId = localStorage.getItem(STORAGE_KEY)
@@ -100,6 +102,8 @@ export function ImportProvider({ children }: { children: ReactNode }) {
           toast.success("Import complete!", {
             description: `${data.result.foldersCreated} folders, ${data.result.notesImported} notes, ${data.result.imagesImported} images imported.`,
           })
+          fetchNotes()
+          fetchFolders()
           return
         }
 
@@ -132,7 +136,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         // Network error during poll — keep trying
       }
     }, 3000)
-  }, [stopPolling])
+  }, [stopPolling, fetchNotes, fetchFolders])
 
   // Resume polling from localStorage on mount
   useEffect(() => {
@@ -157,6 +161,8 @@ export function ImportProvider({ children }: { children: ReactNode }) {
             toast.success("Import complete!", {
               description: `${data.result.foldersCreated} folders, ${data.result.notesImported} notes, ${data.result.imagesImported} images imported.`,
             })
+            fetchNotes()
+            fetchFolders()
             return
           }
           if (data.status === "failed") {
@@ -184,7 +190,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
           setJob({ jobId: null, status: "idle", filename: null, progress: null, result: null, error: null })
         })
     }
-  }, [pollStatus])
+  }, [pollStatus, fetchNotes, fetchFolders])
 
   const startImport = useCallback(async (file: File) => {
     const ext = file.name.toLowerCase().split(".").pop()
