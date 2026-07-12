@@ -230,6 +230,9 @@
 }
 
 /* Table styles */
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+}
 .ProseMirror table {
   border-collapse: collapse;
   width: auto;

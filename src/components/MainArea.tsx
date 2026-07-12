@@ -619,7 +619,7 @@ export default function MainArea() {
       TaskList,
       CustomTaskItem.configure({ nested: true }),
       ImageNode,
-      Table.configure({ resizable: true, cellMinWidth: 80 }),
+      Table.configure({ resizable: true, cellMinWidth: 120 }),
       TableRow,
       TableHeader,
       TableCell,
