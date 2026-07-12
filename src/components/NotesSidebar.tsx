@@ -20,7 +20,6 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useNotes } from "@/contexts/NoteContext"
-import { useImport } from "@/contexts/ImportContext"
 import AccountSheet from "./AccountSheet"
 import SettingsSheet from "@/components/SettingsSheet"
 import ImportExportSheet from "./ImportExportSheet"
@@ -107,9 +106,6 @@ import {
   BookOpen,
   Info,
   RotateCcw,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
@@ -392,7 +388,6 @@ export default function NotesSidebar() {
   const { data: session } = useSession()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [importExportOpen, setImportExportOpen] = useState(false)
-  const { job } = useImport()
   const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false)
   const { density, setDensity } = useSidebarDensity()
   const pathname = usePathname()
@@ -1095,24 +1090,8 @@ export default function NotesSidebar() {
                   <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
                     <Settings /> Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setImportExportOpen(true)} className="justify-between">
-                    <span className="flex items-center gap-2"><Upload /> Import / Export</span>
-                    {(job.status === "uploading" || job.status === "converting" || job.status === "processing") && (
-                      <span className="flex items-center gap-1.5">
-                        <Loader2 size={12} className="animate-spin text-purple-500" />
-                        {job.progress && job.progress.totalPages > 0 && (
-                          <span className="text-[10px] font-medium bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">
-                            {job.progress.processedPages}/{job.progress.totalPages}
-                          </span>
-                        )}
-                      </span>
-                    )}
-                    {job.status === "completed" && (
-                      <CheckCircle size={14} className="text-green-500" />
-                    )}
-                    {job.status === "failed" && (
-                      <AlertCircle size={14} className="text-red-500" />
-                    )}
+                  <DropdownMenuItem onClick={() => setImportExportOpen(true)}>
+                    <Upload /> Import / Export
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled>
                     <Rocket /> Upgrade to Pro
