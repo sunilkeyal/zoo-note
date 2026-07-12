@@ -130,7 +130,7 @@ export default function ImportsPage() {
   }
 
   const canCleanup = (status: string) =>
-    status === "completed" || status === "failed"
+    status === "failed"
 
   const totalPages = Math.ceil(total / limit)
 

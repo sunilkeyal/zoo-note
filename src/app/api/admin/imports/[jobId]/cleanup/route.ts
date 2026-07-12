@@ -21,11 +21,11 @@ export async function POST(
     return NextResponse.json({ success: false, error: "Job not found" }, { status: 404 })
   }
 
-  // Block cleanup during active import
-  if (job.status === "processing" || job.status === "uploading" || job.status === "converting" || job.status === "pending") {
+  // Only allow cleanup on failed jobs
+  if (job.status !== "failed") {
     return NextResponse.json({
       success: false,
-      error: `Cannot cleanup while job is ${job.status}. Wait for it to complete or fail.`,
+      error: `Cannot cleanup a job with status "${job.status}". Only failed imports can be cleaned up.`,
     }, { status: 409 })
   }
 
