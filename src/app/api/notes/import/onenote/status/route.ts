@@ -53,6 +53,14 @@ export async function GET(request: NextRequest) {
 
       const newProcessed = job.progress.processedPages + batchResult.pagesProcessed
 
+      // Accumulate results across all batches
+      const prevResult = job.result
+      const cumulativeResult = {
+        foldersCreated: (prevResult?.foldersCreated ?? 0) + batchResult.foldersCreated,
+        notesImported: (prevResult?.notesImported ?? 0) + batchResult.notesImported,
+        imagesImported: (prevResult?.imagesImported ?? 0) + batchResult.imagesImported,
+      }
+
       if (batchResult.done) {
         // Clean up temporary R2 files
         const r2Prefix = job.r2Key.substring(0, job.r2Key.lastIndexOf("/"))
@@ -65,11 +73,7 @@ export async function GET(request: NextRequest) {
             processedPages: newProcessed,
             currentStage: "Import complete!",
           },
-          result: {
-            foldersCreated: batchResult.foldersCreated,
-            notesImported: batchResult.notesImported,
-            imagesImported: batchResult.imagesImported,
-          },
+          result: cumulativeResult,
         })
       } else {
         await updateImportJob(db, jobId, {
@@ -78,6 +82,7 @@ export async function GET(request: NextRequest) {
             processedPages: newProcessed,
             currentStage: `Importing page ${newProcessed}/${job.progress.totalPages}...`,
           },
+          result: cumulativeResult,
         })
       }
     } catch (err) {
