@@ -110,7 +110,7 @@ describe('connectToDatabase', () => {
 
     await connectToDatabase()
 
-    expect(mockCreateIndex).toHaveBeenCalledTimes(8)
+    expect(mockCreateIndex).toHaveBeenCalledTimes(11)
   })
 
   it('returns cached db on second call', async () => {
