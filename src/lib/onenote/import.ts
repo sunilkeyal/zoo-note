@@ -253,6 +253,12 @@ export async function convertAndUploadToR2(
           const r2Key = `${r2Prefix}/converted/${entry.name}`
           manifest.htmlFiles.push(r2Key)
           filesToUpload.push({ localPath, r2Key, contentType: "text/html" })
+        } else if (entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+          const localPath = path.join(outputDir, entry.name)
+          const r2Key = `${r2Prefix}/converted/${entry.name}`
+          manifest.imageFiles.push(r2Key)
+          const ext = path.extname(entry.name).toLowerCase().slice(1)
+          filesToUpload.push({ localPath, r2Key, contentType: `image/${ext}` })
         }
       }
     }
@@ -266,12 +272,6 @@ export async function convertAndUploadToR2(
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true })
   }
-}
-
-export interface PageEntry {
-  r2Key: string
-  fileName: string
-  folderName: string
 }
 
 export interface BatchResult {
