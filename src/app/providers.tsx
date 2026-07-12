@@ -22,7 +22,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           </SidebarDensityProvider>
         </ThemeSyncProvider>
       </ThemeProvider>
+      <Toaster />
     </SessionProvider>
-    <Toaster />
   )
 }
