@@ -195,6 +195,10 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
 
         <Separator orientation="vertical" className="mx-1 h-6" />
 
+        <TableGridPicker editor={editor} />
+
+        <Separator orientation="vertical" className="mx-1 h-6" />
+
         <Popover>
           <Tooltip>
             <TooltipTrigger render={<PopoverTrigger className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent relative" />}>
@@ -387,9 +391,6 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
           onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
         />
 
-        <Separator orientation="vertical" className="mx-1 h-6" />
-
-        <TableGridPicker editor={editor} />
       </div>
       </TooltipProvider>
     </div>
@@ -478,6 +479,11 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         <ListChecks className="h-5 w-5" />
       </button>
 
+      <TableGridPicker
+        editor={editor}
+        triggerClassName="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+      />
+
       <span className="w-px h-6 bg-border mx-0.5" />
 
       <Popover>
@@ -524,11 +530,6 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
       >
         <Image className="h-5 w-5" />
       </button>
-
-      <TableGridPicker
-        editor={editor}
-        triggerClassName="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-      />
 
       <Popover>
         <PopoverTrigger className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground font-bold text-lg leading-none">
