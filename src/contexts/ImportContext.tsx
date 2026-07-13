@@ -61,6 +61,11 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   })
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const initializedRef = useRef(false)
+  const jobIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    jobIdRef.current = job.jobId
+  }, [job.jobId])
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -320,7 +325,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   }, [stopPolling])
 
   const cancelImport = useCallback(async () => {
-    const currentJobId = job.jobId
+    const currentJobId = jobIdRef.current
     if (!currentJobId) return
 
     stopPolling()
@@ -333,7 +338,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
       })
       const data = await res.json()
 
-      if (data.success) {
+      if (res.ok && data.success) {
         toast.success("Import cancelled")
       } else {
         toast.error("Failed to cancel import", { description: data.error })
@@ -352,7 +357,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         error: null,
       })
     }
-  }, [job.jobId, stopPolling])
+  }, [stopPolling])
 
   return (
     <ImportContext.Provider value={{ job, startImport, cancelImport, resetJob }}>
