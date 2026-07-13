@@ -32,6 +32,7 @@ interface ImportJobState {
 interface ImportContextValue {
   job: ImportJobState
   startImport: (file: File) => Promise<void>
+  cancelImport: () => Promise<void>
   resetJob: () => void
 }
 
@@ -318,8 +319,43 @@ export function ImportProvider({ children }: { children: ReactNode }) {
     })
   }, [stopPolling])
 
+  const cancelImport = useCallback(async () => {
+    const currentJobId = job.jobId
+    if (!currentJobId) return
+
+    stopPolling()
+
+    try {
+      const res = await fetch("/api/notes/import/onenote/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: currentJobId }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        toast.success("Import cancelled")
+      } else {
+        toast.error("Failed to cancel import", { description: data.error })
+      }
+    } catch {
+      toast.error("Failed to cancel import", { description: "Network error" })
+    } finally {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(STORAGE_FILENAME_KEY)
+      setJob({
+        jobId: null,
+        status: "idle",
+        filename: null,
+        progress: null,
+        result: null,
+        error: null,
+      })
+    }
+  }, [job.jobId, stopPolling])
+
   return (
-    <ImportContext.Provider value={{ job, startImport, resetJob }}>
+    <ImportContext.Provider value={{ job, startImport, cancelImport, resetJob }}>
       {children}
     </ImportContext.Provider>
   )
