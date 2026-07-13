@@ -28,7 +28,12 @@ async function cleanupImportData(db: Db, jobId: string, r2Key: string) {
 }
 
 const BATCH_SIZE = 10
-const STALE_TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes
+const STALE_TIMEOUTS: Record<string, number> = {
+  pending: 5 * 60 * 1000,
+  uploading: 5 * 60 * 1000,
+  converting: 10 * 60 * 1000,
+  processing: 10 * 60 * 1000,
+}
 
 export async function GET(request: NextRequest) {
   const session = await auth()
@@ -49,17 +54,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Job not found" }, { status: 404 })
   }
 
-  // Check for stale jobs
+  // Check for stale jobs in any non-terminal state
   const elapsed = Date.now() - job.updatedAt.getTime()
-  if (job.status === "processing" && elapsed > STALE_TIMEOUT_MS) {
+  const staleTimeout = STALE_TIMEOUTS[job.status]
+  if (staleTimeout && elapsed > staleTimeout) {
     await cleanupImportData(db, job._id.toString(), job.r2Key).catch(() => {})
+    const timeoutMinutes = Math.round(staleTimeout / 60000)
     await updateImportJob(db, jobId, {
       status: "failed",
-      error: "Import timed out (no progress for 10 minutes)",
+      error: `Import stuck in ${job.status} state — no progress for ${timeoutMinutes} minutes`,
     })
     return NextResponse.json({
       status: "failed",
-      error: "Import timed out",
+      error: `Import timed out (stuck in ${job.status})`,
     })
   }
 
