@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { X, Download, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useNotes } from "@/contexts/NoteContext"
 import { useImport } from "@/contexts/ImportContext"
-import { Button } from "@/components/ui/button"
 
 interface ImportExportSheetProps {
   open: boolean
@@ -258,14 +257,12 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
               </div>
             )}
             {["uploading", "converting", "processing"].includes(job.status) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 w-full"
+              <button
                 onClick={cancelImport}
+                className="mt-2 w-full rounded-md border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel Import
-              </Button>
+              </button>
             )}
             {job.status === "completed" && job.result && (
               <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">
