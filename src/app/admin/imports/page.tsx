@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash2, Upload, AlertCircle, CheckCircle, Loader2, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { Trash2, Upload, AlertCircle, CheckCircle, Loader2, ChevronLeftIcon, ChevronRightIcon, ArrowUp } from "lucide-react"
 import { toast } from "sonner"
 
 interface ImportJob {
@@ -95,6 +95,8 @@ export default function ImportsPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [sortField, setSortField] = useState("createdAt")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [cleanupJob, setCleanupJob] = useState<ImportJob | null>(null)
@@ -107,8 +109,8 @@ export default function ImportsPage() {
       params.set("page", String(page))
       params.set("limit", String(limit))
       if (statusFilter !== "all") params.set("status", statusFilter)
-      params.set("sortField", "createdAt")
-      params.set("sortDir", "desc")
+      params.set("sortField", sortField)
+      params.set("sortDir", sortDir)
 
       const res = await fetch(`/api/admin/imports?${params}`)
       const data = await res.json()
@@ -121,11 +123,21 @@ export default function ImportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, statusFilter])
+  }, [page, limit, statusFilter, sortField, sortDir])
 
   useEffect(() => {
     fetchJobs()
   }, [fetchJobs])
+
+  function handleSortChange(field: string) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
+    }
+    setPage(1)
+  }
 
   async function handleCleanup() {
     if (!cleanupJob) return
@@ -183,12 +195,33 @@ export default function ImportsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead>Filename</TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSortChange("filename")}>
+                <div className="flex items-center gap-1">
+                  Filename
+                  {sortField === "filename" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
               <TableHead>User</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSortChange("status")}>
+                <div className="flex items-center gap-1">
+                  Status
+                  {sortField === "status" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
               <TableHead>Result</TableHead>
               <TableHead>Error</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSortChange("createdAt")}>
+                <div className="flex items-center gap-1">
+                  Created
+                  {sortField === "createdAt" && (
+                    <ArrowUp className={`size-3 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+                  )}
+                </div>
+              </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
