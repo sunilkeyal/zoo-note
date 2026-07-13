@@ -164,7 +164,7 @@ export default function ImportsPage() {
   }
 
   const canCleanup = (status: string) =>
-    status === "failed"
+    status !== "completed"
 
   const totalPages = Math.ceil(total / limit)
 
@@ -365,7 +365,7 @@ export default function ImportsPage() {
           <DialogHeader>
             <DialogTitle>Clean Up Import</DialogTitle>
             <DialogDescription>
-              This will permanently delete all data created by this import. This action cannot be undone.
+              This will cancel the import and permanently delete all data created by it. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {cleanupJob && (
