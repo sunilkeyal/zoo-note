@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { getImportJob, updateImportJob } from "@/lib/onenote/import-job"
+import { getImportJob } from "@/lib/onenote/import-job"
 import { deleteByPrefix } from "@/lib/storage"
 import type { Db } from "mongodb"
 
