@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { getImportJob, updateImportJob } from "@/lib/onenote/import-job"
+import { getImportJob, updateImportJob, type ImportJobStatus } from "@/lib/onenote/import-job"
 import { processPagesBatch } from "@/lib/onenote/import"
 import { deleteByPrefix } from "@/lib/storage"
 import type { Db } from "mongodb"
@@ -28,7 +28,7 @@ async function cleanupImportData(db: Db, jobId: string, r2Key: string) {
 }
 
 const BATCH_SIZE = 10
-const STALE_TIMEOUTS: Record<string, number> = {
+const STALE_TIMEOUTS: Partial<Record<ImportJobStatus, number>> = {
   pending: 5 * 60 * 1000,
   uploading: 5 * 60 * 1000,
   converting: 10 * 60 * 1000,
