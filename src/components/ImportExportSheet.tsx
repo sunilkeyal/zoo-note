@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { X, Download, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useNotes } from "@/contexts/NoteContext"
 import { useImport } from "@/contexts/ImportContext"
+import { Button } from "@/components/ui/button"
 
 interface ImportExportSheetProps {
   open: boolean
@@ -15,7 +16,7 @@ type ImportState = "idle" | "loading" | "processing" | "success" | "error"
 
 export default function ImportExportSheet({ open, onClose }: ImportExportSheetProps) {
   const { fetchNotes, fetchFolders } = useNotes()
-  const { job, startImport } = useImport()
+  const { job, startImport, cancelImport } = useImport()
   const [exportState, setExportState] = useState<ExportState>("idle")
   const [importState, setImportState] = useState<ImportState>("idle")
   const [importMessage, setImportMessage] = useState("")
@@ -255,6 +256,16 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
                 <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" />
                 <span>{job.progress?.currentStage || "Processing..."} You can close this window.</span>
               </div>
+            )}
+            {["uploading", "converting", "processing"].includes(job.status) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={cancelImport}
+              >
+                Cancel Import
+              </Button>
             )}
             {job.status === "completed" && job.result && (
               <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">
