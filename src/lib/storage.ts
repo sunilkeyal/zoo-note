@@ -140,6 +140,29 @@ async function r2DeleteByPrefix(prefix: string): Promise<void> {
   )
 }
 
+async function r2ListByPrefix(prefix: string): Promise<string[]> {
+  const keys: string[] = []
+  let continuationToken: string | undefined
+
+  do {
+    const listResp = await getR2Client().send(
+      new ListObjectsV2Command({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    )
+    if (listResp.Contents) {
+      for (const obj of listResp.Contents) {
+        if (obj.Key) keys.push(obj.Key)
+      }
+    }
+    continuationToken = listResp.NextContinuationToken
+  } while (continuationToken)
+
+  return keys
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /** The storage key (filename) for a given image ID. Always .jpg since we compress to JPEG. */
@@ -231,6 +254,17 @@ export async function deleteByPrefix(prefix: string): Promise<void> {
   if (isR2()) {
     await r2DeleteByPrefix(prefix)
   }
+}
+
+/**
+ * List all object keys under a given R2 prefix.
+ * Handles pagination for >1000 objects.
+ */
+export async function listByPrefix(prefix: string): Promise<string[]> {
+  if (isR2()) {
+    return r2ListByPrefix(prefix)
+  }
+  return []
 }
 
 /**
