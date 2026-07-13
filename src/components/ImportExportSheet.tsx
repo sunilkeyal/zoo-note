@@ -15,7 +15,7 @@ type ImportState = "idle" | "loading" | "processing" | "success" | "error"
 
 export default function ImportExportSheet({ open, onClose }: ImportExportSheetProps) {
   const { fetchNotes, fetchFolders } = useNotes()
-  const { job, startImport } = useImport()
+  const { job, startImport, cancelImport } = useImport()
   const [exportState, setExportState] = useState<ExportState>("idle")
   const [importState, setImportState] = useState<ImportState>("idle")
   const [importMessage, setImportMessage] = useState("")
@@ -255,6 +255,14 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
                 <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" />
                 <span>{job.progress?.currentStage || "Processing..."} You can close this window.</span>
               </div>
+            )}
+            {["uploading", "converting", "processing"].includes(job.status) && (
+              <button
+                onClick={cancelImport}
+                className="mt-2 w-full rounded-md border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel Import
+              </button>
             )}
             {job.status === "completed" && job.result && (
               <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">

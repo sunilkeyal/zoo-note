@@ -32,6 +32,7 @@ interface ImportJobState {
 interface ImportContextValue {
   job: ImportJobState
   startImport: (file: File) => Promise<void>
+  cancelImport: () => Promise<void>
   resetJob: () => void
 }
 
@@ -60,6 +61,12 @@ export function ImportProvider({ children }: { children: ReactNode }) {
   })
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const initializedRef = useRef(false)
+  const jobIdRef = useRef<string | null>(null)
+  const xhrRef = useRef<XMLHttpRequest | null>(null)
+
+  useEffect(() => {
+    jobIdRef.current = job.jobId
+  }, [job.jobId])
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -234,12 +241,17 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
       const { jobId, uploadUrl } = presignData
 
+      // Store jobId immediately so cancel can work during upload
+      jobIdRef.current = jobId
+      setJob((prev) => ({ ...prev, jobId }))
+
       // Step 2: Upload file directly to R2
       toast.dismiss(loadingToast)
       const uploadToast = toast.loading("Uploading to storage...")
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
+        xhrRef.current = xhr
         xhr.open("PUT", uploadUrl, true)
         xhr.setRequestHeader("Content-Type", "application/octet-stream")
 
@@ -251,11 +263,12 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         })
 
         xhr.addEventListener("load", () => {
+          xhrRef.current = null
           if (xhr.status >= 200 && xhr.status < 300) resolve()
           else reject(new Error(`Upload failed with status ${xhr.status}`))
         })
-        xhr.addEventListener("error", () => reject(new Error("Upload failed")))
-        xhr.addEventListener("abort", () => reject(new Error("Upload aborted")))
+        xhr.addEventListener("error", () => { xhrRef.current = null; reject(new Error("Upload failed")) })
+        xhr.addEventListener("abort", () => { xhrRef.current = null; reject(new Error("Upload aborted")) })
         xhr.send(file)
       })
 
@@ -318,8 +331,49 @@ export function ImportProvider({ children }: { children: ReactNode }) {
     })
   }, [stopPolling])
 
+  const cancelImport = useCallback(async () => {
+    const currentJobId = jobIdRef.current
+    if (!currentJobId) return
+
+    stopPolling()
+
+    // Abort any in-progress XHR upload
+    if (xhrRef.current) {
+      xhrRef.current.abort()
+      xhrRef.current = null
+    }
+
+    try {
+      const res = await fetch("/api/notes/import/onenote/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: currentJobId }),
+      })
+      const data = await res.json()
+
+      if (res.ok && data.success) {
+        toast.success("Import cancelled")
+      } else {
+        toast.error("Failed to cancel import", { description: data.error })
+      }
+    } catch {
+      toast.error("Failed to cancel import", { description: "Network error" })
+    } finally {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(STORAGE_FILENAME_KEY)
+      setJob({
+        jobId: null,
+        status: "idle",
+        filename: null,
+        progress: null,
+        result: null,
+        error: null,
+      })
+    }
+  }, [stopPolling])
+
   return (
-    <ImportContext.Provider value={{ job, startImport, resetJob }}>
+    <ImportContext.Provider value={{ job, startImport, cancelImport, resetJob }}>
       {children}
     </ImportContext.Provider>
   )
