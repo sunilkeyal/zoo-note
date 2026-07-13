@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { getImportJob } from "@/lib/onenote/import-job"
+import { getImportJob, updateImportJob } from "@/lib/onenote/import-job"
 import { cleanupImportData } from "@/lib/onenote/cleanup"
 
 export async function POST(request: NextRequest) {
@@ -33,9 +33,11 @@ export async function POST(request: NextRequest) {
   // Clean up any created data
   await cleanupImportData(db, job._id.toString(), job.r2Key).catch(() => {})
 
-  // Delete the job document
-  const { ObjectId } = await import("mongodb")
-  await db.collection("importJobs").deleteOne({ _id: new ObjectId(jobId) })
+  // Mark as failed instead of deleting, so it appears in admin import list
+  await updateImportJob(db, jobId, {
+    status: "failed",
+    error: "Import cancelled by user",
+  })
 
   return NextResponse.json({ success: true })
 }
