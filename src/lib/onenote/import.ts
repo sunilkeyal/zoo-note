@@ -2,6 +2,8 @@ import { Db, ObjectId } from "mongodb"
 import { saveImage, imageUrl } from "@/lib/gridfs"
 import { convertOneNote } from "./convert"
 import { compressImage } from "@/lib/image-compress"
+import { storageSaveRaw, storageReadRaw } from "@/lib/storage"
+import type { ImportJobManifest } from "./import-job"
 import path from "path"
 import fs from "fs/promises"
 import os from "os"
@@ -183,6 +185,315 @@ export async function importOneNote(
   }
 
   return result
+}
+
+export interface ConvertResult {
+  manifest: ImportJobManifest
+  totalPages: number
+}
+
+/**
+ * Stage 1: Convert a OneNote buffer and upload results to R2.
+ * Returns a manifest of converted files stored in R2 under `r2Prefix`.
+ */
+export async function convertAndUploadToR2(
+  buffer: Buffer,
+  originalFilename: string,
+  r2Prefix: string,
+  _db: Db
+): Promise<ConvertResult> {
+  const format = detectOneNoteFormat(buffer)
+  if (!format) {
+    throw new Error("Unsupported file format. Accepted: .onepkg, .one")
+  }
+
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "onenote-"))
+  const safeName = path.basename(originalFilename)
+  const inputPath = path.join(tmpDir, safeName)
+  await fs.writeFile(inputPath, buffer)
+
+  const outputDir = path.join(tmpDir, "output")
+  await fs.mkdir(outputDir, { recursive: true })
+
+  try {
+    await convertOneNote(inputPath, outputDir, tmpDir)
+
+    const manifest: ImportJobManifest = { htmlFiles: [], imageFiles: [], sections: [] }
+    const entries = await fs.readdir(outputDir, { withFileTypes: true })
+    const subdirs = entries.filter((e) => e.isDirectory())
+
+    const filesToUpload: { localPath: string; r2Key: string; contentType: string }[] = []
+
+    if (subdirs.length > 0) {
+      for (const subdir of subdirs) {
+        manifest.sections.push(subdir.name)
+        const sectionDir = path.join(outputDir, subdir.name)
+        const files = await fs.readdir(sectionDir)
+        for (const f of files) {
+          const localPath = path.join(sectionDir, f)
+          const r2Key = `${r2Prefix}/converted/${subdir.name}/${f}`
+          if (f.endsWith(".html")) {
+            manifest.htmlFiles.push(r2Key)
+            filesToUpload.push({ localPath, r2Key, contentType: "text/html" })
+          } else if (IMAGE_EXTENSIONS.has(path.extname(f).toLowerCase())) {
+            manifest.imageFiles.push(r2Key)
+            const ext = path.extname(f).toLowerCase().slice(1)
+            filesToUpload.push({ localPath, r2Key, contentType: `image/${ext}` })
+          }
+        }
+      }
+    } else {
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith(".html")) {
+          const folderName = deriveFolderName(entry.name)
+          if (!manifest.sections.includes(folderName)) {
+            manifest.sections.push(folderName)
+          }
+          const localPath = path.join(outputDir, entry.name)
+          const r2Key = `${r2Prefix}/converted/${entry.name}`
+          manifest.htmlFiles.push(r2Key)
+          filesToUpload.push({ localPath, r2Key, contentType: "text/html" })
+        } else if (entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+          const localPath = path.join(outputDir, entry.name)
+          const r2Key = `${r2Prefix}/converted/${entry.name}`
+          manifest.imageFiles.push(r2Key)
+          const ext = path.extname(entry.name).toLowerCase().slice(1)
+          filesToUpload.push({ localPath, r2Key, contentType: `image/${ext}` })
+        }
+      }
+    }
+
+    // Upload ToC files from root output directory (needed for page ordering)
+    if (subdirs.length > 0) {
+      for (const subdir of subdirs) {
+        const tocPath = path.join(outputDir, `${subdir.name}.html`)
+        try {
+          await fs.access(tocPath)
+          const r2Key = `${r2Prefix}/converted/${subdir.name}.html`
+          manifest.htmlFiles.push(r2Key)
+          filesToUpload.push({ localPath: tocPath, r2Key, contentType: "text/html" })
+        } catch {
+          // No ToC file for this section
+        }
+      }
+    }
+
+    for (const { localPath, r2Key, contentType } of filesToUpload) {
+      const data = await fs.readFile(localPath)
+      await storageSaveRaw(r2Key, data, contentType)
+    }
+
+    // Count only page files (not ToC files) for totalPages
+    const pageFileCount = manifest.htmlFiles.filter((k) => {
+      const isToc = manifest.sections.some((s) => k.endsWith(`/${s}.html`) && !k.includes(`/${s}/`))
+      return !isToc
+    }).length
+
+    return { manifest, totalPages: pageFileCount }
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true })
+  }
+}
+
+export interface BatchResult {
+  pagesProcessed: number
+  foldersCreated: number
+  notesImported: number
+  imagesImported: number
+  errors: string[]
+  done: boolean
+}
+
+/**
+ * Stage 2-N: Process a batch of pages from R2.
+ * Reads `batchSize` unprocessed pages from the manifest, processes them,
+ * and returns the batch result. Call repeatedly until `done` is true.
+ */
+export async function processPagesBatch(
+  db: Db,
+  userId: string,
+  manifest: ImportJobManifest,
+  processedCount: number,
+  batchSize: number = 10,
+  jobId: string = ""
+): Promise<BatchResult> {
+  const batchResult: BatchResult = {
+    pagesProcessed: 0,
+    foldersCreated: 0,
+    notesImported: 0,
+    imagesImported: 0,
+    errors: [],
+    done: false,
+  }
+
+  const startIdx = processedCount
+  const endIdx = Math.min(startIdx + batchSize, manifest.htmlFiles.length)
+  const pagesToProcess = manifest.htmlFiles.slice(startIdx, endIdx)
+
+  // Load section page ordering from ToC files
+  const sectionPageOrder = new Map<string, Map<string, number>>()
+  for (const sectionName of manifest.sections) {
+    const tocKey = manifest.htmlFiles.find(
+      (k) => k.endsWith(`/${sectionName}.html`) && !k.includes(`/${sectionName}/`)
+    )
+    if (tocKey) {
+      try {
+        const tocData = await storageReadRaw(tocKey)
+        if (tocData) {
+          const tocHtml = tocData.toString("utf-8")
+          const order = parsePageOrderFromToc(tocHtml)
+          const posMap = new Map<string, number>()
+          order.forEach((filename, index) => posMap.set(filename, index))
+          sectionPageOrder.set(sectionName, posMap)
+        }
+      } catch {
+        // No ToC for this section
+      }
+    }
+  }
+
+  for (const htmlKey of pagesToProcess) {
+    const keyParts = htmlKey.split("/converted/")
+    const afterConverted = keyParts[1] || ""
+    if (!afterConverted.includes("/")) {
+      const isToc = manifest.sections.some((s) => htmlKey.endsWith(`/${s}.html`))
+      if (isToc) {
+        batchResult.pagesProcessed++
+        continue
+      }
+    }
+
+    try {
+      const htmlData = await storageReadRaw(htmlKey)
+      if (!htmlData) {
+        batchResult.errors.push(`Could not read ${htmlKey}`)
+        continue
+      }
+
+      let html = htmlData.toString("utf-8")
+      const fileName = path.basename(htmlKey)
+
+      const folderName = afterConverted.includes("/")
+        ? afterConverted.split("/")[0]
+        : deriveFolderName(fileName)
+
+      const title = extractPageTitle(html) || fileName.replace(/\.html$/, "")
+      html = extractBodyContent(html)
+      html = stripFontStyles(html)
+      html = normalizeOneNoteTables(html)
+
+      const foldersCollection = db.collection("folders")
+      let folderId: string | null = null
+      const existing = await foldersCollection.findOne({
+        name: folderName,
+        userId,
+        isDeleted: { $ne: true },
+      })
+      if (existing) {
+        folderId = existing._id.toString()
+      } else {
+        const now = new Date()
+        const insertResult = await foldersCollection.insertOne({
+          name: folderName,
+          position: 0,
+          userId,
+          jobId,
+          createdAt: now,
+          updatedAt: now,
+        })
+        folderId = insertResult.insertedId.toString()
+        batchResult.foldersCreated++
+      }
+
+      const localResult = await processLocalImagesFromR2(html, manifest.imageFiles, htmlKey, db, userId, jobId)
+      html = localResult.cleanedHtml
+      batchResult.imagesImported += localResult.imageCount
+
+      const imgResult = await processImages(html, db, userId)
+      html = imgResult.cleanedHtml
+      batchResult.imagesImported += imgResult.imageCount
+
+      const svgResult = await processSvgNodes(html, db, userId)
+      html = svgResult.cleanedHtml
+      batchResult.imagesImported += svgResult.imageCount
+
+      const notesCollection = db.collection("notes")
+      const now = new Date()
+      const position = sectionPageOrder.get(folderName)?.get(fileName) ?? 0
+      await notesCollection.insertOne({
+        title,
+        content: html,
+        folderId,
+        position,
+        userId,
+        jobId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      batchResult.notesImported++
+      batchResult.pagesProcessed++
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      batchResult.errors.push(`Failed to import ${path.basename(htmlKey)}: ${message}`)
+    }
+  }
+
+  batchResult.done = endIdx >= manifest.htmlFiles.length
+  return batchResult
+}
+
+async function processLocalImagesFromR2(
+  html: string,
+  imageR2Keys: string[],
+  pageHtmlKey: string,
+  db: Db,
+  userId: string,
+  jobId: string = ""
+): Promise<{ cleanedHtml: string; imageCount: number }> {
+  const pageDir = pageHtmlKey.substring(0, pageHtmlKey.lastIndexOf("/"))
+  const sectionImages = imageR2Keys.filter((k) => k.startsWith(pageDir + "/"))
+
+  if (sectionImages.length === 0) {
+    return { cleanedHtml: html, imageCount: 0 }
+  }
+
+  const referencedInHtml = new Set<string>()
+  const imgSrcRe = /<img[^>]+src="([^"]+)"[^>]*>/gi
+  let m: RegExpExecArray | null
+  while ((m = imgSrcRe.exec(html)) !== null) {
+    const src = m[1]
+    if (!src.startsWith("http") && !src.startsWith("data:") && !src.startsWith("//")) {
+      referencedInHtml.add(path.basename(src))
+    }
+  }
+
+  const imageUrlMap = new Map<string, string>()
+  for (const imageKey of sectionImages) {
+    const filename = path.basename(imageKey)
+    if (!referencedInHtml.has(filename)) continue
+
+    try {
+      const data = await storageReadRaw(imageKey)
+      if (!data) continue
+      const ext = path.extname(filename).toLowerCase().slice(1)
+      const uploadId = new ObjectId()
+      const compressed = await compressImage(data).catch(() => data)
+      await saveImage(db, uploadId, filename,
+        `image/${ext === "jpg" ? "jpeg" : ext}`,
+        compressed,
+        { userId, originalName: filename, uploadedAt: new Date(), jobId },
+      )
+      imageUrlMap.set(filename, imageUrl(uploadId.toHexString()))
+    } catch {
+      // skip individual image failures
+    }
+  }
+
+  if (imageUrlMap.size === 0) {
+    return { cleanedHtml: html, imageCount: 0 }
+  }
+
+  return replaceLocalImageRefs(html, imageUrlMap)
 }
 
 function deriveFolderName(filename: string): string {

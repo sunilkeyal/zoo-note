@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const MAX_SIZE = 4 * 1024 * 1024
+  const MAX_SIZE = 50 * 1024 * 1024
   if (file.size > MAX_SIZE) {
     return NextResponse.json(
       { success: false, error: "File too large (max 4MB). Try a smaller section (.one) or notebook (.onepkg)." },

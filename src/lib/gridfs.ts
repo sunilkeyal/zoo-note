@@ -7,7 +7,7 @@ export async function saveImage(
   filename: string,
   contentType: string,
   data: Buffer,
-  metadata: { userId: string; originalName: string; uploadedAt: Date }
+  metadata: { userId: string; originalName: string; uploadedAt: Date; jobId?: string }
 ): Promise<void> {
   await storageSave(id.toHexString(), data, contentType)
   await db.collection("images").insertOne({

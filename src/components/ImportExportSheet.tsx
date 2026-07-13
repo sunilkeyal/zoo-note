@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { X, Download, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useNotes } from "@/contexts/NoteContext"
+import { useImport } from "@/contexts/ImportContext"
 
 interface ImportExportSheetProps {
   open: boolean
@@ -10,16 +11,15 @@ interface ImportExportSheetProps {
 }
 
 type ExportState = "idle" | "loading"
-type ImportState = "idle" | "loading" | "success" | "error"
+type ImportState = "idle" | "loading" | "processing" | "success" | "error"
 
 export default function ImportExportSheet({ open, onClose }: ImportExportSheetProps) {
   const { fetchNotes, fetchFolders } = useNotes()
+  const { job, startImport } = useImport()
   const [exportState, setExportState] = useState<ExportState>("idle")
   const [importState, setImportState] = useState<ImportState>("idle")
   const [importMessage, setImportMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [onenoteImportState, setOnenoteImportState] = useState<ImportState>("idle")
-  const [onenoteImportMessage, setOnenoteImportMessage] = useState("")
   const onenoteFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -36,8 +36,6 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
       setExportState("idle")
       setImportState("idle")
       setImportMessage("")
-      setOnenoteImportState("idle")
-      setOnenoteImportMessage("")
     }
   }, [open])
 
@@ -106,51 +104,7 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
   async function handleOneNoteFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-
-    const ext = file.name.toLowerCase().split(".").pop()
-    if (ext !== "onepkg" && ext !== "one") {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage("Unsupported file format. Accepted: .onepkg, .one")
-      return
-    }
-
-    const MAX_UPLOAD_SIZE = 4 * 1024 * 1024
-    if (file.size > MAX_UPLOAD_SIZE) {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage("File too large (max 4MB). Try a smaller section (.one) or notebook (.onepkg).")
-      return
-    }
-
-    setOnenoteImportState("loading")
-    setOnenoteImportMessage("")
-
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      const res = await fetch("/api/notes/import/onenote", {
-        method: "POST",
-        body: formData,
-      })
-      const data = await res.json()
-      if (!res.ok || !data.success) {
-        setOnenoteImportState("error")
-        setOnenoteImportMessage(data.error || "Import failed")
-        return
-      }
-      const r = data.data
-      setOnenoteImportState("success")
-      setOnenoteImportMessage(
-        `Imported ${r.foldersCreated} folder${r.foldersCreated !== 1 ? "s" : ""}, ` +
-          `${r.notesImported} note${r.notesImported !== 1 ? "s" : ""}, ` +
-          `${r.imagesImported} image${r.imagesImported !== 1 ? "s" : ""}.`
-      )
-      fetchNotes()
-      fetchFolders()
-    } catch {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage("Network error. Please try again.")
-    }
+    startImport(file)
   }
 
   if (!open) return null
@@ -256,17 +210,21 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">Import from OneNote</h3>
             </div>
             <p className="text-xs text-gray-500 mb-3">
-              Import a OneNote notebook (.onepkg) or section (.one). Folders and notes will be created automatically.
+              Import a OneNote notebook (.onepkg) or section (.one). Max 50MB. Folders and notes will be created automatically.
             </p>
+            <div className="mb-3 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Best compatibility with <strong>OneNote 2016+ on Windows</strong>. Older versions and Mac exports may not work.</span>
+            </div>
             <button
               onClick={() => onenoteFileInputRef.current?.click()}
-              disabled={onenoteImportState === "loading"}
+              disabled={job.status !== "idle" && job.status !== "completed" && job.status !== "failed"}
               className="w-full rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
-              {onenoteImportState === "loading" ? (
+              {job.status !== "idle" && job.status !== "completed" && job.status !== "failed" ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Importing…
+                  {job.status === "uploading" ? "Uploading..." : job.status === "converting" ? "Converting..." : "Importing..."}
                 </>
               ) : (
                 "Select File"
@@ -279,20 +237,39 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
               className="hidden"
               onChange={handleOneNoteFileSelect}
             />
-            <div className="mt-2 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Best compatibility with <strong>OneNote 2016+ on Windows</strong>. Older versions and Mac exports may not work.</span>
-            </div>
-            {onenoteImportState === "success" && (
-              <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">
-                <CheckCircle size={14} className="mt-0.5 shrink-0" />
-                <span>{onenoteImportMessage}</span>
+            {job.status === "processing" && job.progress && (
+              <div className="mt-3">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                  <div
+                    className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${job.progress.totalPages > 0 ? (job.progress.processedPages / job.progress.totalPages) * 100 : 0}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  {job.progress.processedPages}/{job.progress.totalPages} pages
+                </p>
               </div>
             )}
-            {onenoteImportState === "error" && (
+            {(job.status === "uploading" || job.status === "converting" || job.status === "processing") && (
+              <div className="mt-3 flex items-start gap-2 text-xs text-blue-600 dark:text-blue-400">
+                <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" />
+                <span>{job.progress?.currentStage || "Processing..."} You can close this window.</span>
+              </div>
+            )}
+            {job.status === "completed" && job.result && (
+              <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">
+                <CheckCircle size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  Imported {job.result.foldersCreated} folder{job.result.foldersCreated !== 1 ? "s" : ""},{" "}
+                  {job.result.notesImported} note{job.result.notesImported !== 1 ? "s" : ""},{" "}
+                  {job.result.imagesImported} image{job.result.imagesImported !== 1 ? "s" : ""}.
+                </span>
+              </div>
+            )}
+            {job.status === "failed" && (
               <div className="mt-3 flex items-start gap-2 text-xs text-red-500">
                 <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                <span>{onenoteImportMessage}</span>
+                <span>{job.error || "Import failed"}</span>
               </div>
             )}
           </div>
