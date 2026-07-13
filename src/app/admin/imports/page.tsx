@@ -101,6 +101,8 @@ export default function ImportsPage() {
   const [loading, setLoading] = useState(true)
   const [cleanupJob, setCleanupJob] = useState<ImportJob | null>(null)
   const [cleaning, setCleaning] = useState(false)
+  const [r2CleanupJob, setR2CleanupJob] = useState<ImportJob | null>(null)
+  const [r2Cleaning, setR2Cleaning] = useState(false)
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
@@ -160,6 +162,28 @@ export default function ImportsPage() {
       toast.error("Cleanup failed", { description: "Network error" })
     } finally {
       setCleaning(false)
+    }
+  }
+
+  async function handleR2Cleanup() {
+    if (!r2CleanupJob) return
+    setR2Cleaning(true)
+    try {
+      const res = await fetch(`/api/admin/imports/${r2CleanupJob._id}/cleanup-r2`, {
+        method: "POST",
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("R2 files cleaned")
+        setR2CleanupJob(null)
+        fetchJobs()
+      } else {
+        toast.error("R2 cleanup failed", { description: data.error })
+      }
+    } catch {
+      toast.error("R2 cleanup failed", { description: "Network error" })
+    } finally {
+      setR2Cleaning(false)
     }
   }
 
@@ -280,6 +304,14 @@ export default function ImportsPage() {
                       >
                         <Trash2 size={14} className="mr-1" />
                         Cleanup
+                      </Button>
+                    ) : job.status === "completed" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setR2CleanupJob(job)}
+                      >
+                        Clean R2
                       </Button>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
@@ -402,6 +434,54 @@ export default function ImportsPage() {
             </Button>
             <Button variant="destructive" onClick={handleCleanup} disabled={cleaning}>
               {cleaning ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* R2 Cleanup Confirmation Dialog */}
+      <Dialog open={!!r2CleanupJob} onOpenChange={(open) => { if (!open) setR2CleanupJob(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clean R2 Files</DialogTitle>
+            <DialogDescription>
+              This will delete R2 files for this import. The notes, folders, and images in the database will remain intact.
+            </DialogDescription>
+          </DialogHeader>
+          {r2CleanupJob && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Filename</span>
+                <span className="font-medium">{r2CleanupJob.filename}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">User</span>
+                <span className="font-medium">{r2CleanupJob.user?.email || r2CleanupJob.userId}</span>
+              </div>
+              {r2CleanupJob.result && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Notes</span>
+                    <span className="font-medium">{r2CleanupJob.result.notesImported}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Folders</span>
+                    <span className="font-medium">{r2CleanupJob.result.foldersCreated}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Images</span>
+                    <span className="font-medium">{r2CleanupJob.result.imagesImported}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setR2CleanupJob(null)} disabled={r2Cleaning}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleR2Cleanup} disabled={r2Cleaning}>
+              {r2Cleaning ? "Cleaning..." : "Clean R2 Files"}
             </Button>
           </DialogFooter>
         </DialogContent>
