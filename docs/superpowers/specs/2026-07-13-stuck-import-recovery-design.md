@@ -94,31 +94,6 @@ Update `canCleanup()` to return `true` for any status except `completed`:
 const canCleanup = (status: string) => status !== "completed"
 ```
 
-### 4. Periodic Cleanup Cron (Optional — Vercel Pro Only)
-
-**File**: `vercel.json` (create if not exists)
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/cleanup-stale-imports",
-      "schedule": "0 * * * *"
-    }
-  ]
-}
-```
-
-**File**: `src/app/api/cron/cleanup-stale-imports/route.ts`
-
-A Vercel cron job that runs hourly:
-1. Verify the request is from Vercel cron (check `Authorization` header against `CRON_SECRET` env var)
-2. Find all jobs in non-terminal states (`pending`, `uploading`, `converting`, `processing`) where `updatedAt` is older than 30 minutes
-3. For each stale job, clean up data and set status to `failed`
-4. Return a summary of cleaned jobs
-
-This is a safety net for cases where the user never returns to trigger the status endpoint's stale check.
-
 ## Files to Modify
 
 | File | Change |
@@ -129,11 +104,10 @@ This is a safety net for cases where the user never returns to trigger the statu
 | `src/components/ImportExportSheet.tsx` | Add cancel button UI |
 | `src/app/api/admin/imports/[jobId]/cleanup/route.ts` | Allow cleanup for any non-completed status |
 | `src/app/admin/imports/page.tsx` | Update `canCleanup()` logic |
-| `vercel.json` | **New** — cron schedule config |
-| `src/app/api/cron/cleanup-stale-imports/route.ts` | **New** — periodic cleanup endpoint |
 
 ## Out of Scope
 
+- Vercel cron jobs (Hobby plan does not support them; stale timeout on the status endpoint covers this case)
 - Retry logic for failed imports (separate feature)
 - Import progress webhooks or notifications
 - Changes to the WASM conversion or batch processing logic
