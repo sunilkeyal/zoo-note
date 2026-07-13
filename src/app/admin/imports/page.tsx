@@ -176,7 +176,11 @@ export default function ImportsPage() {
       })
       const data = await res.json()
       if (data.success) {
-        toast.success("R2 files cleaned")
+        toast.success("Temporary files cleaned", {
+          description: data.filesDeleted > 0
+            ? `Deleted ${data.filesDeleted} file${data.filesDeleted !== 1 ? "s" : ""} from R2.`
+            : "No temporary files found (already cleaned).",
+        })
         setR2CleanupJob(null)
         fetchJobs()
       } else {
@@ -341,7 +345,7 @@ export default function ImportsPage() {
                         size="sm"
                         onClick={() => setR2CleanupJob(job)}
                       >
-                        Clean R2
+                        Clean Temp Files
                       </Button>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
@@ -473,9 +477,9 @@ export default function ImportsPage() {
       <Dialog open={!!r2CleanupJob} onOpenChange={(open) => { if (!open) setR2CleanupJob(null) }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Clean R2 Files</DialogTitle>
+            <DialogTitle>Clean Temporary Import Files</DialogTitle>
             <DialogDescription>
-              This will delete R2 files for this import. The notes, folders, and images in the database will remain intact.
+              This will delete the temporary files used during import (source file and converted files in R2). Your notes, folders, and images in the database will NOT be affected.
             </DialogDescription>
           </DialogHeader>
           {r2CleanupJob && (
@@ -488,22 +492,6 @@ export default function ImportsPage() {
                 <span className="text-muted-foreground">User</span>
                 <span className="font-medium">{r2CleanupJob.user?.email || r2CleanupJob.userId}</span>
               </div>
-              {r2CleanupJob.result && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Notes</span>
-                    <span className="font-medium">{r2CleanupJob.result.notesImported}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Folders</span>
-                    <span className="font-medium">{r2CleanupJob.result.foldersCreated}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Images</span>
-                    <span className="font-medium">{r2CleanupJob.result.imagesImported}</span>
-                  </div>
-                </>
-              )}
             </div>
           )}
           <DialogFooter>
@@ -511,7 +499,7 @@ export default function ImportsPage() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleR2Cleanup} disabled={r2Cleaning}>
-              {r2Cleaning ? "Cleaning..." : "Clean R2 Files"}
+              {r2Cleaning ? "Cleaning..." : "Clean Temporary Files"}
             </Button>
           </DialogFooter>
         </DialogContent>

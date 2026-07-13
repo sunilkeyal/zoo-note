@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { deleteByPrefix } from "@/lib/storage"
+import { deleteByPrefix, listByPrefix } from "@/lib/storage"
 import { ObjectId } from "mongodb"
 
 export async function POST(
@@ -35,13 +35,13 @@ export async function POST(
   const r2Prefix = job.r2Key.substring(0, job.r2Key.lastIndexOf("/"))
 
   try {
+    const files = await listByPrefix(r2Prefix)
     await deleteByPrefix(r2Prefix)
+    return NextResponse.json({ success: true, r2Prefix, filesDeleted: files.length })
   } catch {
     return NextResponse.json(
       { success: false, error: "Failed to clean R2 files" },
       { status: 500 }
     )
   }
-
-  return NextResponse.json({ success: true, r2Prefix })
 }
