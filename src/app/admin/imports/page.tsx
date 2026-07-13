@@ -27,6 +27,7 @@ import { toast } from "sonner"
 interface ImportJob {
   _id: string
   userId: string
+  user: { email: string; displayName: string } | null
   filename: string
   fileSize: number
   status: string
@@ -162,6 +163,7 @@ export default function ImportsPage() {
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead>Filename</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Result</TableHead>
               <TableHead>Error</TableHead>
@@ -172,7 +174,7 @@ export default function ImportsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <div className="space-y-2 py-2">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Skeleton key={i} className="h-6 w-full" />
@@ -182,7 +184,7 @@ export default function ImportsPage() {
               </TableRow>
             ) : jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   No import jobs found.
                 </TableCell>
               </TableRow>
@@ -191,6 +193,9 @@ export default function ImportsPage() {
                 <TableRow key={job._id}>
                   <TableCell className="font-medium max-w-[200px] truncate" title={job.filename}>
                     {job.filename}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {job.user?.email || job.userId}
                   </TableCell>
                   <TableCell>{statusBadge(job.status)}</TableCell>
                   <TableCell>
@@ -274,6 +279,10 @@ export default function ImportsPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Filename</span>
                 <span className="font-medium">{cleanupJob.filename}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">User</span>
+                <span className="font-medium">{cleanupJob.user?.email || cleanupJob.userId}</span>
               </div>
               {cleanupJob.result && (
                 <>

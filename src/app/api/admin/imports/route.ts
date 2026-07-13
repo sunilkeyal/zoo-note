@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
+import { ObjectId } from "mongodb"
 
 const COLLECTION = "importJobs"
 
@@ -39,9 +40,18 @@ export async function GET(request: NextRequest) {
     .limit(limit)
     .toArray()
 
+  // Resolve userIds to user emails
+  const userIds = [...new Set(jobs.map((job: any) => job.userId).filter(Boolean))]
+  const usersCollection = db.collection("users")
+  const users = await usersCollection
+    .find({ _id: { $in: userIds.map((id) => new ObjectId(id)) } }, { projection: { email: 1, displayName: 1 } })
+    .toArray()
+  const userMap = new Map(users.map((u: any) => [u._id.toString(), { email: u.email, displayName: u.displayName }]))
+
   const data = jobs.map((job: any) => ({
     _id: job._id.toString(),
     userId: job.userId,
+    user: userMap.get(job.userId) || null,
     filename: job.filename,
     fileSize: job.fileSize,
     status: job.status,
