@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Remove the 4MB OneNote import limit and support files up to 50MB by uploading directly to R2 via presigned URLs and processing asynchronously across multiple Vercel function invocations.
+**Goal:** Remove the 4MB OneNote import limit and support files up to 50MB by uploading directly to R2 via presigned URLs and processing asynchronously across multiple Vercel function invocations. Includes global import state management with persistent toast notifications, import cleanup on failure, and an admin dashboard for managing import jobs.
 
-**Architecture:** Client uploads the .one/.onepkg file directly to R2 via a presigned PUT URL (bypasses Vercel's 4.5MB body limit). Server processes the file in stages: WASM conversion in one invocation, page processing in batches triggered by the client's polling requests (each batch stays under Vercel's 60s timeout). Job state is tracked in a new `importJobs` MongoDB collection.
+**Architecture:** Client uploads the .one/.onepkg file directly to R2 via a presigned PUT URL (bypasses Vercel's 4.5MB body limit). Server processes the file in stages: WASM conversion in one invocation, page processing in batches triggered by the client's polling requests (each batch stays under Vercel's 60s timeout). Job state is tracked in a new `importJobs` MongoDB collection. Every document created during import is tagged with a `jobId` for cleanup. Failed imports are automatically cleaned up. An admin dashboard provides visibility and manual cleanup capability.
 
-**Tech Stack:** Next.js 16 App Router, MongoDB (native driver), Cloudflare R2 (S3 API), `@aws-sdk/s3-request-presigner`, existing WASM OneNote converter, sharp (image compression), React 19, shadcn/ui.
+**Tech Stack:** Next.js 16 App Router, MongoDB (native driver), Cloudflare R2 (S3 API), `@aws-sdk/s3-request-presigner`, existing WASM OneNote converter, sharp (image compression), React 19, shadcn/ui, sonner (toast notifications).
 
 ---
 
@@ -14,15 +14,22 @@
 
 | File | Action | Responsibility |
 |------|--------|---------------|
-| `package.json` | Modify | Add `@aws-sdk/s3-request-presigner` dependency |
+| `package.json` | Modify | Add `@aws-sdk/s3-request-presigner` and `sonner` dependencies |
 | `src/lib/mongodb.ts` | Modify | Add `importJobs` collection indexes |
-| `src/lib/storage.ts` | Modify | Add `getPresignedUploadUrl()` and `r2DeleteByPrefix()` |
+| `src/lib/storage.ts` | Modify | Add `getPresignedUploadUrl()`, `deleteByPrefix()`, `storageSaveRaw()`, `storageReadRaw()` |
+| `src/lib/gridfs.ts` | Modify | Add `jobId` to image metadata type |
 | `src/lib/onenote/import-job.ts` | Create | Job CRUD operations (create, update, getById, listActive) |
-| `src/lib/onenote/import.ts` | Modify | Extract `processPagesBatch()` as exported function |
+| `src/lib/onenote/import.ts` | Modify | Extract `processPagesBatch()`, `convertAndUploadToR2()`, `processLocalImagesFromR2()` with jobId tagging |
 | `src/app/api/notes/import/onenote/presign/route.ts` | Create | Presigned URL endpoint |
 | `src/app/api/notes/import/onenote/confirm/route.ts` | Create | Start processing after upload |
-| `src/app/api/notes/import/onenote/status/route.ts` | Create | Status polling + batch processing trigger |
-| `src/components/ImportExportSheet.tsx` | Modify | Async upload flow with progress UI |
+| `src/app/api/notes/import/onenote/status/route.ts` | Create | Status polling + batch processing trigger + auto-cleanup on failure |
+| `src/contexts/ImportContext.tsx` | Create | Global import state with localStorage persistence |
+| `src/app/providers.tsx` | Modify | Add `<Toaster />` and `<ImportProvider>` |
+| `src/components/ImportExportSheet.tsx` | Modify | Use `useImport()` context, move compatibility warning above button |
+| `src/app/api/admin/imports/route.ts` | Create | Admin imports list endpoint |
+| `src/app/api/admin/imports/[jobId]/cleanup/route.ts` | Create | Admin cleanup endpoint |
+| `src/app/admin/imports/page.tsx` | Create | Admin imports page with table, filter, sort, pagination |
+| `src/components/NotesSidebar.tsx` | Modify | Add Import Jobs nav item to admin sidebar |
 | `src/__tests__/onenote-large-import.test.ts` | Create | Unit tests for new functions |
 
 ---
@@ -1094,261 +1101,54 @@ git commit -m "feat: add status endpoint with poll-triggered batch processing"
 
 ---
 
-### Task 9: Update ImportExportSheet for async upload with progress
+### Task 9: Update ImportExportSheet to use ImportContext
 
 **Files:**
 - Modify: `src/components/ImportExportSheet.tsx`
 
-- [ ] **Step 1: Add new state variables**
+**Note:** Task 15 (ImportContext) must be completed first. Task 16 (this task) refactors ImportExportSheet to use the global context instead of managing its own import state.
 
-In `ImportExportSheet.tsx`, add new state variables after the existing ones (after line 23):
+- [ ] **Step 1: Replace local import state with `useImport()`**
 
-```typescript
-const [uploadProgress, setUploadProgress] = useState(0)
-const [onenoteJobId, setOnenoteJobId] = useState<string | null>(null)
-```
+  Remove all local import state variables (`onenoteImportState`, `onenoteImportMessage`, `uploadProgress`, `onenoteJobId`) and the local `handleOneNoteFileSelect`, `uploadFileToR2`, and `pollImportStatus` functions. Replace with:
 
-- [ ] **Step 2: Add new import state type**
+  ```typescript
+  const { job, startImport, resetJob } = useImport()
+  ```
 
-Update the `ImportState` type (line 14) to include a new state:
+  Derive display state from `job.status` and `job.progress`.
 
-```typescript
-type ImportState = "idle" | "loading" | "processing" | "success" | "error"
-```
+- [ ] **Step 2: Update `handleOneNoteFileSelect` to call `startImport`**
 
-- [ ] **Step 3: Reset new states on close**
-
-In the `useEffect` that resets states when the sheet closes (around line 34-42), add:
-
-```typescript
-setUploadProgress(0)
-setOnenoteJobId(null)
-```
-
-- [ ] **Step 4: Replace `handleOneNoteFileSelect` with async flow**
-
-Replace the entire `handleOneNoteFileSelect` function (lines 106-154) with:
-
-```typescript
-async function handleOneNoteFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-  const file = e.target.files?.[0]
-  if (!file) return
-
-  const ext = file.name.toLowerCase().split(".").pop()
-  if (ext !== "onepkg" && ext !== "one") {
-    setOnenoteImportState("error")
-    setOnenoteImportMessage("Unsupported file format. Accepted: .onepkg, .one")
-    return
+  ```typescript
+  async function handleOneNoteFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await startImport(file)
   }
+  ```
 
-  const MAX_IMPORT_SIZE = 50 * 1024 * 1024
-  if (file.size > MAX_IMPORT_SIZE) {
-    setOnenoteImportState("error")
-    setOnenoteImportMessage("File too large (max 50MB).")
-    return
-  }
+- [ ] **Step 3: Update progress display to use `job` state**
 
-  setOnenoteImportState("loading")
-  setOnenoteImportMessage("Requesting upload URL...")
-  setUploadProgress(0)
+  Replace all `onenoteImportState` / `onenoteImportMessage` references with `job.status` / `job.progress.currentStage` / `job.error` / `job.result`.
 
-  try {
-    // Step 1: Get presigned URL
-    const presignRes = await fetch("/api/notes/import/onenote/presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: file.name, fileSize: file.size }),
-    })
-    const presignData = await presignRes.json()
-    if (!presignRes.ok || !presignData.success) {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage(presignData.error || "Failed to start import")
-      return
-    }
+- [ ] **Step 4: Move compatibility warning above the Select File button**
 
-    const { jobId, uploadUrl } = presignData
+  Move the amber compatibility warning (`Best compatibility with OneNote 2016+ on Windows...`) from below the progress bar to above the "Select File" button, before the hidden file input.
 
-    // Step 2: Upload file directly to R2
-    setOnenoteImportMessage("Uploading to storage...")
-    await uploadFileToR2(uploadUrl, file, (progress) => {
-      setUploadProgress(progress)
-    })
+- [ ] **Step 5: Reset job on close**
 
-    // Step 3: Confirm upload and start conversion
-    setOnenoteImportState("processing")
-    setOnenoteImportMessage("Converting notebook...")
-    setOnenoteJobId(jobId)
+  In the `useEffect` that resets states when the sheet closes, call `resetJob()` instead of the old state resets.
 
-    const confirmRes = await fetch("/api/notes/import/onenote/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobId }),
-    })
-    const confirmData = await confirmRes.json()
-    if (!confirmRes.ok || !confirmData.success) {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage(confirmData.error || "Conversion failed")
-      return
-    }
+- [ ] **Step 6: Remove unused imports**
 
-    // Step 4: Poll for completion
-    await pollImportStatus(jobId)
-  } catch {
-    setOnenoteImportState("error")
-    setOnenoteImportMessage("Network error. Please try again.")
-  }
-}
+  Remove `Loader2`, `CheckCircle`, `AlertCircle` if they are no longer used in this component (they are used by the ImportContext/sonner system now).
 
-function uploadFileToR2(
-  url: string,
-  file: File,
-  onProgress: (percent: number) => void
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open("PUT", url, true)
-    xhr.setRequestHeader("Content-Type", "application/octet-stream")
-
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) {
-        onProgress(Math.round((e.loaded / e.total) * 100))
-      }
-    })
-
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve()
-      } else {
-        reject(new Error(`Upload failed with status ${xhr.status}`))
-      }
-    })
-
-    xhr.addEventListener("error", () => reject(new Error("Upload failed")))
-    xhr.addEventListener("abort", () => reject(new Error("Upload aborted")))
-
-    xhr.send(file)
-  })
-}
-
-async function pollImportStatus(jobId: string) {
-  const pollInterval = 3000
-
-  while (true) {
-    await new Promise((r) => setTimeout(r, pollInterval))
-
-    const res = await fetch(`/api/notes/import/onenote/status?jobId=${jobId}`)
-    if (!res.ok) continue
-
-    const data = await res.json()
-
-    if (data.status === "processing") {
-      setOnenoteImportMessage(data.progress?.currentStage || "Importing...")
-      continue
-    }
-
-    if (data.status === "completed") {
-      setOnenoteImportState("success")
-      const r = data.result
-      setOnenoteImportMessage(
-        `Imported ${r.foldersCreated} folder${r.foldersCreated !== 1 ? "s" : ""}, ` +
-          `${r.notesImported} note${r.notesImported !== 1 ? "s" : ""}, ` +
-          `${r.imagesImported} image${r.imagesImported !== 1 ? "s" : ""}.`
-      )
-      fetchNotes()
-      fetchFolders()
-      return
-    }
-
-    if (data.status === "failed") {
-      setOnenoteImportState("error")
-      setOnenoteImportMessage(data.error || "Import failed")
-      return
-    }
-
-    // pending, uploading, converting — keep polling
-    if (data.progress?.currentStage) {
-      setOnenoteImportMessage(data.progress.currentStage)
-    }
-  }
-}
-```
-
-- [ ] **Step 5: Update the button and progress UI**
-
-Replace the OneNote import section in the JSX (lines 252-297) with:
-
-```tsx
-{/* OneNote Import */}
-<div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-  <div className="flex items-center gap-2 mb-2">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Import from OneNote</h3>
-  </div>
-  <p className="text-xs text-gray-500 mb-3">
-    Import a OneNote notebook (.onepkg) or section (.one). Max 50MB. Folders and notes will be created automatically.
-  </p>
-  <button
-    onClick={() => onenoteFileInputRef.current?.click()}
-    disabled={onenoteImportState === "loading" || onenoteImportState === "processing"}
-    className="w-full rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-  >
-    {onenoteImportState === "loading" || onenoteImportState === "processing" ? (
-      <>
-        <Loader2 size={14} className="animate-spin" />
-        {onenoteImportState === "loading" ? "Uploading..." : "Importing..."}
-      </>
-    ) : (
-      "Select File"
-    )}
-  </button>
-  <input
-    ref={onenoteFileInputRef}
-    type="file"
-    accept=".onepkg,.one"
-    className="hidden"
-    onChange={handleOneNoteFileSelect}
-  />
-  {(onenoteImportState === "loading" || onenoteImportState === "processing") && uploadProgress > 0 && (
-    <div className="mt-3">
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-        <div
-          className="bg-purple-600 h-1.5 rounded-full transition-all duration-300"
-          style={{ width: `${uploadProgress}%` }}
-        />
-      </div>
-      <p className="text-xs text-gray-500 mt-1 text-center">{uploadProgress}%</p>
-    </div>
-  )}
-  <div className="mt-2 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    <span>Best compatibility with <strong>OneNote 2016+ on Windows</strong>. Older versions and Mac exports may not work.</span>
-  </div>
-  {onenoteImportState === "processing" && (
-    <div className="mt-3 flex items-start gap-2 text-xs text-blue-600 dark:text-blue-400">
-      <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" />
-      <span>{onenoteImportMessage || "Processing..."} You can close this window.</span>
-    </div>
-  )}
-  {onenoteImportState === "success" && (
-    <div className="mt-3 flex items-start gap-2 text-xs text-green-600 dark:text-green-400">
-      <CheckCircle size={14} className="mt-0.5 shrink-0" />
-      <span>{onenoteImportMessage}</span>
-    </div>
-  )}
-  {onenoteImportState === "error" && (
-    <div className="mt-3 flex items-start gap-2 text-xs text-red-500">
-      <AlertCircle size={14} className="mt-0.5 shrink-0" />
-      <span>{onenoteImportMessage}</span>
-    </div>
-  )}
-</div>
-```
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/components/ImportExportSheet.tsx
-git commit -m "feat: async OneNote import with progress UI"
+git commit -m "refactor: ImportExportSheet uses global ImportContext, move compatibility warning above button"
 ```
 
 ---
@@ -1463,13 +1263,20 @@ Expected: Build succeeds.
 
 Check that all new and modified files exist and are correctly structured:
 - `src/lib/onenote/import-job.ts` — job CRUD
-- `src/lib/onenote/import.ts` — updated with new exports
-- `src/lib/storage.ts` — new presigned URL and raw helpers
-- `src/lib/mongodb.ts` — new indexes
+- `src/lib/onenote/import.ts` — updated with new exports, jobId tagging, cleanup helper
+- `src/lib/storage.ts` — presigned URL, raw read/write, prefix delete
+- `src/lib/gridfs.ts` — jobId in metadata type
+- `src/lib/mongodb.ts` — importJobs indexes
 - `src/app/api/notes/import/onenote/presign/route.ts` — presign endpoint
 - `src/app/api/notes/import/onenote/confirm/route.ts` — confirm endpoint
-- `src/app/api/notes/import/onenote/status/route.ts` — status endpoint
-- `src/components/ImportExportSheet.tsx` — updated UI
+- `src/app/api/notes/import/onenote/status/route.ts` — status + auto-cleanup
+- `src/contexts/ImportContext.tsx` — global import state
+- `src/app/providers.tsx` — Toaster + ImportProvider
+- `src/components/ImportExportSheet.tsx` — uses ImportContext
+- `src/app/api/admin/imports/route.ts` — admin list endpoint
+- `src/app/api/admin/imports/[jobId]/cleanup/route.ts` — admin cleanup endpoint
+- `src/app/admin/imports/page.tsx` — admin imports page
+- `src/components/NotesSidebar.tsx` — admin sidebar Import Jobs item
 - `src/__tests__/onenote-large-import.test.ts` — tests
 
 - [ ] **Step 4: Final commit if any fixes were needed**
@@ -1477,4 +1284,178 @@ Check that all new and modified files exist and are correctly structured:
 ```bash
 git add -A
 git commit -m "fix: address lint/build issues"
+```
+
+---
+
+### Task 13: Add jobId tagging to all import-created documents
+
+- [ ] **Step 1: Update `processPagesBatch` in `src/lib/onenote/import.ts`**
+
+  - Accept `jobId` parameter
+  - Pass `jobId` when creating folders and notes
+  - Accumulate cumulative result counts across batches (not just per-batch)
+
+- [ ] **Step 2: Update `processLocalImagesFromR2` in `src/lib/onenote/import.ts`**
+
+  - Accept `jobId` parameter
+  - Pass `jobId` in GridFS metadata when saving images
+
+- [ ] **Step 3: Update all callers to pass `jobId`**
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add -A
+git commit -m "feat: tag import-created documents with jobId for cleanup tracking"
+```
+
+---
+
+### Task 14: Add auto-cleanup on import failure
+
+- [ ] **Step 1: Create `cleanupImportData` helper in `src/lib/onenote/import.ts`**
+
+  - Accept `userId` and `jobId`
+  - Delete notes by jobId, folders by jobId, GridFS images by jobId, R2 files by r2Prefix
+  - Wrap in try/catch, swallow errors to avoid cascading failures
+
+- [ ] **Step 2: Add cleanup to `POST /api/notes/import/onenote/status`**
+
+  - In server error catch block: call `cleanupImportData`
+  - In stale timeout handler: call `cleanupImportData`
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add -A
+git commit -m "feat: auto-cleanup import data on failure or stale timeout"
+```
+
+---
+
+### Task 15: Create global ImportContext with toasts
+
+- [ ] **Step 1: Create `src/contexts/ImportContext.tsx`**
+
+  - State: job (jobId, status, filename, progress, result, error)
+  - Methods: `startImport(file)`, `resetJob()`
+  - localStorage persistence for job ID
+  - 3-second polling interval, stopped on terminal states
+  - Auto-refresh notes/folders on import completion
+  - Toast notifications via sonner
+
+- [ ] **Step 2: Update `src/app/providers.tsx`**
+
+  - Add `<Toaster />` and `<ImportProvider>`
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add -A
+git commit -m "feat: add ImportContext with localStorage persistence and sonner toasts"
+```
+
+---
+
+### Task 16: Update ImportExportSheet to use ImportContext
+
+- [ ] **Step 1: Refactor `src/components/ImportExportSheet.tsx`**
+
+  - Replace local state with `useImport()` context
+  - Move compatibility warning above the Select File button
+  - Use `onOpenChange` to reset job state on close
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add -A
+git commit -m "refactor: ImportExportSheet uses global ImportContext"
+```
+
+---
+
+### Task 17: Add admin imports API endpoints
+
+- [ ] **Step 1: Create `src/app/api/admin/imports/route.ts`**
+
+  - GET: paginated list with user email resolution, status filter, sorting
+  - Admin auth enforced
+
+- [ ] **Step 2: Create `src/app/api/admin/imports/[jobId]/cleanup/route.ts`**
+
+  - POST: validate failed status, clean up notes/folders/images/R2 files/importJobs
+  - Admin auth enforced
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add -A
+git commit -m "feat: add admin imports list and cleanup API endpoints"
+```
+
+---
+
+### Task 18: Add admin imports page
+
+- [ ] **Step 1: Create `src/app/admin/imports/page.tsx`**
+
+  - Table with sortable columns (Filename, Status, Created)
+  - Status filter (All/Failed/Completed/Processing)
+  - Trash-style pagination with rows-per-page selector
+  - Cleanup confirmation dialog for failed jobs
+  - Follows existing admin page patterns (useSearchParams, usePathname)
+
+- [ ] **Step 2: Update admin sidebar in `src/components/NotesSidebar.tsx`**
+
+  - Add "Import Jobs" nav item with Upload icon to `adminItems` array
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add -A
+git commit -m "feat: add admin imports dashboard page with sortable table and cleanup"
+```
+
+---
+
+### Task 19: Update tests and final verification
+
+- [ ] **Step 1: Update `src/__tests__/notes-sidebar.test.tsx`**
+
+  - Wrap components in `ImportContext` provider mock
+
+- [ ] **Step 2: Update `src/__tests__/trash-context-menu.test.tsx`**
+
+  - Add ImportContext mock
+
+- [ ] **Step 3: Run full verification**
+
+```bash
+npx vitest run
+npm run lint
+npm run build
+```
+
+- [ ] **Step 4: Final commit**
+
+```bash
+git add -A
+git commit -m "test: add ImportContext mocks to component tests"
+```
+
+---
+
+### Task 20: Final commit and push
+
+- [ ] **Step 1: Push all changes**
+
+```bash
+git push origin feature/onenote-large-import
+```
+
+- [ ] **Step 2: Verify build passes on remote**
+
+```bash
+npm run build
 ```
