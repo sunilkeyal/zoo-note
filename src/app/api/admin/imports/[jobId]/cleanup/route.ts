@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { deleteByPrefix } from "@/lib/storage"
+import { cleanupImportData } from "@/lib/onenote/cleanup"
 
 export async function POST(
   request: NextRequest,
@@ -35,41 +35,14 @@ export async function POST(
     { $set: { status: "failed", error: "Cleaned up by admin", updatedAt: new Date() } }
   )
 
-  const jobIdStr = job._id.toString()
-
-  // Delete notes created by this import
-  const notesResult = await db.collection("notes").deleteMany({ jobId: jobIdStr })
-
-  // Delete folders created by this import
-  const foldersResult = await db.collection("folders").deleteMany({ jobId: jobIdStr })
-
-  // Delete images (GridFS) created by this import
-  const imagesCollection = db.collection("images")
-  const imageDocs = await imagesCollection.find(
-    { "metadata.jobId": jobIdStr },
-    { projection: { _id: 1 } }
-  ).toArray()
-  if (imageDocs.length > 0) {
-    const imageIds = imageDocs.map((doc) => doc._id)
-    await imagesCollection.deleteMany({ _id: { $in: imageIds } })
-    await db.collection("gridfs.chunks").deleteMany({ files_id: { $in: imageIds } })
-  }
-
-  // Delete R2 files (zip + extracted)
-  if (job.r2Key) {
-    const r2Prefix = job.r2Key.substring(0, job.r2Key.lastIndexOf("/"))
-    await deleteByPrefix(r2Prefix).catch(() => {})
-  }
+  // Clean up all created data using shared utility
+  const result = await cleanupImportData(db, job._id.toString(), job.r2Key)
 
   // Delete the job document itself
   await db.collection("importJobs").deleteOne({ _id: job._id })
 
   return NextResponse.json({
     success: true,
-    data: {
-      notesDeleted: notesResult.deletedCount,
-      foldersDeleted: foldersResult.deletedCount,
-      imagesDeleted: imageDocs.length,
-    },
+    data: result,
   })
 }
