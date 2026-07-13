@@ -29,6 +29,12 @@ export async function POST(
     }, { status: 409 })
   }
 
+  // Set status to failed first to stop any active polling
+  await db.collection("importJobs").updateOne(
+    { _id: job._id },
+    { $set: { status: "failed", error: "Cleaned up by admin", updatedAt: new Date() } }
+  )
+
   const jobIdStr = job._id.toString()
 
   // Delete notes created by this import
