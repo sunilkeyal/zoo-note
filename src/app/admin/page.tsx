@@ -305,16 +305,50 @@ export default function DashboardPage() {
           <ToggleGroupItem value="30" aria-label="Last 30 days">30d</ToggleGroupItem>
           <ToggleGroupItem value="90" aria-label="Last 90 days">90d</ToggleGroupItem>
         </ToggleGroup>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => { fetchStats(range); fetchR2Metrics(range) }}
-          disabled={loading}
-          className="shrink-0"
-        >
-          <RefreshCw className={`size-4 mr-1 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { fetchStats(range); fetchR2Metrics(range) }}
+            disabled={loading}
+          >
+            <RefreshCw className={`size-4 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Reload Stats
+          </Button>
+          <div className="h-6 w-px bg-border" />
+          {!cleanupConfirm ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }}
+              disabled={cleanupPending}
+            >
+              Delete Orphaned Images
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Delete all images not referenced in any note?</span>
+              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runCleanup}>Yes, delete</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCleanupConfirm(false)}>Cancel</Button>
+            </div>
+          )}
+          {!sweepConfirm ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => { setSweepConfirm(true); setSweepResult(null) }}
+              disabled={sweepPending}
+            >
+              Delete Orphaned R2 Imports
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Scan R2 import files and delete any without a matching job?</span>
+              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runSweep}>Yes, delete</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSweepConfirm(false)}>Cancel</Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Error banner ───────────────────────────────────────────────────── */}
@@ -322,6 +356,18 @@ export default function DashboardPage() {
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive flex items-center justify-between">
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => fetchStats(range)}>Try again</Button>
+        </div>
+      )}
+
+      {/* ── Cleanup success messages ──────────────────────────────────────── */}
+      {cleanupResult && (
+        <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+          Deleted {cleanupResult.deletedCount} orphaned image{cleanupResult.deletedCount !== 1 ? "s" : ""}, freed {formatBytes(cleanupResult.freedBytes)}.
+        </div>
+      )}
+      {sweepResult && (
+        <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+          Found {sweepResult.orphanedFound} orphaned import{sweepResult.orphanedFound !== 1 ? "s" : ""}, deleted {sweepResult.filesDeleted} file{sweepResult.filesDeleted !== 1 ? "s" : ""}.
         </div>
       )}
 
@@ -349,27 +395,6 @@ export default function DashboardPage() {
 
       {/* ── Application Metrics ────────────────────────────────────────────── */}
       <CollapsibleSection title="Application Metrics" icon={FileText}>
-        {/* Cleanup banner */}
-        <div className="flex items-center justify-between mb-3">
-          {!cleanupConfirm ? (
-            <Button variant="outline" size="sm" onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }} disabled={cleanupPending} className="text-xs h-7 gap-1">
-              <Sparkles className="size-3" />
-              {cleanupPending ? "Cleaning…" : "Clean up orphaned images"}
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Delete all images not referenced in any note?</span>
-              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runCleanup}>Yes, delete</Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCleanupConfirm(false)}>Cancel</Button>
-            </div>
-          )}
-        </div>
-        {cleanupResult && (
-          <p className="text-xs text-green-600 dark:text-green-400 mb-3">
-            Cleaned up {cleanupResult.deletedCount} orphaned image{cleanupResult.deletedCount !== 1 ? "s" : ""}, freed {formatBytes(cleanupResult.freedBytes)}.
-          </p>
-        )}
-
         {/* App KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Active Today" value={kpis ? String(kpis.activeToday) : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
