@@ -121,7 +121,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {mobileScreen === "home" && (
           <>
             <NoteCardGrid notes={notes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => setMobileScreen("new-folder")} />
-            <div onClick={() => setMobileScreen("new-note")} className="absolute bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg cursor-pointer z-50">+</div>
+            <div onClick={() => setMobileScreen("new-note")} className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg cursor-pointer z-50">+</div>
           </>
         )}
         {mobileScreen === "favorites" && (
