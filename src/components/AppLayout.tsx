@@ -97,7 +97,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
-          <span className="text-lg font-bold">
+          <span className="text-sm font-semibold">ZooNote</span>
+          <span className="text-sm text-muted-foreground">·</span>
+          <span className="text-sm font-medium">
             {mobileScreen === "home" && "Notes"}
             {mobileScreen === "favorites" && "Favorites"}
             {mobileScreen === "recent" && "Recent"}
