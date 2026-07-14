@@ -1,0 +1,38 @@
+"use client"
+
+import React from "react"
+
+export type MobileTab = "home" | "favorites" | "recent" | "more"
+
+interface MobileTabBarProps {
+  activeTab: MobileTab
+  onTabChange: (tab: MobileTab) => void
+}
+
+const TABS: { id: MobileTab; icon: string; label: string }[] = [
+  { id: "home", icon: "🏠", label: "Home" },
+  { id: "favorites", icon: "⭐", label: "Favorites" },
+  { id: "recent", icon: "🕐", label: "Recent" },
+  { id: "more", icon: "⋯", label: "More" },
+]
+
+export default function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
+  return (
+    <div className="border-t border-border flex bg-background flex-shrink-0">
+      {TABS.map((tab) => (
+        <div
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex flex-col items-center gap-0.5 py-2 cursor-pointer flex-1 min-h-[44px] justify-center ${
+            activeTab === tab.id
+              ? "text-blue-600 font-semibold"
+              : "text-muted-foreground"
+          }`}
+        >
+          <span className="text-lg">{tab.icon}</span>
+          <span className="text-[10px]">{tab.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
