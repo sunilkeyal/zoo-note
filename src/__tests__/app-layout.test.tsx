@@ -60,6 +60,7 @@ describe('AppLayout', () => {
     render(<AppLayout><div>Content</div></AppLayout>)
     expect(screen.getByText('Home')).toBeInTheDocument()
     expect(screen.getByText('Folders')).toBeInTheDocument()
+    expect(screen.getByText('Search')).toBeInTheDocument()
     expect(screen.getByText('Favorites')).toBeInTheDocument()
     expect(screen.getByText('More')).toBeInTheDocument()
   })

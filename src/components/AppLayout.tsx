@@ -129,9 +129,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {mobileScreen === "admin" && "Admin Dashboard"}
               </span>
             </div>
-            {mobileScreen === "home" && (
-              <span onClick={() => setMobileScreen("search")} className="text-base text-muted-foreground cursor-pointer">🔍</span>
-            )}
             {mobileScreen === "folder-detail" && (
               <span onClick={() => setMobileScreen("folders")} className="text-sm text-blue-600 cursor-pointer">← Folders</span>
             )}
