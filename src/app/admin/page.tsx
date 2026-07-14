@@ -343,8 +343,8 @@ export default function DashboardPage() {
             <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={deletePending}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={runDeleteOrphaned} disabled={deletePending}>
-              {deletePending ? "Deleting..." : "Yes, delete"}
+            <Button variant="destructive" onClick={runDeleteOrphaned} disabled={deletePending}>
+              {deletePending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
