@@ -125,25 +125,6 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
   const [sortField, setSortField] = useState("deletedAt")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
-  if (isMobile) {
-    return (
-      <div className="grid grid-cols-2 gap-2 p-3">
-        {items.map((item) => (
-          <div key={item.id} className="border border-border rounded-[10px] p-3 flex flex-col">
-            <div className="text-[13px] font-bold mb-1 line-clamp-2">{item.title}</div>
-            <div className="text-[11px] text-muted-foreground mb-2">
-              {item.folderName || "No folder"} · {item.deletedAt ? new Date(item.deletedAt).toLocaleDateString() : ""}
-            </div>
-            <div className="mt-auto flex gap-2 pt-2 border-t border-border/50">
-              <button onClick={() => item.type === "note" ? onRestore([item.id], []) : onRestore([], [item.id])} className="flex-1 text-xs text-blue-600 py-1">Restore</button>
-              <button onClick={() => item.type === "note" ? onPermanentDelete([item.id], []) : onPermanentDelete([], [item.id])} className="flex-1 text-xs text-destructive py-1">Delete</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   const notesByFolder = new Map<string, TrashItem[]>()
   for (const item of items) {
     if (item.type === "note" && item.folderId) {
@@ -243,6 +224,25 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
       }
     })
   }, [displayItems, locked])
+
+  if (isMobile) {
+    return (
+      <div className="grid grid-cols-2 gap-2 p-3">
+        {items.map((item) => (
+          <div key={item.id} className="border border-border rounded-[10px] p-3 flex flex-col">
+            <div className="text-[13px] font-bold mb-1 line-clamp-2">{item.title}</div>
+            <div className="text-[11px] text-muted-foreground mb-2">
+              {item.folderName || "No folder"} · {item.deletedAt ? new Date(item.deletedAt).toLocaleDateString() : ""}
+            </div>
+            <div className="mt-auto flex gap-2 pt-2 border-t border-border/50">
+              <button onClick={() => item.type === "note" ? onRestore([item.id], []) : onRestore([], [item.id])} className="flex-1 text-xs text-blue-600 py-1">Restore</button>
+              <button onClick={() => item.type === "note" ? onPermanentDelete([item.id], []) : onPermanentDelete([], [item.id])} className="flex-1 text-xs text-destructive py-1">Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   const allCheckable = displayItems.filter((i) => !locked.has(i.id))
   const allSelected = allCheckable.length > 0 && allCheckable.every((i) => selected.has(i.id))
