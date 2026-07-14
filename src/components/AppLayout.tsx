@@ -92,7 +92,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const recentNotes = [...notes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 20)
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-dvh bg-background">
       {/* Header */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border flex-shrink-0">
         <span className="text-lg font-bold">
@@ -112,7 +112,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Screen content */}
-      <div className="flex-1 min-h-0 relative">
+      <div className="flex-1 min-h-0 relative overflow-hidden">
         {mobileScreen === "home" && (
           <>
             <NoteCardGrid notes={notes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => setMobileScreen("new-folder")} />
