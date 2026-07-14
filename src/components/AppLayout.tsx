@@ -125,10 +125,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </>
         )}
         {mobileScreen === "favorites" && (
-          <NoteCardGrid notes={favNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} />
+          <NoteCardGrid notes={favNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
         )}
         {mobileScreen === "recent" && (
-          <NoteCardGrid notes={recentNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} />
+          <NoteCardGrid notes={recentNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
         )}
         {mobileScreen === "search" && (
           <MobileSearch notes={notes} folders={folders} onBack={() => setMobileScreen("home")} onNoteClick={handleNoteClick} />

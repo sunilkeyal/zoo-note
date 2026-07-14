@@ -8,6 +8,7 @@ interface NoteCardGridProps {
   folders: Folder[]
   onNoteClick: (note: Note) => void
   onNewFolder: () => void
+  showFolderFilter?: boolean
 }
 
 function stripHtml(html: string): string {
@@ -48,7 +49,7 @@ function getFolderColor(folderName?: string): string {
   return colors[Math.abs(hash) % colors.length]
 }
 
-export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder }: NoteCardGridProps) {
+export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder, showFolderFilter = true }: NoteCardGridProps) {
   const [activeFolder, setActiveFolder] = useState("All Notes")
 
   const sorted = useMemo(() => {
@@ -65,27 +66,29 @@ export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Folder filter chips */}
-      <div className="px-3 py-2 flex gap-1.5 overflow-x-auto flex-shrink-0">
-        {["All Notes", ...folders.map((f) => f.name)].map((name) => (
+      {showFolderFilter && (
+        <div className="px-3 py-2 flex gap-1.5 overflow-x-auto flex-shrink-0">
+          {["All Notes", ...folders.map((f) => f.name)].map((name) => (
+            <div
+              key={name}
+              onClick={() => setActiveFolder(name)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors ${
+                activeFolder === name
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {name}
+            </div>
+          ))}
           <div
-            key={name}
-            onClick={() => setActiveFolder(name)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors ${
-              activeFolder === name
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            }`}
+            onClick={onNewFolder}
+            className="px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer bg-muted text-muted-foreground"
           >
-            {name}
+            + New
           </div>
-        ))}
-        <div
-          onClick={onNewFolder}
-          className="px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer bg-muted text-muted-foreground"
-        >
-          + New
         </div>
-      </div>
+      )}
 
       {/* Notes grid */}
       <div className="flex-1 overflow-y-auto px-3 py-2.5">
