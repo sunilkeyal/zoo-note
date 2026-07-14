@@ -140,7 +140,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Screen content */}
-      <div className="flex-1 min-h-0 relative pb-16">
+      <div className="flex-1 min-h-0 relative">
         {isNoteDetail ? (
           <div className="flex-1 flex flex-col min-h-0">{children}</div>
         ) : (

@@ -91,7 +91,7 @@ export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder,
       )}
 
       {/* Notes grid */}
-      <div className="flex-1 overflow-y-auto px-3 py-2.5">
+      <div className="flex-1 overflow-y-auto px-3 pt-2.5 pb-20">
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground text-sm">No notes yet</div>
         ) : (

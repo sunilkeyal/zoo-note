@@ -46,7 +46,7 @@ export default function MobileFolders({ folders, notes, onFolderClick, onNewFold
   }, [notes])
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-3 py-3">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-3 pt-3 pb-20">
       <div className="grid grid-cols-2 gap-2.5">
         {folders.map((folder) => (
           <div
