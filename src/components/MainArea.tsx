@@ -674,7 +674,7 @@ export default function MainArea() {
   useEffect(() => {
     if (editor && activeNote && activeNote.content !== editor.getHTML()) {
       const timer = setTimeout(() => {
-        editor.commands.setContent(activeNote.content || "<p></p>")
+        editor.commands.setContent(activeNote.content || "<p></p>", { emitUpdate: false })
       }, 0)
       return () => clearTimeout(timer)
     }
