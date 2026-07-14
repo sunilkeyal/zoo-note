@@ -312,3 +312,16 @@
 .ProseMirror.resize-cursor {
   cursor: col-resize;
 }
+
+/* Mobile tab bar */
+@media (max-width: 767px) {
+  .mobile-layout {
+    height: 100dvh;
+    height: 100vh;
+  }
+}
+
+/* Keyboard open state */
+.keyboard-open .editor-toolbar-mobile {
+  display: none !important;
+}

@@ -407,25 +407,25 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
     <div className="editor-toolbar-mobile">
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
-        className={`flex items-center justify-center rounded-md ${editor.isActive("bold") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("bold") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <Bold className="h-5 w-5" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={`flex items-center justify-center rounded-md ${editor.isActive("italic") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("italic") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <Italic className="h-5 w-5" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        className={`flex items-center justify-center rounded-md ${editor.isActive("underline") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("underline") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <UnderlineIcon className="h-5 w-5" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        className={`flex items-center justify-center rounded-md ${editor.isActive("strike") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("strike") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <Strikethrough className="h-5 w-5" />
       </button>
@@ -433,7 +433,7 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
       <span className="w-px h-6 bg-border mx-0.5" />
 
       <Popover>
-        <PopoverTrigger className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground text-sm font-semibold">
+        <PopoverTrigger className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground text-sm font-semibold">
           H
         </PopoverTrigger>
         <PopoverContent className="w-[160px] p-2" align="start">
@@ -468,26 +468,26 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
           else chain.toggleBulletList()
           chain.run()
         }}
-        className={`flex items-center justify-center rounded-md ${editor.isActive("bulletList") || editor.isActive("orderedList") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("bulletList") || editor.isActive("orderedList") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <List className="h-5 w-5" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleTaskList().run()}
-        className={`flex items-center justify-center rounded-md ${editor.isActive("taskList") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("taskList") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <ListChecks className="h-5 w-5" />
       </button>
 
       <TableGridPicker
         editor={editor}
-        triggerClassName="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+        triggerClassName="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground"
       />
 
       <span className="w-px h-6 bg-border mx-0.5" />
 
       <Popover>
-        <PopoverTrigger className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground">
+        <PopoverTrigger className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground">
           <Palette className="h-5 w-5" />
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-3" align="start">
@@ -505,7 +505,7 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
       </Popover>
 
       <Popover>
-        <PopoverTrigger className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground">
+        <PopoverTrigger className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground">
           <Highlighter className="h-5 w-5" />
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-3" align="start">
@@ -526,13 +526,13 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
 
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+        className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground"
       >
         <Image className="h-5 w-5" />
       </button>
 
       <Popover>
-        <PopoverTrigger className="flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground font-bold text-lg leading-none">
+        <PopoverTrigger className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground font-bold text-lg leading-none">
           +
         </PopoverTrigger>
         <PopoverContent className="w-[240px] p-3" align="end">
@@ -757,6 +757,19 @@ export default function MainArea() {
     }
   }, [editor])
 
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.75
+        setKeyboardOpen(isKeyboardOpen)
+      }
+    }
+    window.visualViewport?.addEventListener("resize", handleResize)
+    return () => window.visualViewport?.removeEventListener("resize", handleResize)
+  }, [])
+
   if (!activeNote) return null
 
   return (
@@ -765,7 +778,7 @@ export default function MainArea() {
         <>
           <DesktopToolbar editor={editor} uploadImage={uploadImage} fileInputRef={fileInputRef} />
 
-          <MobileToolbar editor={editor} fileInputRef={fileInputRef} />
+          {!keyboardOpen && <MobileToolbar editor={editor} fileInputRef={fileInputRef} />}
         </>
       )}
 
@@ -784,7 +797,7 @@ export default function MainArea() {
 
       <div
         ref={editorContainerRef}
-        className="flex-1 overflow-auto relative px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 pb-16 md:pb-4"
+        className={`flex-1 overflow-auto relative px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}
       >
         <NoteEditor note={activeNote} editor={editor} />
         {editor && (
