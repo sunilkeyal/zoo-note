@@ -757,6 +757,19 @@ export default function MainArea() {
     }
   }, [editor])
 
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.75
+        setKeyboardOpen(isKeyboardOpen)
+      }
+    }
+    window.visualViewport?.addEventListener("resize", handleResize)
+    return () => window.visualViewport?.removeEventListener("resize", handleResize)
+  }, [])
+
   if (!activeNote) return null
 
   return (
@@ -765,7 +778,7 @@ export default function MainArea() {
         <>
           <DesktopToolbar editor={editor} uploadImage={uploadImage} fileInputRef={fileInputRef} />
 
-          <MobileToolbar editor={editor} fileInputRef={fileInputRef} />
+          {!keyboardOpen && <MobileToolbar editor={editor} fileInputRef={fileInputRef} />}
         </>
       )}
 
@@ -784,7 +797,7 @@ export default function MainArea() {
 
       <div
         ref={editorContainerRef}
-        className="flex-1 overflow-auto relative px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 pb-16 md:pb-4"
+        className={`flex-1 overflow-auto relative px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}
       >
         <NoteEditor note={activeNote} editor={editor} />
         {editor && (
