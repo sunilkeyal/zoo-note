@@ -12,26 +12,26 @@ describe('MobileTabBar', () => {
   it('renders all four tabs', () => {
     render(<MobileTabBar activeTab="home" onTabChange={mockOnTabChange} />)
     expect(screen.getByText('Home')).toBeInTheDocument()
+    expect(screen.getByText('Folders')).toBeInTheDocument()
     expect(screen.getByText('Favorites')).toBeInTheDocument()
-    expect(screen.getByText('Recent')).toBeInTheDocument()
     expect(screen.getByText('More')).toBeInTheDocument()
   })
 
   it('calls onTabChange when a tab is clicked', () => {
     render(<MobileTabBar activeTab="home" onTabChange={mockOnTabChange} />)
-    fireEvent.click(screen.getByText('Favorites'))
-    expect(mockOnTabChange).toHaveBeenCalledWith('favorites')
+    fireEvent.click(screen.getByText('Folders'))
+    expect(mockOnTabChange).toHaveBeenCalledWith('folders')
   })
 
   it('highlights the active tab', () => {
-    render(<MobileTabBar activeTab="recent" onTabChange={mockOnTabChange} />)
-    const recentTab = screen.getByText('Recent').closest('div')!
-    expect(recentTab.className).toContain('text-blue-600')
+    render(<MobileTabBar activeTab="folders" onTabChange={mockOnTabChange} />)
+    const foldersTab = screen.getByText('Folders').closest('div')!
+    expect(foldersTab.className).toContain('text-blue-600')
   })
 
   it('does not highlight inactive tabs', () => {
     render(<MobileTabBar activeTab="home" onTabChange={mockOnTabChange} />)
-    const favoritesTab = screen.getByText('Favorites').closest('div')!
-    expect(favoritesTab.className).not.toContain('text-blue-600')
+    const foldersTab = screen.getByText('Folders').closest('div')!
+    expect(foldersTab.className).not.toContain('text-blue-600')
   })
 })

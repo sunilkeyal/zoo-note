@@ -2,7 +2,7 @@
 
 import React from "react"
 
-export type MobileTab = "home" | "favorites" | "recent" | "more"
+export type MobileTab = "home" | "folders" | "favorites" | "more"
 
 interface MobileTabBarProps {
   activeTab: MobileTab
@@ -11,8 +11,8 @@ interface MobileTabBarProps {
 
 const TABS: { id: MobileTab; icon: string; label: string }[] = [
   { id: "home", icon: "🏠", label: "Home" },
+  { id: "folders", icon: "📁", label: "Folders" },
   { id: "favorites", icon: "⭐", label: "Favorites" },
-  { id: "recent", icon: "🕐", label: "Recent" },
   { id: "more", icon: "⋯", label: "More" },
 ]
 
