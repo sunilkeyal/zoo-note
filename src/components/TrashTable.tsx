@@ -135,8 +135,8 @@ export default function TrashTable({ items, isAdmin, loading, error, onRestore, 
               {item.folderName || "No folder"} · {item.deletedAt ? new Date(item.deletedAt).toLocaleDateString() : ""}
             </div>
             <div className="mt-auto flex gap-2 pt-2 border-t border-border/50">
-              <button onClick={() => onRestore([item.id])} className="flex-1 text-xs text-blue-600 py-1">Restore</button>
-              <button onClick={() => onPermanentDelete([item.id])} className="flex-1 text-xs text-destructive py-1">Delete</button>
+              <button onClick={() => item.type === "note" ? onRestore([item.id], []) : onRestore([], [item.id])} className="flex-1 text-xs text-blue-600 py-1">Restore</button>
+              <button onClick={() => item.type === "note" ? onPermanentDelete([item.id], []) : onPermanentDelete([], [item.id])} className="flex-1 text-xs text-destructive py-1">Delete</button>
             </div>
           </div>
         ))}
