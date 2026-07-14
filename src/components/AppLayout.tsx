@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import AppHeader from "@/components/AppHeader"
 import NotesSidebar from "@/components/NotesSidebar"
@@ -27,6 +27,7 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
   const isMobile = useIsMobile()
   const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder } = useNotes()
 
@@ -88,6 +89,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   // Mobile layout — bottom tabs
+  const isNoteDetail = /^\/notes\/[^/]+$/.test(pathname)
   const favNotes = notes.filter((n) => n.isFavorite)
   const recentNotes = [...notes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 20)
 
@@ -95,58 +97,73 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex flex-col h-dvh bg-background">
       {/* Header */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
-          <span className="text-sm font-semibold">ZooNote</span>
-          <span className="text-sm text-muted-foreground">·</span>
-          <span className="text-sm font-medium">
-            {mobileScreen === "home" && "Notes"}
-            {mobileScreen === "favorites" && "Favorites"}
-            {mobileScreen === "recent" && "Recent"}
-            {mobileScreen === "more" && "More"}
-            {mobileScreen === "search" && "Search"}
-            {mobileScreen === "new-note" && "New Note"}
-            {mobileScreen === "new-folder" && "New Folder"}
-            {mobileScreen === "settings" && "Settings"}
-            {mobileScreen === "admin" && "Admin Dashboard"}
-          </span>
-        </div>
-        {mobileScreen === "home" && (
-          <span onClick={() => setMobileScreen("search")} className="text-base text-muted-foreground cursor-pointer">🔍</span>
+        {isNoteDetail ? (
+          <div className="flex items-center gap-2">
+            <span onClick={() => router.back()} className="text-lg cursor-pointer">←</span>
+            <span className="text-sm font-medium">Edit Note</span>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
+              <span className="text-sm font-semibold">ZooNote</span>
+              <span className="text-sm text-muted-foreground">·</span>
+              <span className="text-sm font-medium">
+                {mobileScreen === "home" && "Notes"}
+                {mobileScreen === "favorites" && "Favorites"}
+                {mobileScreen === "recent" && "Recent"}
+                {mobileScreen === "more" && "More"}
+                {mobileScreen === "search" && "Search"}
+                {mobileScreen === "new-note" && "New Note"}
+                {mobileScreen === "new-folder" && "New Folder"}
+                {mobileScreen === "settings" && "Settings"}
+                {mobileScreen === "admin" && "Admin Dashboard"}
+              </span>
+            </div>
+            {mobileScreen === "home" && (
+              <span onClick={() => setMobileScreen("search")} className="text-base text-muted-foreground cursor-pointer">🔍</span>
+            )}
+          </>
         )}
       </div>
 
       {/* Screen content */}
       <div className="flex-1 min-h-0 relative pb-16">
-        {mobileScreen === "home" && (
+        {isNoteDetail ? (
+          <div className="flex-1 overflow-auto">{children}</div>
+        ) : (
           <>
-            <NoteCardGrid notes={notes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => setMobileScreen("new-folder")} />
-            <div onClick={() => setMobileScreen("new-note")} className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg cursor-pointer z-50">+</div>
+            {mobileScreen === "home" && (
+              <>
+                <NoteCardGrid notes={notes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => setMobileScreen("new-folder")} />
+                <div onClick={() => setMobileScreen("new-note")} className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg cursor-pointer z-50">+</div>
+              </>
+            )}
+            {mobileScreen === "favorites" && (
+              <NoteCardGrid notes={favNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
+            )}
+            {mobileScreen === "recent" && (
+              <NoteCardGrid notes={recentNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
+            )}
+            {mobileScreen === "search" && (
+              <MobileSearch notes={notes} folders={folders} onBack={() => setMobileScreen("home")} onNoteClick={handleNoteClick} />
+            )}
+            {mobileScreen === "new-note" && (
+              <MobileNewNote folders={folders} onBack={() => setMobileScreen("home")} onSave={handleNewNote} />
+            )}
+            {mobileScreen === "new-folder" && (
+              <MobileNewFolder existingFolders={folders.map((f) => f.name)} onBack={() => setMobileScreen("home")} onCreate={handleNewFolder} />
+            )}
+            {mobileScreen === "more" && (
+              <MobileMore isAdmin={isAdmin} userName={(session?.user as { email?: string })?.email || ""} onSettings={() => setMobileScreen("settings")} onAdmin={() => setMobileScreen("admin")} onSignOut={handleSignOut} />
+            )}
+            {mobileScreen === "settings" && (
+              <MobileSettings currentTheme="light" onBack={() => setMobileScreen("more")} onThemeChange={() => {}} />
+            )}
+            {mobileScreen === "admin" && (
+              <MobileAdmin stats={{ users: 0, notes: notes.length, storage: "0 GB", imports: 0 }} onBack={() => setMobileScreen("more")} />
+            )}
           </>
-        )}
-        {mobileScreen === "favorites" && (
-          <NoteCardGrid notes={favNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
-        )}
-        {mobileScreen === "recent" && (
-          <NoteCardGrid notes={recentNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
-        )}
-        {mobileScreen === "search" && (
-          <MobileSearch notes={notes} folders={folders} onBack={() => setMobileScreen("home")} onNoteClick={handleNoteClick} />
-        )}
-        {mobileScreen === "new-note" && (
-          <MobileNewNote folders={folders} onBack={() => setMobileScreen("home")} onSave={handleNewNote} />
-        )}
-        {mobileScreen === "new-folder" && (
-          <MobileNewFolder existingFolders={folders.map((f) => f.name)} onBack={() => setMobileScreen("home")} onCreate={handleNewFolder} />
-        )}
-        {mobileScreen === "more" && (
-          <MobileMore isAdmin={isAdmin} userName={(session?.user as { email?: string })?.email || ""} onSettings={() => setMobileScreen("settings")} onAdmin={() => setMobileScreen("admin")} onSignOut={handleSignOut} />
-        )}
-        {mobileScreen === "settings" && (
-          <MobileSettings currentTheme="light" onBack={() => setMobileScreen("more")} onThemeChange={() => {}} />
-        )}
-        {mobileScreen === "admin" && (
-          <MobileAdmin stats={{ users: 0, notes: notes.length, storage: "0 GB", imports: 0 }} onBack={() => setMobileScreen("more")} />
         )}
       </div>
 
