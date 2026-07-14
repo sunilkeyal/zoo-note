@@ -183,6 +183,9 @@ export default function DashboardPage() {
   const [cleanupPending, setCleanupPending] = useState(false)
   const [cleanupResult, setCleanupResult] = useState<{ deletedCount: number; freedBytes: number } | null>(null)
   const [cleanupConfirm, setCleanupConfirm] = useState(false)
+  const [sweepConfirm, setSweepConfirm] = useState(false)
+  const [sweepPending, setSweepPending] = useState(false)
+  const [sweepResult, setSweepResult] = useState<{ orphanedFound: number; filesDeleted: number } | null>(null)
   const [r2Storage, setR2Storage] = useState<R2StorageData>(null)
   const [r2Requests, setR2Requests] = useState<R2RequestData>(null)
   const [r2Cost, setR2Cost] = useState<R2CostData>(null)
@@ -221,6 +224,23 @@ export default function DashboardPage() {
       setError(e instanceof Error ? e.message : "Cleanup failed")
     } finally {
       setCleanupPending(false)
+    }
+  }, [fetchStats, range])
+
+  const runSweep = useCallback(async () => {
+    setSweepPending(true)
+    setSweepConfirm(false)
+    setSweepResult(null)
+    try {
+      const res = await fetch("/api/admin/r2/sweep", { method: "POST" })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || "Sweep failed")
+      setSweepResult(json.data)
+      fetchStats(range)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Sweep failed")
+    } finally {
+      setSweepPending(false)
     }
   }, [fetchStats, range])
 
