@@ -112,7 +112,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Screen content */}
-      <div className="flex-1 min-h-0 relative overflow-hidden">
+      <div className="flex-1 min-h-0 relative pb-16">
         {mobileScreen === "home" && (
           <>
             <NoteCardGrid notes={notes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => setMobileScreen("new-folder")} />

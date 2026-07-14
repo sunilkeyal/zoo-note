@@ -18,7 +18,7 @@ const TABS: { id: MobileTab; icon: string; label: string }[] = [
 
 export default function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
   return (
-    <div className="border-t border-border flex bg-background flex-shrink-0">
+    <div className="fixed bottom-0 left-0 right-0 border-t border-border flex bg-background z-40">
       {TABS.map((tab) => (
         <div
           key={tab.id}
