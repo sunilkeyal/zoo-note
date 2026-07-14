@@ -95,17 +95,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex flex-col h-dvh bg-background">
       {/* Header */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border flex-shrink-0">
-        <span className="text-lg font-bold">
-          {mobileScreen === "home" && "Notes"}
-          {mobileScreen === "favorites" && "Favorites"}
-          {mobileScreen === "recent" && "Recent"}
-          {mobileScreen === "more" && "More"}
-          {mobileScreen === "search" && "Search"}
-          {mobileScreen === "new-note" && "New Note"}
-          {mobileScreen === "new-folder" && "New Folder"}
-          {mobileScreen === "settings" && "Settings"}
-          {mobileScreen === "admin" && "Admin Dashboard"}
-        </span>
+        <div className="flex items-center gap-2">
+          <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
+          <span className="text-lg font-bold">
+            {mobileScreen === "home" && "Notes"}
+            {mobileScreen === "favorites" && "Favorites"}
+            {mobileScreen === "recent" && "Recent"}
+            {mobileScreen === "more" && "More"}
+            {mobileScreen === "search" && "Search"}
+            {mobileScreen === "new-note" && "New Note"}
+            {mobileScreen === "new-folder" && "New Folder"}
+            {mobileScreen === "settings" && "Settings"}
+            {mobileScreen === "admin" && "Admin Dashboard"}
+          </span>
+        </div>
         {mobileScreen === "home" && (
           <span onClick={() => setMobileScreen("search")} className="text-base text-muted-foreground cursor-pointer">🔍</span>
         )}
