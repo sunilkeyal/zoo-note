@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash2, Upload, AlertCircle, CheckCircle, Loader2, ChevronLeftIcon, ChevronRightIcon, ArrowUp, HardDrive } from "lucide-react"
+import { Trash2, Upload, AlertCircle, CheckCircle, Loader2, ChevronLeftIcon, ChevronRightIcon, ArrowUp } from "lucide-react"
 import { toast } from "sonner"
 
 interface ImportJob {
@@ -103,8 +103,7 @@ export default function ImportsPage() {
   const [cleaning, setCleaning] = useState(false)
   const [r2CleanupJob, setR2CleanupJob] = useState<ImportJob | null>(null)
   const [r2Cleaning, setR2Cleaning] = useState(false)
-  const [sweepDialogOpen, setSweepDialogOpen] = useState(false)
-  const [sweeping, setSweeping] = useState(false)
+
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
@@ -193,26 +192,6 @@ export default function ImportsPage() {
     }
   }
 
-  async function handleSweep() {
-    setSweeping(true)
-    try {
-      const res = await fetch("/api/admin/r2/sweep", { method: "POST" })
-      const data = await res.json()
-      if (data.success) {
-        toast.success("Sweep complete", {
-          description: `Found ${data.orphanedFound} orphaned import${data.orphanedFound !== 1 ? "s" : ""}, deleted ${data.filesDeleted} file${data.filesDeleted !== 1 ? "s" : ""}.`,
-        })
-        setSweepDialogOpen(false)
-      } else {
-        toast.error("Sweep failed", { description: data.error })
-      }
-    } catch {
-      toast.error("Sweep failed", { description: "Network error" })
-    } finally {
-      setSweeping(false)
-    }
-  }
-
   const canCleanup = (status: string) =>
     status !== "completed"
 
@@ -227,14 +206,6 @@ export default function ImportsPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{total} total</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSweepDialogOpen(true)}
-          >
-            <HardDrive size={14} className="mr-1" />
-            Sweep Orphans
-          </Button>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(1) }}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All statuses" />
@@ -506,25 +477,6 @@ export default function ImportsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Sweep Orphans Confirmation Dialog */}
-      <Dialog open={sweepDialogOpen} onOpenChange={(open) => { if (!open) setSweepDialogOpen(false) }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sweep Orphaned R2 Files</DialogTitle>
-            <DialogDescription>
-              This will scan all R2 import files and delete any that don&apos;t have a matching import job in the database.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSweepDialogOpen(false)} disabled={sweeping}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleSweep} disabled={sweeping}>
-              {sweeping ? "Sweeping..." : "Sweep"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

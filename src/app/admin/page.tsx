@@ -19,6 +19,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis } from "recharts"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -180,9 +188,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [cleanupPending, setCleanupPending] = useState(false)
-  const [cleanupResult, setCleanupResult] = useState<{ deletedCount: number; freedBytes: number } | null>(null)
-  const [cleanupConfirm, setCleanupConfirm] = useState(false)
+  const [deletePending, setDeletePending] = useState(false)
+  const [deleteResult, setDeleteResult] = useState<{ imagesDeleted: number; imagesFreedBytes: number; importsOrphaned: number; importsFilesDeleted: number } | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [r2Storage, setR2Storage] = useState<R2StorageData>(null)
   const [r2Requests, setR2Requests] = useState<R2RequestData>(null)
   const [r2Cost, setR2Cost] = useState<R2CostData>(null)
@@ -207,20 +215,30 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const runCleanup = useCallback(async () => {
-    setCleanupPending(true)
-    setCleanupConfirm(false)
-    setCleanupResult(null)
+  const runDeleteOrphaned = useCallback(async () => {
+    setDeletePending(true)
+    setDeleteConfirmOpen(false)
+    setDeleteResult(null)
     try {
-      const res = await fetch("/api/admin/orphaned-images", { method: "DELETE" })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error || "Cleanup failed")
-      setCleanupResult(json.data)
+      const [imagesRes, sweepRes] = await Promise.all([
+        fetch("/api/admin/orphaned-images", { method: "DELETE" }),
+        fetch("/api/admin/r2/sweep", { method: "POST" }),
+      ])
+      const imagesJson = await imagesRes.json()
+      const sweepJson = await sweepRes.json()
+      if (!imagesJson.success) throw new Error(imagesJson.error || "Image cleanup failed")
+      if (!sweepJson.success) throw new Error(sweepJson.error || "Sweep failed")
+      setDeleteResult({
+        imagesDeleted: imagesJson.data.deletedCount,
+        imagesFreedBytes: imagesJson.data.freedBytes,
+        importsOrphaned: sweepJson.orphanedFound,
+        importsFilesDeleted: sweepJson.filesDeleted,
+      })
       fetchStats(range)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Cleanup failed")
     } finally {
-      setCleanupPending(false)
+      setDeletePending(false)
     }
   }, [fetchStats, range])
 
@@ -285,23 +303,65 @@ export default function DashboardPage() {
           <ToggleGroupItem value="30" aria-label="Last 30 days">30d</ToggleGroupItem>
           <ToggleGroupItem value="90" aria-label="Last 90 days">90d</ToggleGroupItem>
         </ToggleGroup>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => { fetchStats(range); fetchR2Metrics(range) }}
-          disabled={loading}
-          className="shrink-0"
-        >
-          <RefreshCw className={`size-4 mr-1 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { fetchStats(range); fetchR2Metrics(range) }}
+            disabled={loading}
+          >
+            <RefreshCw className={`size-4 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Reload Stats
+          </Button>
+          <div className="h-6 w-px bg-border" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setDeleteResult(null); setDeleteConfirmOpen(true) }}
+            disabled={deletePending}
+          >
+            <Trash2 className={`size-4 mr-1 ${deletePending ? "animate-pulse" : ""}`} />
+            Delete Orphaned Data
+          </Button>
+        </div>
       </div>
+
+      {/* ── Delete confirmation dialog ──────────────────────────────────────── */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Orphaned Data</DialogTitle>
+            <DialogDescription>
+              This will scan and delete orphaned data from two sources:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>• Images not referenced by any note (from MongoDB and storage)</p>
+            <p>• R2 import files with no matching import job in the database</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={deletePending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={runDeleteOrphaned} disabled={deletePending}>
+              {deletePending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Error banner ───────────────────────────────────────────────────── */}
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive flex items-center justify-between">
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => fetchStats(range)}>Try again</Button>
+        </div>
+      )}
+
+      {/* ── Cleanup success messages ──────────────────────────────────────── */}
+      {deleteResult && (
+        <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+          Deleted {deleteResult.imagesDeleted} orphaned image{deleteResult.imagesDeleted !== 1 ? "s" : ""} ({formatBytes(deleteResult.imagesFreedBytes)} freed) and {deleteResult.importsFilesDeleted} orphaned R2 import file{deleteResult.importsFilesDeleted !== 1 ? "s" : ""}.
         </div>
       )}
 
@@ -329,27 +389,6 @@ export default function DashboardPage() {
 
       {/* ── Application Metrics ────────────────────────────────────────────── */}
       <CollapsibleSection title="Application Metrics" icon={FileText}>
-        {/* Cleanup banner */}
-        <div className="flex items-center justify-between mb-3">
-          {!cleanupConfirm ? (
-            <Button variant="outline" size="sm" onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }} disabled={cleanupPending} className="text-xs h-7 gap-1">
-              <Sparkles className="size-3" />
-              {cleanupPending ? "Cleaning…" : "Clean up orphaned images"}
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Delete all images not referenced in any note?</span>
-              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runCleanup}>Yes, delete</Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCleanupConfirm(false)}>Cancel</Button>
-            </div>
-          )}
-        </div>
-        {cleanupResult && (
-          <p className="text-xs text-green-600 dark:text-green-400 mb-3">
-            Cleaned up {cleanupResult.deletedCount} orphaned image{cleanupResult.deletedCount !== 1 ? "s" : ""}, freed {formatBytes(cleanupResult.freedBytes)}.
-          </p>
-        )}
-
         {/* App KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Active Today" value={kpis ? String(kpis.activeToday) : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
