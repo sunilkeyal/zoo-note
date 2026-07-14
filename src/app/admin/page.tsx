@@ -19,6 +19,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis } from "recharts"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -180,12 +188,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [cleanupPending, setCleanupPending] = useState(false)
-  const [cleanupResult, setCleanupResult] = useState<{ deletedCount: number; freedBytes: number } | null>(null)
-  const [cleanupConfirm, setCleanupConfirm] = useState(false)
-  const [sweepConfirm, setSweepConfirm] = useState(false)
-  const [sweepPending, setSweepPending] = useState(false)
-  const [sweepResult, setSweepResult] = useState<{ orphanedFound: number; filesDeleted: number } | null>(null)
+  const [deletePending, setDeletePending] = useState(false)
+  const [deleteResult, setDeleteResult] = useState<{ imagesDeleted: number; imagesFreedBytes: number; importsOrphaned: number; importsFilesDeleted: number } | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [r2Storage, setR2Storage] = useState<R2StorageData>(null)
   const [r2Requests, setR2Requests] = useState<R2RequestData>(null)
   const [r2Cost, setR2Cost] = useState<R2CostData>(null)
@@ -210,37 +215,30 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const runCleanup = useCallback(async () => {
-    setCleanupPending(true)
-    setCleanupConfirm(false)
-    setCleanupResult(null)
+  const runDeleteOrphaned = useCallback(async () => {
+    setDeletePending(true)
+    setDeleteConfirmOpen(false)
+    setDeleteResult(null)
     try {
-      const res = await fetch("/api/admin/orphaned-images", { method: "DELETE" })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error || "Cleanup failed")
-      setCleanupResult(json.data)
+      const [imagesRes, sweepRes] = await Promise.all([
+        fetch("/api/admin/orphaned-images", { method: "DELETE" }),
+        fetch("/api/admin/r2/sweep", { method: "POST" }),
+      ])
+      const imagesJson = await imagesRes.json()
+      const sweepJson = await sweepRes.json()
+      if (!imagesJson.success) throw new Error(imagesJson.error || "Image cleanup failed")
+      if (!sweepJson.success) throw new Error(sweepJson.error || "Sweep failed")
+      setDeleteResult({
+        imagesDeleted: imagesJson.data.deletedCount,
+        imagesFreedBytes: imagesJson.data.freedBytes,
+        importsOrphaned: sweepJson.orphanedFound,
+        importsFilesDeleted: sweepJson.filesDeleted,
+      })
       fetchStats(range)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Cleanup failed")
     } finally {
-      setCleanupPending(false)
-    }
-  }, [fetchStats, range])
-
-  const runSweep = useCallback(async () => {
-    setSweepPending(true)
-    setSweepConfirm(false)
-    setSweepResult(null)
-    try {
-      const res = await fetch("/api/admin/r2/sweep", { method: "POST" })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error || "Sweep failed")
-      setSweepResult(json)
-      fetchStats(range)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Sweep failed")
-    } finally {
-      setSweepPending(false)
+      setDeletePending(false)
     }
   }, [fetchStats, range])
 
@@ -316,40 +314,41 @@ export default function DashboardPage() {
             Reload Stats
           </Button>
           <div className="h-6 w-px bg-border" />
-          {!cleanupConfirm ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => { setCleanupConfirm(true); setCleanupResult(null) }}
-              disabled={cleanupPending}
-            >
-              Delete Orphaned Images
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Delete all images not referenced in any note?</span>
-              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runCleanup}>Yes, delete</Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCleanupConfirm(false)}>Cancel</Button>
-            </div>
-          )}
-          {!sweepConfirm ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => { setSweepConfirm(true); setSweepResult(null) }}
-              disabled={sweepPending}
-            >
-              Delete Orphaned R2 Imports
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Scan R2 import files and delete any without a matching job?</span>
-              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={runSweep}>Yes, delete</Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSweepConfirm(false)}>Cancel</Button>
-            </div>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setDeleteResult(null); setDeleteConfirmOpen(true) }}
+            disabled={deletePending}
+          >
+            <Trash2 className={`size-4 mr-1 ${deletePending ? "animate-pulse" : ""}`} />
+            Delete Orphaned Data
+          </Button>
         </div>
       </div>
+
+      {/* ── Delete confirmation dialog ──────────────────────────────────────── */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Orphaned Data</DialogTitle>
+            <DialogDescription>
+              This will scan and delete orphaned data from two sources:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>• Images not referenced by any note (from MongoDB and storage)</p>
+            <p>• R2 import files with no matching import job in the database</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={deletePending}>
+              Cancel
+            </Button>
+            <Button variant="outline" onClick={runDeleteOrphaned} disabled={deletePending}>
+              {deletePending ? "Deleting..." : "Yes, delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Error banner ───────────────────────────────────────────────────── */}
       {error && (
@@ -360,14 +359,9 @@ export default function DashboardPage() {
       )}
 
       {/* ── Cleanup success messages ──────────────────────────────────────── */}
-      {cleanupResult && (
+      {deleteResult && (
         <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-          Deleted {cleanupResult.deletedCount} orphaned image{cleanupResult.deletedCount !== 1 ? "s" : ""}, freed {formatBytes(cleanupResult.freedBytes)}.
-        </div>
-      )}
-      {sweepResult && (
-        <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-          Found {sweepResult.orphanedFound} orphaned import{sweepResult.orphanedFound !== 1 ? "s" : ""}, deleted {sweepResult.filesDeleted} file{sweepResult.filesDeleted !== 1 ? "s" : ""}.
+          Deleted {deleteResult.imagesDeleted} orphaned image{deleteResult.imagesDeleted !== 1 ? "s" : ""} ({formatBytes(deleteResult.imagesFreedBytes)} freed) and {deleteResult.importsFilesDeleted} orphaned R2 import file{deleteResult.importsFilesDeleted !== 1 ? "s" : ""}.
         </div>
       )}
 
