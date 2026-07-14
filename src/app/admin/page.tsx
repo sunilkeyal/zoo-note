@@ -235,7 +235,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/admin/r2/sweep", { method: "POST" })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "Sweep failed")
-      setSweepResult(json.data)
+      setSweepResult(json)
       fetchStats(range)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Sweep failed")
