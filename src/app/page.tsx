@@ -3,9 +3,7 @@
 import React, { Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
-import AppHeader from "@/components/AppHeader"
-import NotesSidebar from "@/components/NotesSidebar"
+import AppLayout from "@/components/AppLayout"
 import HomePage from "@/components/HomePage"
 
 export default function Home() {
@@ -23,14 +21,10 @@ export default function Home() {
   }
 
   return (
-    <SidebarProvider>
-      <NotesSidebar />
-      <SidebarInset className="overflow-hidden">
-        <AppHeader />
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">Loading...</div>}>
-          <HomePage />
-        </Suspense>
-      </SidebarInset>
-    </SidebarProvider>
+    <AppLayout>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">Loading...</div>}>
+        <HomePage />
+      </Suspense>
+    </AppLayout>
   )
 }
