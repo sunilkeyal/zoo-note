@@ -1,7 +1,5 @@
 // src/sw.ts
-import { precacheAndRoute } from "serwist"
-import { registerRoute } from "serwist"
-import { NetworkFirst, CacheFirst, NetworkOnly } from "serwist"
+import { precacheAndRoute, registerRoute, NetworkFirst, CacheFirst, NetworkOnly } from "serwist"
 
 // Precache app shell (HTML, JS, CSS)
 precacheAndRoute(self.__WB_MANIFEST)
@@ -12,7 +10,7 @@ const apiStrategy = new NetworkFirst({
   networkTimeoutSeconds: 3,
   plugins: [
     {
-      cacheDidUpdate: async ({ cache, request }) => {
+      cacheDidUpdate: async ({ request }) => {
         // Notify the app about fresh data
         const clients = await self.clients.matchAll()
         clients.forEach((client) => {
@@ -24,7 +22,7 @@ const apiStrategy = new NetworkFirst({
 })
 
 registerRoute(
-  ({ url }) => url.pathname.startsWith("/api/notes") || url.pathname.startsWith("/api/folders"),
+  ({ url }) => url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/auth"),
   apiStrategy
 )
 
@@ -50,6 +48,11 @@ registerRoute(
   ({ url }) => url.pathname.startsWith("/api/auth"),
   new NetworkOnly()
 )
+
+// Activate: claim all clients immediately
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim())
+})
 
 // Listen for messages from the app
 self.addEventListener("message", (event) => {
