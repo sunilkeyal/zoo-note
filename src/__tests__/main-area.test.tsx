@@ -94,6 +94,11 @@ vi.mock('lucide-react', () => ({
   Table: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Table', ...props }),
 }))
 
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() })),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+}))
+
 vi.mock('@/components/TableGridPicker', () => ({
   TableGridPicker: () => React.createElement('div', { 'data-testid': 'table-grid-picker' }),
 }))
@@ -128,6 +133,7 @@ describe('MainArea', () => {
       activeNote: null as ReturnType<typeof createActiveNote> | null,
       activeNoteId: null,
       updateNote: vi.fn(),
+      createNote: vi.fn(),
     } as ReturnType<typeof vi.fn>)
   })
 
@@ -142,6 +148,7 @@ describe('MainArea', () => {
       activeNote: createActiveNote({ title: 'My Note' }),
       activeNoteId: 'note1',
       updateNote,
+      createNote: vi.fn(),
     } as ReturnType<typeof vi.fn>)
 
     render(<MainArea />)
@@ -161,6 +168,7 @@ describe('MainArea', () => {
       activeNote: note,
       activeNoteId: 'note1',
       updateNote,
+      createNote: vi.fn(),
     } as ReturnType<typeof vi.fn>)
 
     render(<MainArea />)
@@ -184,6 +192,7 @@ describe('MainArea', () => {
       activeNote: createActiveNote(),
       activeNoteId: 'note1',
       updateNote: vi.fn(),
+      createNote: vi.fn(),
     } as ReturnType<typeof vi.fn>)
 
     render(<MainArea />)
@@ -196,7 +205,7 @@ describe('MainArea', () => {
     delete (window as any).location
     window.location = { ...originalLocation, search: '?q=test' }
     
-    const mockNotes = { activeNote: createActiveNote(), loading: false }
+    const mockNotes = { activeNote: createActiveNote(), loading: false, createNote: vi.fn() }
     ;(useNotes as ReturnType<typeof vi.fn>).mockReturnValue(mockNotes)
     
     render(<MainArea />)

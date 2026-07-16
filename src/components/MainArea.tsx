@@ -788,6 +788,7 @@ export default function MainArea() {
           onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
           className="font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0 text-xl md:text-[21px]"
           placeholder="Untitled"
+          autoFocus
         />
         <p className="text-xs text-muted-foreground mt-1">
           Last updated: {new Date(activeNote.updatedAt).toLocaleString()}

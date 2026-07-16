@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('next-auth/react', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() })),
   usePathname: vi.fn(() => '/notes'),
 }))
 
@@ -28,6 +28,10 @@ vi.mock('@/contexts/SidebarDensityContext', () => ({
   useSidebarDensity: vi.fn(() => ({ density: 'default', setDensity: vi.fn() })),
 }))
 
+const mockCreateNote = vi.fn()
+const mockUpdateNote = vi.fn()
+const mockDeleteNote = vi.fn()
+
 vi.mock('@/contexts/NoteContext', () => ({
   useNotes: vi.fn(() => ({
     notes: [],
@@ -36,7 +40,9 @@ vi.mock('@/contexts/NoteContext', () => ({
     fetchNotes: vi.fn(),
     fetchFolders: vi.fn(),
     fetchTrash: vi.fn(),
-    createNote: vi.fn(),
+    createNote: mockCreateNote,
+    updateNote: mockUpdateNote,
+    deleteNote: mockDeleteNote,
     createFolder: vi.fn(),
   })),
 }))
@@ -63,5 +69,22 @@ describe('AppLayout', () => {
     expect(screen.getByText('Search')).toBeInTheDocument()
     expect(screen.getByText('Favorites')).toBeInTheDocument()
     expect(screen.getByText('More')).toBeInTheDocument()
+  })
+
+  it('shows FAB button on mobile home view', () => {
+    vi.mocked(useIsMobile).mockReturnValue(true)
+    render(<AppLayout><div>Content</div></AppLayout>)
+    expect(screen.getByText('+')).toBeInTheDocument()
+  })
+
+  it('opens folder picker when FAB is clicked', async () => {
+    vi.mocked(useIsMobile).mockReturnValue(true)
+    render(<AppLayout><div>Content</div></AppLayout>)
+    
+    fireEvent.click(screen.getByText('+'))
+    
+    await waitFor(() => {
+      expect(screen.getByText('Select Folder')).toBeInTheDocument()
+    })
   })
 })
