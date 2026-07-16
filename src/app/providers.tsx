@@ -8,6 +8,7 @@ import { SidebarDensityProvider } from "@/contexts/SidebarDensityContext"
 import { ThemeSyncProvider } from "@/contexts/ThemeSyncContext"
 import { Toaster } from "sonner"
 import { SerwistProvider } from "@serwist/react"
+import { OfflineBanner } from "@/components/OfflineBanner"
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             <SidebarDensityProvider>
               <NoteProvider>
                 <ImportProvider>
+                  <OfflineBanner />
                   {children}
                 </ImportProvider>
               </NoteProvider>
