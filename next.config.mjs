@@ -1,3 +1,5 @@
+import { withSerwist } from "@serwist/next"
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -8,4 +10,9 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withSerwist({
+  swSrc: "src/sw.ts",
+  swDest: "public/sw.js",
+  swUrl: "/sw.js",
+  reloadOnOnline: true,
+})(nextConfig)
