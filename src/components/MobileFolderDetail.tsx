@@ -9,6 +9,7 @@ interface MobileFolderDetailProps {
   notes: Note[]
   onBack: () => void
   onNoteClick: (note: Note) => void
+  onNewNote: () => void
 }
 
 const FOLDER_ICONS: Record<string, string> = {
@@ -23,7 +24,7 @@ function getFolderIcon(name: string): string {
   return FOLDER_ICONS[name] || "📁"
 }
 
-export default function MobileFolderDetail({ folder, notes, onBack, onNoteClick }: MobileFolderDetailProps) {
+export default function MobileFolderDetail({ folder, notes, onBack, onNoteClick, onNewNote }: MobileFolderDetailProps) {
   const folderNotes = notes.filter((n) => n.folderId === folder._id)
 
   return (
@@ -35,6 +36,7 @@ export default function MobileFolderDetail({ folder, notes, onBack, onNoteClick 
         <span className="text-xs text-muted-foreground ml-1">{folderNotes.length} notes</span>
       </div>
       <NoteCardGrid notes={folderNotes} folders={[]} onNoteClick={onNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
+      <div onClick={onNewNote} className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg cursor-pointer z-50" aria-label="Create new note" role="button">+</div>
     </div>
   )
 }

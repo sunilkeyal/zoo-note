@@ -11,16 +11,17 @@ import NoteCardGrid from "./NoteCardGrid"
 import MobileFolders from "./MobileFolders"
 import MobileFolderDetail from "./MobileFolderDetail"
 import MobileSearch from "./MobileSearch"
-import MobileNewNote from "./MobileNewNote"
+import FolderPickerModal from "./FolderPickerModal"
 import MobileNewFolder from "./MobileNewFolder"
 import MobileMore from "./MobileMore"
 import MobileSettings from "./MobileSettings"
 import MobileAdmin from "./MobileAdmin"
+import MainArea from "./MainArea"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import type { Note, Folder } from "@/types"
 
-type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-note" | "new-folder" | "settings" | "admin"
+type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -31,11 +32,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const isMobile = useIsMobile()
-  const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder } = useNotes()
+  const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder, activeNoteId, setActiveNoteId } = useNotes()
 
   const [mobileScreen, setMobileScreen] = useState<MobileScreen>("home")
   const [activeTab, setActiveTab] = useState<MobileTab>("home")
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null)
+  const [showFolderPicker, setShowFolderPicker] = useState(false)
+  const [previousScreen, setPreviousScreen] = useState<MobileScreen>("home")
+  const [isCreatingNote, setIsCreatingNote] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login")
@@ -56,14 +60,47 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   const handleNoteClick = (note: Note) => {
-    router.push(`/notes/${note._id}`)
+    setPreviousScreen(mobileScreen)
+    setActiveNoteId(note._id)
+    setMobileScreen("note-detail")
   }
 
-  const handleNewNote = (data: { title: string; folderId?: string }) => {
-    createNote({ title: data.title, folderId: data.folderId || "" }).then(() => {
-      setMobileScreen("home")
-      setActiveTab("home")
-    })
+  const handleNewNote = async (folderId?: string) => {
+    if (isCreatingNote) return
+    setIsCreatingNote(true)
+    try {
+      const note = await createNote({ title: "Untitled Note", folderId: folderId || "" })
+      if (note && note._id) {
+        setActiveNoteId(note._id)
+        setPreviousScreen(mobileScreen)
+        setMobileScreen("note-detail")
+      }
+    } catch {
+      // Note creation failed - user can retry
+    } finally {
+      setIsCreatingNote(false)
+    }
+  }
+
+  const handleFolderPickerSelect = async (folderId: string | null) => {
+    setShowFolderPicker(false)
+    setIsCreatingNote(true)
+    try {
+      const note = await createNote({ title: "Untitled Note", folderId: folderId || "" })
+      if (note && note._id) {
+        setActiveNoteId(note._id)
+        setPreviousScreen("home")
+        setMobileScreen("note-detail")
+      }
+    } catch {
+      // Note creation failed - user can retry
+    } finally {
+      setIsCreatingNote(false)
+    }
+  }
+
+  const handleFolderPickerCancel = () => {
+    setShowFolderPicker(false)
   }
 
   const handleNewFolder = (name: string) => {
@@ -98,7 +135,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   // Mobile layout — bottom tabs
-  const isNoteDetail = /^\/notes\/[^/]+$/.test(pathname)
+  const isNoteDetail = mobileScreen === "note-detail" || /^\/notes\/[^/]+$/.test(pathname)
   const favNotes = notes.filter((n) => n.isFavorite)
 
   return (
@@ -107,7 +144,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border flex-shrink-0">
         {isNoteDetail ? (
           <div className="flex items-center gap-2">
-            <span onClick={() => router.back()} className="text-lg cursor-pointer">←</span>
+            <span onClick={() => {
+              if (/^\/notes\/[^/]+$/.test(pathname)) {
+                router.push("/")
+              } else {
+                setMobileScreen(previousScreen)
+                if (previousScreen === "folder-detail" && selectedFolder) {
+                  setActiveTab("folders")
+                }
+              }
+            }} className="text-lg cursor-pointer">←</span>
             <span className="text-sm font-medium">Edit Note</span>
           </div>
         ) : (
@@ -123,7 +169,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {mobileScreen === "favorites" && "Favorites"}
                 {mobileScreen === "more" && "More"}
                 {mobileScreen === "search" && "Search"}
-                {mobileScreen === "new-note" && "New Note"}
                 {mobileScreen === "new-folder" && "New Folder"}
                 {mobileScreen === "settings" && "Settings"}
                 {mobileScreen === "admin" && "Admin Dashboard"}
@@ -139,29 +184,31 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Screen content */}
       <div className="flex-1 min-h-0 relative">
         {isNoteDetail ? (
-          <div className="flex-1 flex flex-col min-h-0">{children}</div>
+          <div className="flex-1 flex flex-col min-h-0">
+            <MainArea />
+          </div>
         ) : (
           <>
             {mobileScreen === "home" && (
               <>
                 <NoteCardGrid notes={notes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => setMobileScreen("new-folder")} showFolderFilter={false} />
-                <div onClick={() => setMobileScreen("new-note")} className="fixed bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg cursor-pointer z-50">+</div>
+                <div onClick={() => {
+                  if (isCreatingNote) return
+                  setShowFolderPicker(true)
+                }} className={`fixed bottom-20 right-4 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-lg z-50 ${isCreatingNote ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} aria-label="Create new note" role="button">+</div>
               </>
             )}
             {mobileScreen === "folders" && (
               <MobileFolders folders={folders} notes={notes} onFolderClick={handleFolderClick} onNewFolder={() => setMobileScreen("new-folder")} />
             )}
             {mobileScreen === "folder-detail" && selectedFolder && (
-              <MobileFolderDetail folder={selectedFolder} notes={notes} onBack={() => setMobileScreen("folders")} onNoteClick={handleNoteClick} />
+              <MobileFolderDetail folder={selectedFolder} notes={notes} onBack={() => setMobileScreen("folders")} onNoteClick={handleNoteClick} onNewNote={() => handleNewNote(selectedFolder._id)} />
             )}
             {mobileScreen === "favorites" && (
               <NoteCardGrid notes={favNotes} folders={folders} onNoteClick={handleNoteClick} onNewFolder={() => {}} showFolderFilter={false} />
             )}
             {mobileScreen === "search" && (
               <MobileSearch notes={notes} folders={folders} onBack={() => setMobileScreen("home")} onNoteClick={handleNoteClick} />
-            )}
-            {mobileScreen === "new-note" && (
-              <MobileNewNote folders={folders} onBack={() => setMobileScreen("home")} onSave={handleNewNote} />
             )}
             {mobileScreen === "new-folder" && (
               <MobileNewFolder existingFolders={folders.map((f) => f.name)} onBack={() => setMobileScreen("folders")} onCreate={handleNewFolder} />
@@ -181,6 +228,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Tab bar */}
       {!isNoteDetail && <MobileTabBar activeTab={activeTab} onTabChange={handleTabChange} />}
+
+      {/* Folder picker modal */}
+      <FolderPickerModal
+        open={showFolderPicker}
+        onOpenChange={setShowFolderPicker}
+        folders={folders}
+        onSelect={handleFolderPickerSelect}
+        onCancel={handleFolderPickerCancel}
+      />
     </div>
   )
 }
