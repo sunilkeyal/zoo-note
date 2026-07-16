@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Moon, Sun } from "lucide-react"
 import { useThemeSync } from "@/contexts/ThemeSyncContext"
+import { SyncIndicator } from "@/components/SyncIndicator"
 
 export default function AppHeader() {
   const { theme, setTheme } = useThemeSync()
@@ -22,18 +23,21 @@ export default function AppHeader() {
         <div className="flex items-center gap-2">
           <SidebarTrigger />
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger
-              render={<Button variant="ghost" size="sm" onClick={() => setTheme(isDark ? "light" : "dark")} />}
-            >
-              {isDark ? <Sun /> : <Moon />}
-            </TooltipTrigger>
-            <TooltipContent>
-              {isDark ? "Switch to light mode" : "Switch to dark mode"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-2">
+          <SyncIndicator />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={<Button variant="ghost" size="sm" onClick={() => setTheme(isDark ? "light" : "dark")} />}
+              >
+                {isDark ? <Sun /> : <Moon />}
+              </TooltipTrigger>
+              <TooltipContent>
+                {isDark ? "Switch to light mode" : "Switch to dark mode"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </header>
   )
