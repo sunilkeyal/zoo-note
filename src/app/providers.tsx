@@ -7,22 +7,25 @@ import { SessionProvider } from "next-auth/react"
 import { SidebarDensityProvider } from "@/contexts/SidebarDensityContext"
 import { ThemeSyncProvider } from "@/contexts/ThemeSyncContext"
 import { Toaster } from "sonner"
+import { SerwistProvider } from "@serwist/react"
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <ThemeSyncProvider>
-          <SidebarDensityProvider>
-            <NoteProvider>
-              <ImportProvider>
-                {children}
-              </ImportProvider>
-            </NoteProvider>
-          </SidebarDensityProvider>
-        </ThemeSyncProvider>
-      </ThemeProvider>
-      <Toaster />
-    </SessionProvider>
+    <SerwistProvider>
+      <SessionProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeSyncProvider>
+            <SidebarDensityProvider>
+              <NoteProvider>
+                <ImportProvider>
+                  {children}
+                </ImportProvider>
+              </NoteProvider>
+            </SidebarDensityProvider>
+          </ThemeSyncProvider>
+        </ThemeProvider>
+        <Toaster />
+      </SessionProvider>
+    </SerwistProvider>
   )
 }
