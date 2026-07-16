@@ -1,4 +1,4 @@
-import { withSerwist } from "@serwist/next"
+import withSerwistInit from "@serwist/next"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,9 +10,11 @@ const nextConfig = {
   },
 }
 
-export default withSerwist({
+const withSerwist = withSerwistInit({
   swSrc: "src/sw.ts",
   swDest: "public/sw.js",
   swUrl: "/sw.js",
   reloadOnOnline: true,
-})(nextConfig)
+})
+
+export default withSerwist(nextConfig)
