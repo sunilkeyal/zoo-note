@@ -916,12 +916,7 @@ export default function NotesSidebar() {
                     <span>Recent</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/calendar" />} isActive={pathname.startsWith("/calendar")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
-                    <CalendarDays className="text-sky-700 dark:text-sky-600" />
-                    <span>Calendar</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

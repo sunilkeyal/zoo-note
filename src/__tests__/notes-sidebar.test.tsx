@@ -506,3 +506,21 @@ describe("Account menu item", () => {
     expect(screen.queryByTestId('account-sheet')).not.toBeInTheDocument()
   })
 })
+
+describe('Calendar navigation removal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(useNotes).mockReturnValue(createMockContext({ notes: [], folders: [] }))
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Test User', email: 'test@example.com', role: 'user' } },
+      status: 'authenticated',
+      update: vi.fn(),
+    } as any)
+  })
+
+  it('does not render calendar navigation item', () => {
+    render(<NotesSidebar />)
+    expect(screen.queryByText('Calendar')).not.toBeInTheDocument()
+    expect(screen.queryByText('CalendarDays')).not.toBeInTheDocument()
+  })
+})
