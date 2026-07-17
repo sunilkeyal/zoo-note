@@ -8,6 +8,8 @@ const nextConfig = {
     "/api/notes/*/export": ["./node_modules/@sparticuz/chromium/bin/**/*"],
     "/api/notes/import/onenote": ["./src/lib/onenote/vendor/**/*"],
   },
+  // Add turbopack config to fix build issues
+  turbopack: {},
 }
 
 const withSerwist = withSerwistInit({
