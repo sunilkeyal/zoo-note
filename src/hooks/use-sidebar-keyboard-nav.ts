@@ -71,7 +71,12 @@ export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLDivElement
       if (!inSidebar) {
         if (e.key === "ArrowDown" || e.key === "ArrowUp") {
           e.preventDefault()
-          const reentryIndex = focusedIndexRef.current >= 0 ? focusedIndexRef.current : 0
+          let reentryIndex = focusedIndexRef.current
+          if (reentryIndex < 0) {
+            const activePage = sidebar.querySelector<HTMLElement>('[aria-current="page"]')
+            reentryIndex = activePage ? items.indexOf(activePage) : 0
+            if (reentryIndex < 0) reentryIndex = 0
+          }
           focusedIndexRef.current = reentryIndex
           syncFocus(items, reentryIndex)
         }
