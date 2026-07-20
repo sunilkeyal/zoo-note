@@ -73,8 +73,15 @@ export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLDivElement
           e.preventDefault()
           let reentryIndex = focusedIndexRef.current
           if (reentryIndex < 0) {
-            const activePage = sidebar.querySelector<HTMLElement>('[aria-current="page"]')
-            reentryIndex = activePage ? items.indexOf(activePage) : 0
+            const noteMatch = window.location.pathname.match(/\/notes\/([^/]+)/)
+            if (noteMatch) {
+              const noteEl = sidebar.querySelector<HTMLElement>(`[data-sidebar-nav-item="note-${noteMatch[1]}"]`)
+              if (noteEl) reentryIndex = items.indexOf(noteEl)
+            }
+            if (reentryIndex < 0) {
+              const activePage = sidebar.querySelector<HTMLElement>('[aria-current="page"]')
+              reentryIndex = activePage ? items.indexOf(activePage) : 0
+            }
             if (reentryIndex < 0) reentryIndex = 0
           }
           focusedIndexRef.current = reentryIndex
