@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react"
 import { flushSync } from "react-dom"
+import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav"
 import {
   DndContext,
   DragOverlay,
@@ -311,12 +312,12 @@ const SortableNoteItem = ({ noteId, children }: { noteId: string; children: Reac
     opacity: isDragging ? 0.4 : 1,
     position: "relative" as const,
   }
-  
+  const { tabIndex: _sortableTabIndex, ...restAttributes } = attributes
   const child = React.Children.only(children) as React.ReactElement<{ style?: React.CSSProperties }>
   return React.cloneElement(child, {
     ref: setNodeRef,
     style: { ...child.props.style, ...style },
-    ...attributes,
+    ...restAttributes,
     ...listeners,
   } as any)
 }
@@ -332,8 +333,9 @@ const SortableFolderItem = ({ folderId, dragType, children }: { folderId: string
   const indicatorClass = isOver && dragType === "note"
     ? "ring-2 ring-blue-500 rounded-md"
     : ""
+  const { tabIndex: _sortableTabIndex, ...restAttributes } = attributes
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+    <div ref={setNodeRef} style={style} {...restAttributes} {...listeners}
       className={indicatorClass}
     >
       {children}
@@ -551,6 +553,9 @@ export default function NotesSidebar() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [activeDragType, setActiveDragType] = useState<"note" | "folder" | null>(null)
 
+  const sidebarRef = useRef<HTMLElement>(null)
+  useSidebarKeyboardNav(sidebarRef)
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 10 },
@@ -701,6 +706,8 @@ export default function NotesSidebar() {
   router.push(`/notes/${note._id}`)
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
+                data-sidebar-nav-item={`note-${note._id}`}
+                role="treeitem"
               >
                 <StickyNote className="size-3.5 text-stone-400 dark:text-stone-500 shrink-0" />
                 <span className="truncate">{note.title}</span>
@@ -753,7 +760,7 @@ export default function NotesSidebar() {
                 <SidebarMenuItem>
                   <ContextMenu>
                     <ContextMenuTrigger render={
-                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={navItemClass(density)} />}>
+                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={navItemClass(density)} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" />}>
                         <FolderIconForFolder className={getFolderIconColor(folder.name)} />
                         {renamingId === folder._id ? (
                           <Input
@@ -817,28 +824,28 @@ export default function NotesSidebar() {
 
   return (
     <>
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="icon" ref={sidebarRef}>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-1 py-1">
             <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
             <span className="text-sm font-semibold">ZooNote</span>
           </div>
           <TooltipProvider delay={0}>
-          <div className="flex items-center gap-0.5 px-1 pb-1">
+          <div className="flex items-center gap-0.5 px-1 pb-1" role="toolbar" aria-label="Sidebar actions">
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleCreateRootNote} />}>
+              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleCreateRootNote} data-sidebar-nav-item="new-note" role="menuitem" />}>
                 <Plus />
               </TooltipTrigger>
               <TooltipContent>New note</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleCreateFolder} />}>
+              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={handleCreateFolder} data-sidebar-nav-item="new-folder" role="menuitem" />}>
                 <FolderIcon />
               </TooltipTrigger>
               <TooltipContent>New folder</TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setSearchOpen(!searchOpen); setSearchFocused(false); setSearch("") }} className={searchOpen ? "text-sidebar-accent-foreground" : ""} />}>
+              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setSearchOpen(!searchOpen); setSearchFocused(false); setSearch("") }} className={searchOpen ? "text-sidebar-accent-foreground" : ""} data-sidebar-nav-item="search" role="menuitem" />}>
                 <Search />
               </TooltipTrigger>
               <TooltipContent>Search</TooltipContent>
@@ -894,13 +901,13 @@ export default function NotesSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }} className={navItemClass(density)}>
+                  <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} onClick={() => { setActiveNoteId(null); setActiveFolderId(null); setSearchOpen(false) }} className={navItemClass(density)} data-sidebar-nav-item="home" aria-current={pathname === "/" ? "page" : undefined}>
                     <House className="text-indigo-600 dark:text-indigo-500" />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
+                  <SidebarMenuButton render={<Link href="/favorites" />} isActive={pathname.startsWith("/favorites")} onClick={() => setSearchOpen(false)} className={navItemClass(density)} data-sidebar-nav-item="favorites" aria-current={pathname.startsWith("/favorites") ? "page" : undefined}>
                     <Star className="text-amber-700 dark:text-amber-600" />
                     <span>Favorites</span>
                     {favoriteNotes.length > 0 && (
@@ -911,7 +918,7 @@ export default function NotesSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
+                  <SidebarMenuButton render={<Link href="/recent" />} isActive={pathname.startsWith("/recent")} onClick={() => setSearchOpen(false)} className={navItemClass(density)} data-sidebar-nav-item="recent" aria-current={pathname.startsWith("/recent") ? "page" : undefined}>
                     <Clock className="text-emerald-600 dark:text-emerald-500" />
                     <span>Recent</span>
                   </SidebarMenuButton>
@@ -929,6 +936,7 @@ export default function NotesSidebar() {
             onDragStart={handleDragStartFn}
             onDragEnd={handleDragEndFn}
           >
+            <div role="tree" aria-label="Notes and folders">
             <SortableContext items={folders.map(f => f._id)} strategy={verticalListSortingStrategy}>
               {folders.map(renderFolder)}
             </SortableContext>
@@ -950,6 +958,7 @@ export default function NotesSidebar() {
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
+            </div>
 
             {/* DragOverlay */}
             <DragOverlay
@@ -983,7 +992,7 @@ export default function NotesSidebar() {
                 <SidebarMenuItem>
                   <ContextMenu>
                     <ContextMenuTrigger render={
-                      <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)}>
+                      <SidebarMenuButton render={<Link href="/trash" />} isActive={pathname.startsWith("/trash")} onClick={() => setSearchOpen(false)} className={navItemClass(density)} data-sidebar-nav-item="trash" aria-current={pathname.startsWith("/trash") ? "page" : undefined}>
                         <Trash2 className="text-rose-600 dark:text-rose-500" />
                         <span>Trash</span>
                       </SidebarMenuButton>
@@ -1028,12 +1037,12 @@ export default function NotesSidebar() {
               <div className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
                 Admin
               </div>
-              <SidebarGroup className="py-0">
+              <SidebarGroup className="py-0" role="menu" aria-label="Admin">
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {adminItems.map((item) => (
                       <SidebarMenuItem key={item.route}>
-                        <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)} className={navItemClass(density)}>
+                        <SidebarMenuButton render={<Link href={item.route} />} isActive={item.route === "/admin" ? pathname === "/admin" : pathname.startsWith(item.route)} className={navItemClass(density)} data-sidebar-nav-item={`admin-${item.route}`} role="menuitem">
                           <item.icon className={item.iconColor} />
                           <span>{item.label}</span>
                         </SidebarMenuButton>
@@ -1050,7 +1059,7 @@ export default function NotesSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
-                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground" data-sidebar-nav-item="footer-menu">
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                     {session?.user?.name?.charAt(0).toUpperCase() || "U"}
                   </div>
