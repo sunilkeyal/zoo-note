@@ -553,7 +553,7 @@ export default function NotesSidebar() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [activeDragType, setActiveDragType] = useState<"note" | "folder" | null>(null)
 
-  const sidebarRef = useRef<HTMLElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
   useSidebarKeyboardNav(sidebarRef)
 
   const sensors = useSensors(

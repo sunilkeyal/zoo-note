@@ -4,10 +4,9 @@ import { useEffect, useRef, useCallback } from "react"
 
 const FOCUS_BG_CLASSES = "bg-sidebar-accent"
 
-function getFocusableItems(sidebarEl: HTMLElement): Element[] {
-  const items = sidebarEl.querySelectorAll("[data-sidebar-nav-item]")
-  return Array.from(items).filter((item) => {
-    const el = item as HTMLElement
+function getFocusableItems(sidebarEl: HTMLElement): HTMLElement[] {
+  const items = sidebarEl.querySelectorAll<HTMLElement>("[data-sidebar-nav-item]")
+  return Array.from(items).filter((el) => {
     if (el.offsetParent === null) return false
     const collapsibleContent = el.closest("[data-slot='collapsible-content']")
     if (collapsibleContent && collapsibleContent.getAttribute("data-state") === "closed") {
@@ -33,7 +32,7 @@ function removeFocusStyles(el: Element | null) {
   h.style.boxShadow = ""
 }
 
-export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLElement | null>) {
+export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLDivElement | null>) {
   const focusedIndexRef = useRef(-1)
   const lastFocusedIdRef = useRef<string | null>(null)
 
@@ -61,7 +60,7 @@ export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLElement | 
       if (active.tagName === "INPUT" || active.tagName === "TEXTAREA") return
       if (active.isContentEditable) return
 
-      const sidebar = sidebarRef.current.closest("[data-slot='sidebar']")
+      const sidebar = sidebarRef.current.closest("[data-slot='sidebar']") as HTMLElement | null
       if (!sidebar) return
 
       const items = getFocusableItems(sidebar)
@@ -150,10 +149,10 @@ export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLElement | 
       if (!sidebarRef.current) return
 
       const target = e.target as HTMLElement
-      const sidebar = sidebarRef.current.closest("[data-slot='sidebar']")
+      const sidebar = sidebarRef.current.closest("[data-slot='sidebar']") as HTMLElement | null
       if (!sidebar) return
 
-      const clickedItem = target.closest("[data-sidebar-nav-item]")
+      const clickedItem = target.closest("[data-sidebar-nav-item]") as HTMLElement | null
       if (!clickedItem || !sidebar.contains(clickedItem)) return
 
       const items = getFocusableItems(sidebar)
@@ -177,10 +176,10 @@ export function useSidebarKeyboardNav(sidebarRef: React.RefObject<HTMLElement | 
   )
 
   useEffect(() => {
-    const sidebar = sidebarRef.current?.closest("[data-slot='sidebar']")
+    const sidebar = sidebarRef.current?.closest("[data-slot='sidebar']") as HTMLElement | null
     if (!sidebar) return
 
-    const sidebarContent = sidebar.querySelector("[data-slot='sidebar-content']")
+    const sidebarContent = sidebar.querySelector<HTMLElement>("[data-slot='sidebar-content']")
     if (!sidebarContent) return
 
     document.addEventListener("keydown", handleKeyDown, true)
