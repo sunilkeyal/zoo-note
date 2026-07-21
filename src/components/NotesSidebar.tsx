@@ -757,6 +757,7 @@ export default function NotesSidebar() {
       toggleSelect(note._id)
     }
   } else {
+    if (isSelecting) clearSelection()
     preSelectIdRef.current = note._id
     setActiveNoteId(note._id)
     setActiveFolderId(null)
@@ -841,16 +842,20 @@ export default function NotesSidebar() {
     const FolderIconForFolder = getFolderIcon(folder.name)
 
     const handleFolderSelect = (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const allSidebarIds = [
-        ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
-        ...notes.filter((n) => !n.folderId).map((n) => n._id),
-      ]
-      if (e.shiftKey) {
-        selectRange(folder._id, allSidebarIds)
-      } else {
-        toggleSelect(folder._id)
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        const allSidebarIds = [
+          ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
+          ...notes.filter((n) => !n.folderId).map((n) => n._id),
+        ]
+        if (e.shiftKey) {
+          selectRange(folder._id, allSidebarIds)
+        } else {
+          toggleSelect(folder._id)
+        }
+      } else if (isSelecting) {
+        clearSelection()
       }
     }
 
