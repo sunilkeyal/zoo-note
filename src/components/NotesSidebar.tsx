@@ -797,9 +797,12 @@ export default function NotesSidebar() {
                             return (
                               <ContextMenuItem onClick={(e) => {
                                 e.stopPropagation()
-                                Promise.all(noteIds.map((id) => toggleFavorite(id)))
+                                const toToggle = allFav
+                                  ? noteIds
+                                  : noteIds.filter((id) => !notes.find((n) => n._id === id)?.isFavorite)
+                                Promise.all(toToggle.map((id) => toggleFavorite(id)))
                                 clearSelection()
-                                toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
+                                toast.success(`${toToggle.length} note${toToggle.length !== 1 ? "s" : ""} updated`)
                               }}>
                                 <Star /> {label}
                               </ContextMenuItem>
@@ -924,9 +927,12 @@ export default function NotesSidebar() {
                             return (
                               <ContextMenuItem onClick={(e) => {
                                 e.stopPropagation()
-                                Promise.all(noteIds.map((id) => toggleFavorite(id)))
+                                const toToggle = allFav
+                                  ? noteIds
+                                  : noteIds.filter((id) => !notes.find((n) => n._id === id)?.isFavorite)
+                                Promise.all(toToggle.map((id) => toggleFavorite(id)))
                                 clearSelection()
-                                toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
+                                toast.success(`${toToggle.length} note${toToggle.length !== 1 ? "s" : ""} updated`)
                               }}>
                                 <Star /> {label}
                               </ContextMenuItem>
