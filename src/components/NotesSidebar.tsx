@@ -402,8 +402,13 @@ export default function NotesSidebar() {
 
   const { selectedIds, lastSelectedId, isSelecting, toggleSelect, selectRange, selectAll, clearSelection } = useMultiSelect()
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ notes: string[]; folders: string[] } | null>(null)
+  const skipNextClearRef = useRef(false)
 
   useEffect(() => {
+    if (skipNextClearRef.current) {
+      skipNextClearRef.current = false
+      return
+    }
     clearSelection()
   }, [pathname, clearSelection])
 
@@ -749,6 +754,7 @@ export default function NotesSidebar() {
     setActiveNoteId(note._id)
     setActiveFolderId(null)
     setSearchOpen(false)
+    skipNextClearRef.current = true
     router.push(`/notes/${note._id}`)
   }
 }}
