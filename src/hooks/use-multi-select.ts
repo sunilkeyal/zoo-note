@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 
 interface UseMultiSelectReturn {
   selectedIds: Set<string>
@@ -13,21 +13,24 @@ interface UseMultiSelectReturn {
 export function useMultiSelect(): UseMultiSelectReturn {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
+  const selectedIdsRef = useRef(selectedIds)
+  selectedIdsRef.current = selectedIds
 
   const isSelecting = selectedIds.size > 0
 
   const toggleSelect = useCallback((id: string) => {
+    const isRemoving = selectedIdsRef.current.has(id)
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-        setLastSelectedId(null)
-      } else {
-        next.add(id)
-        setLastSelectedId(id)
-      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
+    if (isRemoving) {
+      setLastSelectedId((prev) => (prev === id ? null : prev))
+    } else {
+      setLastSelectedId(id)
+    }
   }, [])
 
   const selectRange = useCallback((id: string, allIds: string[]) => {

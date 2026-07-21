@@ -24,6 +24,17 @@ describe("useMultiSelect", () => {
     expect(result.current.lastSelectedId).toBeNull()
   })
 
+  it("deselecting a non-anchor item keeps lastSelectedId", () => {
+    const { result } = renderHook(() => useMultiSelect())
+    act(() => result.current.toggleSelect("a"))
+    act(() => result.current.toggleSelect("b"))
+    expect(result.current.lastSelectedId).toBe("b")
+    act(() => result.current.toggleSelect("a"))
+    expect(result.current.selectedIds.has("a")).toBe(false)
+    expect(result.current.selectedIds.has("b")).toBe(true)
+    expect(result.current.lastSelectedId).toBe("b")
+  })
+
   it("selectRange selects contiguous items", () => {
     const { result } = renderHook(() => useMultiSelect())
     act(() => result.current.toggleSelect("b"))
