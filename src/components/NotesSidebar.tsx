@@ -1,8 +1,10 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { flushSync } from "react-dom"
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav"
+import { useMultiSelect } from "@/hooks/use-multi-select"
+import SelectionBar from "./SelectionBar"
 import {
   DndContext,
   DragOverlay,
@@ -396,6 +398,28 @@ export default function NotesSidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
+  const { selectedIds, lastSelectedId, isSelecting, toggleSelect, selectRange, selectAll, clearSelection } = useMultiSelect()
+  const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ notes: string[]; folders: string[] } | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && isSelecting) {
+        e.stopPropagation()
+        clearSelection()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && isSelecting) {
+        e.preventDefault()
+        const allIds = [
+          ...folders.map((f) => f._id),
+          ...notes.filter((n) => !n.folderId).map((n) => n._id),
+        ]
+        selectAll(allIds)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isSelecting, clearSelection, selectAll, folders, notes])
+
 
 
   const trashNoteCount = trashItems.notes.length
@@ -698,8 +722,23 @@ export default function NotesSidebar() {
             <ContextMenuTrigger render={
               <Button
                 isActive={activeNoteId === note._id}
-                className={asRootItem ? `data-active:font-normal ${navItemClass(density)}` : subItemClass(density)}
-                onClick={() => {
+                className={`${asRootItem ? `data-active:font-normal ${navItemClass(density)}` : subItemClass(density)} ${
+  selectedIds.has(note._id) ? "bg-blue-100 dark:bg-blue-900/30 border-l-2 border-l-blue-500" : ""
+}`}
+                onClick={(e) => {
+  if (e.ctrlKey || e.metaKey || e.shiftKey || isSelecting) {
+    e.preventDefault()
+    const allSidebarIds = [
+      ...folders.map((f) => f._id),
+      ...notes.filter((n) => !n.folderId).map((n) => n._id),
+    ]
+    if (e.shiftKey) {
+      selectRange(note._id, allSidebarIds)
+    } else {
+      toggleSelect(note._id)
+    }
+    return
+  }
   setActiveNoteId(note._id)
   setActiveFolderId(null)
   setSearchOpen(false)
@@ -719,23 +758,54 @@ export default function NotesSidebar() {
               </Button>
             } />
             <ContextMenuContent>
-              <ContextMenuItem onClick={() => handleRenameFromContextMenu(note._id, note.title)}>
-                <Pencil /> Rename
-              </ContextMenuItem>
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
-                <File /> Download PDF
-              </ContextMenuItem>
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}>
-                {note.isFavorite ? (
-                  <><Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Remove from Favorite</>
-                ) : (
-                  <><Star className="h-4 w-4" /> Add to Favorite</>
-                )}
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
-                <Trash2 /> Move to trash
-              </ContextMenuItem>
+              {isSelecting ? (
+                <>
+                  <ContextMenuLabel className="text-xs text-muted-foreground">
+                    {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
+                  </ContextMenuLabel>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={(e) => {
+                    e.stopPropagation()
+                    const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                    Promise.all(noteIds.map((id) => toggleFavorite(id)))
+                    clearSelection()
+                  }}>
+                    <Star /> Add to Favorites
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                      const folderIds = [...selectedIds].filter((id) => folders.some((f) => f._id === id))
+                      setBulkDeleteTarget({ notes: noteIds, folders: folderIds })
+                    }}
+                  >
+                    <Trash2 /> Move to Trash ({selectedIds.size})
+                  </ContextMenuItem>
+                </>
+              ) : (
+                <>
+                  <ContextMenuItem onClick={() => handleRenameFromContextMenu(note._id, note.title)}>
+                    <Pencil /> Rename
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
+                    <File /> Download PDF
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}>
+                    {note.isFavorite ? (
+                      <><Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Remove from Favorite</>
+                    ) : (
+                      <><Star className="h-4 w-4" /> Add to Favorite</>
+                    )}
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
+                    <Trash2 /> Move to trash
+                  </ContextMenuItem>
+                </>
+              )}
             </ContextMenuContent>
           </ContextMenu>
         )}
