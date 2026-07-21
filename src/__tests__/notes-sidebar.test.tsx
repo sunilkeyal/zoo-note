@@ -104,6 +104,18 @@ vi.mock('@/components/EmptyTrashDialog', () => ({
   default: () => null,
 }))
 
+vi.mock('@/components/BulkDeleteDialog', () => ({
+  default: () => null,
+}))
+
+vi.mock('@/components/SettingsSheet', () => ({
+  default: () => null,
+}))
+
+vi.mock('@/components/ImportExportSheet', () => ({
+  default: () => null,
+}))
+
 vi.mock('@/components/ui/sidebar', () => ({
   Sidebar: ({ children }: { children: React.ReactNode }) => <div data-testid="sidebar">{children}</div>,
   SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -206,6 +218,8 @@ vi.mock('lucide-react', () => ({
   Clock: () => <span>Clock</span>,
   CalendarDays: () => <span>CalendarDays</span>,
   RotateCcw: () => <span>RotateCcw</span>,
+  X: () => <span>X</span>,
+  XIcon: () => <span>XIcon</span>,
 }))
 
 import { useNotes } from '@/contexts/NoteContext'
@@ -504,6 +518,41 @@ describe("Account menu item", () => {
     expect(await screen.findByTestId('account-sheet')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Close Account'))
     expect(screen.queryByTestId('account-sheet')).not.toBeInTheDocument()
+  })
+})
+
+describe("multi-select", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { name: 'Test User', email: 'test@test.com', role: 'user' } },
+      status: 'authenticated',
+      update: vi.fn(),
+    } as any)
+  })
+
+  it("shows SelectionBar when a note is ctrl-clicked", () => {
+    render(<NotesSidebar />)
+    fireEvent.click(screen.getByText("Alpha Note"), { ctrlKey: true })
+    expect(screen.getByText("1 selected")).toBeInTheDocument()
+  })
+
+  it("hides SelectionBar when selection is cleared", () => {
+    render(<NotesSidebar />)
+    fireEvent.click(screen.getByText("Alpha Note"), { ctrlKey: true })
+    expect(screen.getByText("1 selected")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText("Clear"))
+    expect(screen.queryByText("1 selected")).not.toBeInTheDocument()
+  })
+
+  it("shows bulk context menu items when selecting", () => {
+    render(<NotesSidebar />)
+    fireEvent.click(screen.getByText("Alpha Note"), { ctrlKey: true })
+
+    expect(screen.getAllByText("Add to Favorites").length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Move to Trash/).length).toBeGreaterThan(0)
   })
 })
 
