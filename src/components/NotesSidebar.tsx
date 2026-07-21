@@ -739,23 +739,21 @@ export default function NotesSidebar() {
   selectedIds.has(note._id) ? "bg-blue-100 dark:bg-blue-900/30 border-l-2 border-l-blue-500" : ""
 }`}
                 onClick={(e) => {
-  const allSidebarIds = [
-    ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
-    ...notes.filter((n) => !n.folderId).map((n) => n._id),
-  ]
-  if (e.shiftKey) {
+  if (e.shiftKey || e.ctrlKey || e.metaKey) {
     e.preventDefault()
-    selectRange(note._id, allSidebarIds)
-  } else if (e.ctrlKey || e.metaKey) {
-    e.preventDefault()
-    toggleSelect(note._id)
+    const allSidebarIds = [
+      ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
+      ...notes.filter((n) => !n.folderId).map((n) => n._id),
+    ]
+    if (e.shiftKey) {
+      selectRange(note._id, allSidebarIds)
+    } else {
+      toggleSelect(note._id)
+    }
   } else {
-    if (isSelecting) clearSelection()
-    toggleSelect(note._id)
     setActiveNoteId(note._id)
     setActiveFolderId(null)
     setSearchOpen(false)
-    skipNextClearRef.current = true
     router.push(`/notes/${note._id}`)
   }
 }}
