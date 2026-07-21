@@ -761,6 +761,7 @@ export default function NotesSidebar() {
     setActiveNoteId(note._id)
     setActiveFolderId(null)
     setSearchOpen(false)
+    skipNextClearRef.current = true
     router.push(`/notes/${note._id}`)
   }
 }}
