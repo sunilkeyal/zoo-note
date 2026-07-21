@@ -750,6 +750,7 @@ export default function NotesSidebar() {
     e.preventDefault()
     toggleSelect(note._id)
   } else {
+    if (isSelecting) clearSelection()
     toggleSelect(note._id)
     setActiveNoteId(note._id)
     setActiveFolderId(null)
