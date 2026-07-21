@@ -225,7 +225,7 @@ export default function VisualPage() {
                       onClick={(e) => handleItemClick(folder.id, e)}
                       className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-colors ${
                         selectedIds.has(folder.id)
-                          ? "bg-stone-200 dark:bg-stone-800"
+                          ? "!bg-accent !text-accent-foreground"
                           : "hover:bg-stone-100 dark:hover:bg-stone-800"
                       }`}
                     >
@@ -253,7 +253,7 @@ export default function VisualPage() {
                             onClick={(e) => handleItemClick(note.id, e)}
                             className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-colors ${
                               selectedIds.has(note.id)
-                        ? "bg-stone-200 dark:bg-stone-800"
+                        ? "!bg-accent !text-accent-foreground"
                                 : activeNoteId === note.id
                                 ? "bg-stone-100 dark:bg-stone-800"
                                 : "hover:bg-stone-100 dark:hover:bg-stone-800"

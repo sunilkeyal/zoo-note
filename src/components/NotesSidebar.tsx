@@ -738,7 +738,7 @@ export default function NotesSidebar() {
               <Button
                 isActive={activeNoteId === note._id}
                 className={`${asRootItem ? `data-active:font-normal ${navItemClass(density)}` : subItemClass(density)} ${
-  selectedIds.has(note._id) ? "bg-stone-200 dark:bg-stone-800" : ""
+  selectedIds.has(note._id) ? "!bg-accent !text-accent-foreground" : ""
 }`}
                 onClick={(e) => {
   if (e.shiftKey || e.ctrlKey || e.metaKey) {
@@ -866,7 +866,7 @@ export default function NotesSidebar() {
                 <SidebarMenuItem>
                   <ContextMenu>
                     <ContextMenuTrigger render={
-                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={`${navItemClass(density)} ${selectedIds.has(folder._id) ? "bg-stone-200 dark:bg-stone-800" : ""}`} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" onClick={handleFolderSelect} />}>
+                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={`${navItemClass(density)} ${selectedIds.has(folder._id) ? "!bg-accent !text-accent-foreground" : ""}`} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" onClick={handleFolderSelect} />}>
                         <FolderIconForFolder className={getFolderIconColor(folder.name)} />
                         {renamingId === folder._id ? (
                           <Input
