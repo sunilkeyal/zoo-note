@@ -1,8 +1,12 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { flushSync } from "react-dom"
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav"
+import { useMultiSelect } from "@/hooks/use-multi-select"
+
+import BulkDeleteDialog from "./BulkDeleteDialog"
+import { toast } from "sonner"
 import {
   DndContext,
   DragOverlay,
@@ -396,6 +400,39 @@ export default function NotesSidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
+  const { selectedIds, lastSelectedId, isSelecting, toggleSelect, selectRange, selectAll, clearSelection } = useMultiSelect()
+  const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ notes: string[]; folders: string[] } | null>(null)
+  const skipNextClearRef = useRef(false)
+  const preSelectIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (skipNextClearRef.current) {
+      skipNextClearRef.current = false
+      return
+    }
+    clearSelection()
+  }, [pathname, clearSelection])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && isSelecting) {
+        e.stopPropagation()
+        preSelectIdRef.current = null
+        clearSelection()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && isSelecting) {
+        e.preventDefault()
+        const allIds = [
+          ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
+          ...notes.filter((n) => !n.folderId).map((n) => n._id),
+        ]
+        selectAll(allIds)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isSelecting, clearSelection, selectAll, folders, notes])
+
 
 
   const trashNoteCount = trashItems.notes.length
@@ -534,6 +571,7 @@ export default function NotesSidebar() {
   }
 
   const startRenaming = (id: string, currentName: string) => {
+    clearSelection()
     setRenamingId(id)
     setRenameValue(currentName)
   }
@@ -586,6 +624,7 @@ export default function NotesSidebar() {
   }
 
   const handleDragStartFn = (event: DragStartEvent) => {
+    clearSelection()
     const id = event.active.id as string
     setActiveDragId(id)
     setActiveDragType(folders.some((f) => f._id === id) ? "folder" : "note")
@@ -698,12 +737,34 @@ export default function NotesSidebar() {
             <ContextMenuTrigger render={
               <Button
                 isActive={activeNoteId === note._id}
-                className={asRootItem ? `data-active:font-normal ${navItemClass(density)}` : subItemClass(density)}
-                onClick={() => {
-  setActiveNoteId(note._id)
-  setActiveFolderId(null)
-  setSearchOpen(false)
-  router.push(`/notes/${note._id}`)
+                className={`${asRootItem ? `data-active:font-normal ${navItemClass(density)}` : subItemClass(density)} ${
+  selectedIds.has(note._id) ? "!bg-stone-300 dark:!bg-stone-700" : ""
+}`}
+                onClick={(e) => {
+  if (e.shiftKey || e.ctrlKey || e.metaKey) {
+    e.preventDefault()
+    const allSidebarIds = [
+      ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
+      ...notes.filter((n) => !n.folderId).map((n) => n._id),
+    ]
+    if (preSelectIdRef.current && preSelectIdRef.current !== note._id) {
+      toggleSelect(preSelectIdRef.current)
+    }
+    preSelectIdRef.current = null
+    if (e.shiftKey) {
+      selectRange(note._id, allSidebarIds)
+    } else {
+      toggleSelect(note._id)
+    }
+  } else {
+    if (isSelecting) clearSelection()
+    preSelectIdRef.current = note._id
+    setActiveNoteId(note._id)
+    setActiveFolderId(null)
+    setSearchOpen(false)
+    skipNextClearRef.current = true
+    router.push(`/notes/${note._id}`)
+  }
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
                 data-sidebar-nav-item={`note-${note._id}`}
@@ -719,23 +780,74 @@ export default function NotesSidebar() {
               </Button>
             } />
             <ContextMenuContent>
-              <ContextMenuItem onClick={() => handleRenameFromContextMenu(note._id, note.title)}>
-                <Pencil /> Rename
-              </ContextMenuItem>
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
-                <File /> Download PDF
-              </ContextMenuItem>
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}>
-                {note.isFavorite ? (
-                  <><Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Remove from Favorite</>
-                ) : (
-                  <><Star className="h-4 w-4" /> Add to Favorite</>
-                )}
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
-                <Trash2 /> Move to trash
-              </ContextMenuItem>
+              {isSelecting ? (
+                <>
+                  <ContextMenuGroup>
+                    <ContextMenuLabel className="text-xs text-muted-foreground">
+                      {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
+                    </ContextMenuLabel>
+                  </ContextMenuGroup>
+                  <ContextMenuSeparator />
+                          {(() => {
+                            const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                            const favCount = noteIds.filter((id) => notes.find((n) => n._id === id)?.isFavorite).length
+                            const allFav = favCount === noteIds.length
+                            const noneFav = favCount === 0
+                            const label = allFav ? "Remove from Favorites" : noneFav ? "Add to Favorites" : `Add to Favorites (${favCount} already added)`
+                            return (
+                              <ContextMenuItem onClick={(e) => {
+                                e.stopPropagation()
+                                const toToggle = allFav
+                                  ? noteIds
+                                  : noteIds.filter((id) => !notes.find((n) => n._id === id)?.isFavorite)
+                                Promise.all(toToggle.map((id) => toggleFavorite(id)))
+                                clearSelection()
+                                toast.success(`${toToggle.length} note${toToggle.length !== 1 ? "s" : ""} updated`)
+                              }}>
+                                <Star /> {label}
+                              </ContextMenuItem>
+                            )
+                          })()}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                      const folderIds = [...selectedIds].filter((id) => {
+                        if (!folders.some((f) => f._id === id)) return false
+                        return !noteIds.some((nid) => {
+                          const note = notes.find((n) => n._id === nid)
+                          return note?.folderId === id
+                        })
+                      })
+                      setBulkDeleteTarget({ notes: noteIds, folders: folderIds })
+                    }}
+                  >
+                    <Trash2 /> Move to Trash ({selectedIds.size})
+                  </ContextMenuItem>
+                </>
+              ) : (
+                <>
+                  <ContextMenuItem onClick={() => handleRenameFromContextMenu(note._id, note.title)}>
+                    <Pencil /> Rename
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleExportNote(note._id, note.title, "pdf") }}>
+                    <File /> Download PDF
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); toggleFavorite(note._id) }}>
+                    {note.isFavorite ? (
+                      <><Star className="h-4 w-4 text-amber-500 fill-amber-500" /> Remove from Favorite</>
+                    ) : (
+                      <><Star className="h-4 w-4" /> Add to Favorite</>
+                    )}
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteNoteTarget(note._id) }}>
+                    <Trash2 /> Move to trash
+                  </ContextMenuItem>
+                </>
+              )}
             </ContextMenuContent>
           </ContextMenu>
         )}
@@ -747,6 +859,24 @@ export default function NotesSidebar() {
     const folderNotes = notes.filter((n) => n.folderId === folder._id)
     const isExpanded = expandedFolders.has(folder._id)
     const FolderIconForFolder = getFolderIcon(folder.name)
+
+    const handleFolderSelect = (e: React.MouseEvent) => {
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        const allSidebarIds = [
+          ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
+          ...notes.filter((n) => !n.folderId).map((n) => n._id),
+        ]
+        if (e.shiftKey) {
+          selectRange(folder._id, allSidebarIds)
+        } else {
+          toggleSelect(folder._id)
+        }
+      } else if (isSelecting) {
+        clearSelection()
+      }
+    }
 
     return (
       <SortableFolderItem key={folder._id} folderId={folder._id} dragType={activeDragType}>
@@ -760,7 +890,7 @@ export default function NotesSidebar() {
                 <SidebarMenuItem>
                   <ContextMenu>
                     <ContextMenuTrigger render={
-                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={navItemClass(density)} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" />}>
+                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={`${navItemClass(density)} ${selectedIds.has(folder._id) ? "!bg-stone-300 dark:!bg-stone-700" : ""}`} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" onClick={handleFolderSelect} />}>
                         <FolderIconForFolder className={getFolderIconColor(folder.name)} />
                         {renamingId === folder._id ? (
                           <Input
@@ -780,16 +910,67 @@ export default function NotesSidebar() {
                       </CollapsibleTrigger>
                     } />
                     <ContextMenuContent>
-                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleCreateInFolder(folder._id) }}>
-                        <Plus /> Create new note
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => handleRenameFromContextMenu(folder._id, folder.name)}>
-                        <Pencil /> Rename
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteFolderTarget(folder) }}>
-                        <Trash2 /> Move to trash
-                      </ContextMenuItem>
+                      {isSelecting ? (
+                        <>
+                          <ContextMenuGroup>
+                            <ContextMenuLabel className="text-xs text-muted-foreground">
+                              {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
+                            </ContextMenuLabel>
+                          </ContextMenuGroup>
+                          <ContextMenuSeparator />
+                          {(() => {
+                            const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                            const favCount = noteIds.filter((id) => notes.find((n) => n._id === id)?.isFavorite).length
+                            const allFav = favCount === noteIds.length
+                            const noneFav = favCount === 0
+                            const label = allFav ? "Remove from Favorites" : noneFav ? "Add to Favorites" : `Add to Favorites (${favCount} already added)`
+                            return (
+                              <ContextMenuItem onClick={(e) => {
+                                e.stopPropagation()
+                                const toToggle = allFav
+                                  ? noteIds
+                                  : noteIds.filter((id) => !notes.find((n) => n._id === id)?.isFavorite)
+                                Promise.all(toToggle.map((id) => toggleFavorite(id)))
+                                clearSelection()
+                                toast.success(`${toToggle.length} note${toToggle.length !== 1 ? "s" : ""} updated`)
+                              }}>
+                                <Star /> {label}
+                              </ContextMenuItem>
+                            )
+                          })()}
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                              const folderIds = [...selectedIds].filter((id) => {
+                                if (!folders.some((f) => f._id === id)) return false
+                                return !noteIds.some((nid) => {
+                                  const note = notes.find((n) => n._id === nid)
+                                  return note?.folderId === id
+                                })
+                              })
+                              setBulkDeleteTarget({ notes: noteIds, folders: folderIds })
+                            }}
+                          >
+                            <Trash2 /> Move to Trash ({selectedIds.size})
+                          </ContextMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleCreateInFolder(folder._id) }}>
+                            <Plus /> Create new note
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => handleRenameFromContextMenu(folder._id, folder.name)}>
+                            <Pencil /> Rename
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteFolderTarget(folder) }}>
+                            <Trash2 /> Move to trash
+                          </ContextMenuItem>
+                        </>
+                      )}
                     </ContextMenuContent>
                   </ContextMenu>
                   {!renamingId && (
@@ -1131,6 +1312,28 @@ export default function NotesSidebar() {
           setEmptyTrashDialogOpen(false)
         }}
         onCancel={() => setEmptyTrashDialogOpen(false)}
+      />
+      <BulkDeleteDialog
+        open={bulkDeleteTarget !== null}
+        noteCount={bulkDeleteTarget?.notes.length ?? 0}
+        folderCount={bulkDeleteTarget?.folders.length ?? 0}
+        onClose={() => setBulkDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!bulkDeleteTarget) return
+          const { notes: noteIds, folders: folderIds } = bulkDeleteTarget
+          const count = noteIds.length + folderIds.length
+          await Promise.all([
+            ...noteIds.map((id) => deleteNote(id)),
+            ...folderIds.map((id) => deleteFolder(id)),
+          ])
+          if (noteIds.includes(activeNoteId ?? "")) {
+            setActiveNoteId(null)
+            router.push("/")
+          }
+          setBulkDeleteTarget(null)
+          clearSelection()
+          toast.success(`${count} item${count !== 1 ? "s" : ""} moved to trash`)
+        }}
       />
     </>
   )
