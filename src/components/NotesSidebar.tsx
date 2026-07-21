@@ -792,6 +792,8 @@ export default function NotesSidebar() {
                             const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
                             const favCount = noteIds.filter((id) => notes.find((n) => n._id === id)?.isFavorite).length
                             const allFav = favCount === noteIds.length
+                            const noneFav = favCount === 0
+                            const label = allFav ? "Remove from Favorites" : noneFav ? "Add to Favorites" : `Add to Favorites (${favCount} already added)`
                             return (
                               <ContextMenuItem onClick={(e) => {
                                 e.stopPropagation()
@@ -799,7 +801,7 @@ export default function NotesSidebar() {
                                 clearSelection()
                                 toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
                               }}>
-                                <Star /> {allFav ? "Remove from Favorites" : "Add to Favorites"}
+                                <Star /> {label}
                               </ContextMenuItem>
                             )
                           })()}
@@ -917,6 +919,8 @@ export default function NotesSidebar() {
                             const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
                             const favCount = noteIds.filter((id) => notes.find((n) => n._id === id)?.isFavorite).length
                             const allFav = favCount === noteIds.length
+                            const noneFav = favCount === 0
+                            const label = allFav ? "Remove from Favorites" : noneFav ? "Add to Favorites" : `Add to Favorites (${favCount} already added)`
                             return (
                               <ContextMenuItem onClick={(e) => {
                                 e.stopPropagation()
@@ -924,7 +928,7 @@ export default function NotesSidebar() {
                                 clearSelection()
                                 toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
                               }}>
-                                <Star /> {allFav ? "Remove from Favorites" : "Add to Favorites"}
+                                <Star /> {label}
                               </ContextMenuItem>
                             )
                           })()}
