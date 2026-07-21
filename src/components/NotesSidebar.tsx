@@ -788,15 +788,21 @@ export default function NotesSidebar() {
                     </ContextMenuLabel>
                   </ContextMenuGroup>
                   <ContextMenuSeparator />
-                  <ContextMenuItem onClick={(e) => {
-                    e.stopPropagation()
-                    const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
-                    Promise.all(noteIds.map((id) => toggleFavorite(id)))
-                    clearSelection()
-                    toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
-                  }}>
-                    <Star /> Add to Favorites
-                  </ContextMenuItem>
+                          {(() => {
+                            const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                            const favCount = noteIds.filter((id) => notes.find((n) => n._id === id)?.isFavorite).length
+                            const allFav = favCount === noteIds.length
+                            return (
+                              <ContextMenuItem onClick={(e) => {
+                                e.stopPropagation()
+                                Promise.all(noteIds.map((id) => toggleFavorite(id)))
+                                clearSelection()
+                                toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
+                              }}>
+                                <Star /> {allFav ? "Remove from Favorites" : "Add to Favorites"}
+                              </ContextMenuItem>
+                            )
+                          })()}
                   <ContextMenuSeparator />
                   <ContextMenuItem
                     className="text-destructive focus:text-destructive"
@@ -907,15 +913,21 @@ export default function NotesSidebar() {
                             </ContextMenuLabel>
                           </ContextMenuGroup>
                           <ContextMenuSeparator />
-                          <ContextMenuItem onClick={(e) => {
-                            e.stopPropagation()
+                          {(() => {
                             const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
-                            Promise.all(noteIds.map((id) => toggleFavorite(id)))
-                            clearSelection()
-                            toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
-                          }}>
-                            <Star /> Add to Favorites
-                          </ContextMenuItem>
+                            const favCount = noteIds.filter((id) => notes.find((n) => n._id === id)?.isFavorite).length
+                            const allFav = favCount === noteIds.length
+                            return (
+                              <ContextMenuItem onClick={(e) => {
+                                e.stopPropagation()
+                                Promise.all(noteIds.map((id) => toggleFavorite(id)))
+                                clearSelection()
+                                toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
+                              }}>
+                                <Star /> {allFav ? "Remove from Favorites" : "Add to Favorites"}
+                              </ContextMenuItem>
+                            )
+                          })()}
                           <ContextMenuSeparator />
                           <ContextMenuItem
                             className="text-destructive focus:text-destructive"
