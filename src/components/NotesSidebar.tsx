@@ -734,23 +734,16 @@ export default function NotesSidebar() {
   selectedIds.has(note._id) ? "bg-blue-100 dark:bg-blue-900/30 border-l-2 border-l-blue-500" : ""
 }`}
                 onClick={(e) => {
-  if (e.ctrlKey || e.metaKey || e.shiftKey || isSelecting) {
-    e.preventDefault()
-    const allSidebarIds = [
-      ...folders.map((f) => f._id),
-      ...notes.filter((n) => !n.folderId).map((n) => n._id),
-    ]
-    if (e.shiftKey) {
-      selectRange(note._id, allSidebarIds)
-    } else {
-      toggleSelect(note._id)
-    }
-    return
+  e.preventDefault()
+  const allSidebarIds = [
+    ...folders.map((f) => f._id),
+    ...notes.filter((n) => !n.folderId).map((n) => n._id),
+  ]
+  if (e.shiftKey) {
+    selectRange(note._id, allSidebarIds)
+  } else {
+    toggleSelect(note._id)
   }
-  setActiveNoteId(note._id)
-  setActiveFolderId(null)
-  setSearchOpen(false)
-  router.push(`/notes/${note._id}`)
 }}
                 onDoubleClick={() => startRenaming(note._id, note.title)}
                 data-sidebar-nav-item={`note-${note._id}`}
@@ -828,18 +821,16 @@ export default function NotesSidebar() {
     const FolderIconForFolder = getFolderIcon(folder.name)
 
     const handleFolderSelect = (e: React.MouseEvent) => {
-      if (e.ctrlKey || e.metaKey || e.shiftKey || isSelecting) {
-        e.preventDefault()
-        e.stopPropagation()
-        const allSidebarIds = [
-          ...folders.map((f) => f._id),
-          ...notes.filter((n) => !n.folderId).map((n) => n._id),
-        ]
-        if (e.shiftKey) {
-          selectRange(folder._id, allSidebarIds)
-        } else {
-          toggleSelect(folder._id)
-        }
+      e.preventDefault()
+      e.stopPropagation()
+      const allSidebarIds = [
+        ...folders.map((f) => f._id),
+        ...notes.filter((n) => !n.folderId).map((n) => n._id),
+      ]
+      if (e.shiftKey) {
+        selectRange(folder._id, allSidebarIds)
+      } else {
+        toggleSelect(folder._id)
       }
     }
 
