@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { flushSync } from "react-dom"
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav"
 import { useMultiSelect } from "@/hooks/use-multi-select"
-import SelectionBar from "./SelectionBar"
+
 import BulkDeleteDialog from "./BulkDeleteDialog"
 import { toast } from "sonner"
 import {
@@ -782,9 +782,11 @@ export default function NotesSidebar() {
             <ContextMenuContent>
               {isSelecting ? (
                 <>
-                  <ContextMenuLabel className="text-xs text-muted-foreground">
-                    {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
-                  </ContextMenuLabel>
+                  <ContextMenuGroup>
+                    <ContextMenuLabel className="text-xs text-muted-foreground">
+                      {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
+                    </ContextMenuLabel>
+                  </ContextMenuGroup>
                   <ContextMenuSeparator />
                   <ContextMenuItem onClick={(e) => {
                     e.stopPropagation()
@@ -893,9 +895,11 @@ export default function NotesSidebar() {
                     <ContextMenuContent>
                       {isSelecting ? (
                         <>
-                          <ContextMenuLabel className="text-xs text-muted-foreground">
-                            {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
-                          </ContextMenuLabel>
+                          <ContextMenuGroup>
+                            <ContextMenuLabel className="text-xs text-muted-foreground">
+                              {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
+                            </ContextMenuLabel>
+                          </ContextMenuGroup>
                           <ContextMenuSeparator />
                           <ContextMenuItem onClick={(e) => {
                             e.stopPropagation()
@@ -973,7 +977,6 @@ export default function NotesSidebar() {
             <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
             <span className="text-sm font-semibold">ZooNote</span>
           </div>
-          {isSelecting && <SelectionBar count={selectedIds.size} onClear={clearSelection} />}
           <TooltipProvider delay={0}>
           <div className="flex items-center gap-0.5 px-1 pb-1" role="toolbar" aria-label="Sidebar actions">
             <Tooltip>

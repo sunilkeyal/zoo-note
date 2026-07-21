@@ -532,21 +532,6 @@ describe("multi-select", () => {
     } as any)
   })
 
-  it("shows SelectionBar when a note is ctrl-clicked", () => {
-    render(<NotesSidebar />)
-    fireEvent.click(screen.getByText("Alpha Note"), { ctrlKey: true })
-    expect(screen.getByText("1 selected")).toBeInTheDocument()
-  })
-
-  it("hides SelectionBar when selection is cleared", () => {
-    render(<NotesSidebar />)
-    fireEvent.click(screen.getByText("Alpha Note"), { ctrlKey: true })
-    expect(screen.getByText("1 selected")).toBeInTheDocument()
-
-    fireEvent.click(screen.getByText("Clear"))
-    expect(screen.queryByText("1 selected")).not.toBeInTheDocument()
-  })
-
   it("shows bulk context menu items when selecting", () => {
     render(<NotesSidebar />)
     fireEvent.click(screen.getByText("Alpha Note"), { ctrlKey: true })
