@@ -403,6 +403,7 @@ export default function NotesSidebar() {
   const { selectedIds, lastSelectedId, isSelecting, toggleSelect, selectRange, selectAll, clearSelection } = useMultiSelect()
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ notes: string[]; folders: string[] } | null>(null)
   const skipNextClearRef = useRef(false)
+  const preSelectIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (skipNextClearRef.current) {
@@ -416,6 +417,7 @@ export default function NotesSidebar() {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && isSelecting) {
         e.stopPropagation()
+        preSelectIdRef.current = null
         clearSelection()
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "a" && isSelecting) {
@@ -745,12 +747,17 @@ export default function NotesSidebar() {
       ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
       ...notes.filter((n) => !n.folderId).map((n) => n._id),
     ]
+    if (preSelectIdRef.current && preSelectIdRef.current !== note._id) {
+      toggleSelect(preSelectIdRef.current)
+    }
+    preSelectIdRef.current = null
     if (e.shiftKey) {
       selectRange(note._id, allSidebarIds)
     } else {
       toggleSelect(note._id)
     }
   } else {
+    preSelectIdRef.current = note._id
     setActiveNoteId(note._id)
     setActiveFolderId(null)
     setSearchOpen(false)
