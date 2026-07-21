@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
+import Image from "next/image"
 import type { Note, Folder } from "@/types"
 
 interface NoteCardGridProps {
@@ -72,7 +73,7 @@ export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder,
             <div
               key={name}
               onClick={() => setActiveFolder(name)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors ${
+              className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap cursor-pointer transition-colors ${
                 activeFolder === name
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
@@ -83,7 +84,7 @@ export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder,
           ))}
           <div
             onClick={onNewFolder}
-            className="px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer bg-muted text-muted-foreground"
+            className="px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap cursor-pointer bg-muted text-muted-foreground"
           >
             + New
           </div>
@@ -93,7 +94,20 @@ export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder,
       {/* Notes grid */}
       <div className="flex-1 overflow-y-auto px-3 pt-2.5 pb-20">
         {filtered.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground text-sm">No notes yet</div>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <Image
+              src="/ZooNote.png"
+              alt="ZooNote"
+              width={80}
+              height={80}
+              className="rounded-xl mb-4"
+              priority
+            />
+            <h2 className="text-xl font-semibold mb-2">Welcome to ZooNote</h2>
+            <p className="text-base text-muted-foreground max-w-[280px]">
+              Your personal space for notes and ideas. Tap + to create your first note.
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {filtered.map((note) => (
@@ -113,22 +127,22 @@ export default function NoteCardGrid({ notes, folders, onNoteClick, onNewFolder,
 
                   {/* Title */}
                   <div
-                    className="text-[13px] font-bold leading-[1.3] mb-1.5 line-clamp-2 pr-1"
+                    className="text-base font-bold leading-[1.3] mb-1.5 line-clamp-2 pr-1"
                     style={{ paddingRight: note.isFavorite ? 16 : 4 }}
                   >
                     {note.title || "Untitled"}
                   </div>
 
                   {/* Preview */}
-                  <div className="text-[11px] text-muted-foreground leading-[1.5] line-clamp-3">
+                  <div className="text-sm text-muted-foreground leading-[1.5] line-clamp-3">
                     {stripHtml(note.content || "")}
                   </div>
                 </div>
 
                 {/* Footer */}
                 <div className="px-2.5 py-1.5 border-t border-border/50 flex justify-between items-center">
-                  <span className="text-[10px] text-muted-foreground/60">{timeAgo(note.updatedAt)}</span>
-                  <span className="text-[10px] text-muted-foreground/60">{wordCount(note.content || "")} words</span>
+                  <span className="text-xs text-muted-foreground/60">{timeAgo(note.updatedAt)}</span>
+                  <span className="text-xs text-muted-foreground/60">{wordCount(note.content || "")} words</span>
                 </div>
               </div>
             ))}

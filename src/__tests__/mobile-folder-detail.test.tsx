@@ -47,6 +47,6 @@ describe('MobileFolderDetail', () => {
   it('shows empty state when folder has no notes', () => {
     render(<MobileFolderDetail folder={mockFolder} notes={[]} onBack={mockOnBack} onNoteClick={mockOnNoteClick} />)
     expect(screen.getByText('0 notes')).toBeInTheDocument()
-    expect(screen.getByText('No notes yet')).toBeInTheDocument()
+    expect(screen.getByText('Welcome to ZooNote')).toBeInTheDocument()
   })
 })

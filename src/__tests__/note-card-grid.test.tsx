@@ -63,6 +63,6 @@ describe('NoteCardGrid', () => {
 
   it('renders empty state when no notes', () => {
     render(<NoteCardGrid notes={[]} folders={mockFolders} onNoteClick={mockOnNoteClick} onNewFolder={mockOnNewFolder} />)
-    expect(screen.getByText('No notes yet')).toBeInTheDocument()
+    expect(screen.getByText('Welcome to ZooNote')).toBeInTheDocument()
   })
 })
