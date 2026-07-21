@@ -421,7 +421,7 @@ export default function NotesSidebar() {
       if ((e.ctrlKey || e.metaKey) && e.key === "a" && isSelecting) {
         e.preventDefault()
         const allIds = [
-          ...folders.map((f) => f._id),
+          ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
           ...notes.filter((n) => !n.folderId).map((n) => n._id),
         ]
         selectAll(allIds)
@@ -740,7 +740,7 @@ export default function NotesSidebar() {
 }`}
                 onClick={(e) => {
   const allSidebarIds = [
-    ...folders.map((f) => f._id),
+    ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
     ...notes.filter((n) => !n.folderId).map((n) => n._id),
   ]
   if (e.shiftKey) {
@@ -837,7 +837,7 @@ export default function NotesSidebar() {
       e.preventDefault()
       e.stopPropagation()
       const allSidebarIds = [
-        ...folders.map((f) => f._id),
+        ...folders.flatMap((f) => [f._id, ...notes.filter((n) => n.folderId === f._id).map((n) => n._id)]),
         ...notes.filter((n) => !n.folderId).map((n) => n._id),
       ]
       if (e.shiftKey) {
