@@ -802,11 +802,13 @@ export default function NotesSidebar() {
                     className="text-destructive focus:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation()
-                      const folderIds = [...selectedIds].filter((id) => folders.some((f) => f._id === id))
-                      const noteIds = [...selectedIds].filter((id) => {
-                        if (!notes.some((n) => n._id === id)) return false
-                        const note = notes.find((n) => n._id === id)
-                        return !note?.folderId || !folderIds.includes(note.folderId)
+                      const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                      const folderIds = [...selectedIds].filter((id) => {
+                        if (!folders.some((f) => f._id === id)) return false
+                        return !noteIds.some((nid) => {
+                          const note = notes.find((n) => n._id === nid)
+                          return note?.folderId === id
+                        })
                       })
                       setBulkDeleteTarget({ notes: noteIds, folders: folderIds })
                     }}
@@ -919,11 +921,13 @@ export default function NotesSidebar() {
                             className="text-destructive focus:text-destructive"
                             onClick={(e) => {
                               e.stopPropagation()
-                              const folderIds = [...selectedIds].filter((id) => folders.some((f) => f._id === id))
-                              const noteIds = [...selectedIds].filter((id) => {
-                                if (!notes.some((n) => n._id === id)) return false
-                                const note = notes.find((n) => n._id === id)
-                                return !note?.folderId || !folderIds.includes(note.folderId)
+                              const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                              const folderIds = [...selectedIds].filter((id) => {
+                                if (!folders.some((f) => f._id === id)) return false
+                                return !noteIds.some((nid) => {
+                                  const note = notes.find((n) => n._id === nid)
+                                  return note?.folderId === id
+                                })
                               })
                               setBulkDeleteTarget({ notes: noteIds, folders: folderIds })
                             }}
