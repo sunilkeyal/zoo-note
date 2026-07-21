@@ -200,11 +200,11 @@ export default function VisualPage() {
             </div>
 
             {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between px-3 py-1.5 bg-blue-600 text-white text-xs mx-1 mt-1 rounded-md">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-stone-700 dark:bg-stone-300 text-white dark:text-stone-900 text-xs mx-1 mt-1 rounded-md">
                 <span className="font-medium">{selectedIds.size} selected</span>
                 <button
                   onClick={clearSelection}
-                  className="flex items-center gap-1 hover:bg-blue-700 px-1.5 py-0.5 rounded text-xs"
+                    className="flex items-center gap-1 hover:bg-stone-600 dark:hover:bg-stone-400 px-1.5 py-0.5 rounded text-xs"
                 >
                   <X className="h-3 w-3" />
                   Clear
@@ -225,7 +225,7 @@ export default function VisualPage() {
                       onClick={(e) => handleItemClick(folder.id, e)}
                       className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-colors ${
                         selectedIds.has(folder.id)
-                          ? "bg-blue-100 dark:bg-blue-900/30 border-l-2 border-l-blue-500"
+                          ? "bg-stone-200 dark:bg-stone-800"
                           : "hover:bg-stone-100 dark:hover:bg-stone-800"
                       }`}
                     >
@@ -253,7 +253,7 @@ export default function VisualPage() {
                             onClick={(e) => handleItemClick(note.id, e)}
                             className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-colors ${
                               selectedIds.has(note.id)
-                                ? "bg-blue-100 dark:bg-blue-900/30 border-l-2 border-l-blue-500"
+                        ? "bg-stone-200 dark:bg-stone-800"
                                 : activeNoteId === note.id
                                 ? "bg-stone-100 dark:bg-stone-800"
                                 : "hover:bg-stone-100 dark:hover:bg-stone-800"
