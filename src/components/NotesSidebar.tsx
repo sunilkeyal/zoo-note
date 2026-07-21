@@ -5,6 +5,8 @@ import { flushSync } from "react-dom"
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav"
 import { useMultiSelect } from "@/hooks/use-multi-select"
 import SelectionBar from "./SelectionBar"
+import BulkDeleteDialog from "./BulkDeleteDialog"
+import { toast } from "sonner"
 import {
   DndContext,
   DragOverlay,
@@ -402,6 +404,10 @@ export default function NotesSidebar() {
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ notes: string[]; folders: string[] } | null>(null)
 
   useEffect(() => {
+    clearSelection()
+  }, [pathname, clearSelection])
+
+  useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && isSelecting) {
         e.stopPropagation()
@@ -558,6 +564,7 @@ export default function NotesSidebar() {
   }
 
   const startRenaming = (id: string, currentName: string) => {
+    clearSelection()
     setRenamingId(id)
     setRenameValue(currentName)
   }
@@ -610,6 +617,7 @@ export default function NotesSidebar() {
   }
 
   const handleDragStartFn = (event: DragStartEvent) => {
+    clearSelection()
     const id = event.active.id as string
     setActiveDragId(id)
     setActiveDragType(folders.some((f) => f._id === id) ? "folder" : "note")
@@ -769,6 +777,7 @@ export default function NotesSidebar() {
                     const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
                     Promise.all(noteIds.map((id) => toggleFavorite(id)))
                     clearSelection()
+                    toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
                   }}>
                     <Star /> Add to Favorites
                   </ContextMenuItem>
@@ -877,6 +886,7 @@ export default function NotesSidebar() {
                             const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
                             Promise.all(noteIds.map((id) => toggleFavorite(id)))
                             clearSelection()
+                            toast.success(`${noteIds.length} note${noteIds.length !== 1 ? "s" : ""} updated`)
                           }}>
                             <Star /> Add to Favorites
                           </ContextMenuItem>
@@ -947,6 +957,7 @@ export default function NotesSidebar() {
             <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
             <span className="text-sm font-semibold">ZooNote</span>
           </div>
+          {isSelecting && <SelectionBar count={selectedIds.size} onClear={clearSelection} />}
           <TooltipProvider delay={0}>
           <div className="flex items-center gap-0.5 px-1 pb-1" role="toolbar" aria-label="Sidebar actions">
             <Tooltip>
@@ -1248,6 +1259,28 @@ export default function NotesSidebar() {
           setEmptyTrashDialogOpen(false)
         }}
         onCancel={() => setEmptyTrashDialogOpen(false)}
+      />
+      <BulkDeleteDialog
+        open={bulkDeleteTarget !== null}
+        noteCount={bulkDeleteTarget?.notes.length ?? 0}
+        folderCount={bulkDeleteTarget?.folders.length ?? 0}
+        onClose={() => setBulkDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!bulkDeleteTarget) return
+          const { notes: noteIds, folders: folderIds } = bulkDeleteTarget
+          const count = noteIds.length + folderIds.length
+          await Promise.all([
+            ...noteIds.map((id) => deleteNote(id)),
+            ...folderIds.map((id) => deleteFolder(id)),
+          ])
+          if (noteIds.includes(activeNoteId ?? "")) {
+            setActiveNoteId(null)
+            router.push("/")
+          }
+          setBulkDeleteTarget(null)
+          clearSelection()
+          toast.success(`${count} item${count !== 1 ? "s" : ""} moved to trash`)
+        }}
       />
     </>
   )
