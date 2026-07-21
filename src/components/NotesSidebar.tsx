@@ -818,6 +818,22 @@ export default function NotesSidebar() {
     const isExpanded = expandedFolders.has(folder._id)
     const FolderIconForFolder = getFolderIcon(folder.name)
 
+    const handleFolderSelect = (e: React.MouseEvent) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || isSelecting) {
+        e.preventDefault()
+        e.stopPropagation()
+        const allSidebarIds = [
+          ...folders.map((f) => f._id),
+          ...notes.filter((n) => !n.folderId).map((n) => n._id),
+        ]
+        if (e.shiftKey) {
+          selectRange(folder._id, allSidebarIds)
+        } else {
+          toggleSelect(folder._id)
+        }
+      }
+    }
+
     return (
       <SortableFolderItem key={folder._id} folderId={folder._id} dragType={activeDragType}>
         <Collapsible
@@ -830,7 +846,7 @@ export default function NotesSidebar() {
                 <SidebarMenuItem>
                   <ContextMenu>
                     <ContextMenuTrigger render={
-                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={navItemClass(density)} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" />}>
+                      <CollapsibleTrigger render={<SidebarMenuButton isActive={activeFolderId === folder._id} className={`${navItemClass(density)} ${selectedIds.has(folder._id) ? "bg-blue-100 dark:bg-blue-900/30 border-l-2 border-l-blue-500" : ""}`} data-sidebar-nav-item={`folder-${folder._id}`} aria-expanded={isExpanded} role="treeitem" onClick={handleFolderSelect} />}>
                         <FolderIconForFolder className={getFolderIconColor(folder.name)} />
                         {renamingId === folder._id ? (
                           <Input
@@ -850,16 +866,47 @@ export default function NotesSidebar() {
                       </CollapsibleTrigger>
                     } />
                     <ContextMenuContent>
-                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleCreateInFolder(folder._id) }}>
-                        <Plus /> Create new note
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => handleRenameFromContextMenu(folder._id, folder.name)}>
-                        <Pencil /> Rename
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteFolderTarget(folder) }}>
-                        <Trash2 /> Move to trash
-                      </ContextMenuItem>
+                      {isSelecting ? (
+                        <>
+                          <ContextMenuLabel className="text-xs text-muted-foreground">
+                            {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected
+                          </ContextMenuLabel>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem onClick={(e) => {
+                            e.stopPropagation()
+                            const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                            Promise.all(noteIds.map((id) => toggleFavorite(id)))
+                            clearSelection()
+                          }}>
+                            <Star /> Add to Favorites
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const noteIds = [...selectedIds].filter((id) => notes.some((n) => n._id === id))
+                              const folderIds = [...selectedIds].filter((id) => folders.some((f) => f._id === id))
+                              setBulkDeleteTarget({ notes: noteIds, folders: folderIds })
+                            }}
+                          >
+                            <Trash2 /> Move to Trash ({selectedIds.size})
+                          </ContextMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <ContextMenuItem onClick={(e) => { e.stopPropagation(); handleCreateInFolder(folder._id) }}>
+                            <Plus /> Create new note
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => handleRenameFromContextMenu(folder._id, folder.name)}>
+                            <Pencil /> Rename
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem onClick={(e) => { e.stopPropagation(); setDeleteFolderTarget(folder) }}>
+                            <Trash2 /> Move to trash
+                          </ContextMenuItem>
+                        </>
+                      )}
                     </ContextMenuContent>
                   </ContextMenu>
                   {!renamingId && (
