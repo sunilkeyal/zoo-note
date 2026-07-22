@@ -138,7 +138,7 @@
   color: inherit;
   font-family: inherit;
 }
-.ProseMirror p { margin: 0 0 10px 0; }
+.ProseMirror p { margin: 0; }
 .ProseMirror ul { padding-left: 1.75rem; list-style-type: disc; margin: 8px 0; }
 .ProseMirror ol { padding-left: 1.75rem; list-style-type: decimal; margin: 8px 0; }
 .ProseMirror li { margin: 0; }

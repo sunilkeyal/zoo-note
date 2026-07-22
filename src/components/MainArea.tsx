@@ -83,9 +83,9 @@ import {
 const FONT_SIZES = ["10", "11", "12", "13", "14", "15", "16", "18", "20", "22"]
 const HEADINGS = [
   { label: "Paragraph", value: "paragraph" },
-  { label: "Heading 1", value: "h1" },
-  { label: "Heading 2", value: "h2" },
-  { label: "Heading 3", value: "h3" },
+  { label: "H1", value: "h1" },
+  { label: "H2", value: "h2" },
+  { label: "H3", value: "h3" },
 ]
 const FONTS = [
   "Arial",
@@ -115,8 +115,7 @@ const HIGHLIGHT_COLORS = [
 ]
 
 const SPACING_PRESETS = [
-  { label: "Default", value: null },
-  { label: "None", value: "0px" },
+  { label: "Default (0px)", value: null },
   { label: "Tight", value: "4px" },
   { label: "Compact", value: "8px" },
   { label: "Normal", value: "10px" },
@@ -317,7 +316,7 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
         >
           <Tooltip>
             <TooltipTrigger render={<SelectTrigger className="h-7 w-[110px] text-sm" />}>
-              <SelectValue />
+              <SelectValue className="capitalize" />
             </TooltipTrigger>
             <TooltipContent>Styles</TooltipContent>
           </Tooltip>
@@ -337,12 +336,12 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
         >
           <Tooltip>
             <TooltipTrigger render={<SelectTrigger className="h-7 w-[130px] text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }} />}>
-              <SelectValue placeholder="Font" />
+              <SelectValue placeholder="Font" className="capitalize" />
             </TooltipTrigger>
             <TooltipContent>Font family</TooltipContent>
           </Tooltip>
           <SelectContent>
-            <SelectItem value="default" className="text-sm">Default</SelectItem>
+            <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
             {FONTS.map((f) => (
               <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
             ))}
@@ -356,17 +355,21 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
             if (editor.isActive("heading", { level: 1 })) return "20"
             if (editor.isActive("heading", { level: 2 })) return "18"
             if (editor.isActive("heading", { level: 3 })) return "16"
-            return "13"
+            return "default"
           })()}
-          onValueChange={(val) => editor.chain().focus().setFontSize(val + "px").run()}
+          onValueChange={(val) => {
+            if (val === "default") editor.chain().focus().unsetFontSize().run()
+            else editor.chain().focus().setFontSize(val + "px").run()
+          }}
         >
           <Tooltip>
-            <TooltipTrigger render={<SelectTrigger className="h-7 w-[70px] text-sm" />}>
-              <SelectValue />
+            <TooltipTrigger render={<SelectTrigger className="h-7 w-[90px] text-sm" />}>
+              <SelectValue className="capitalize" />
             </TooltipTrigger>
             <TooltipContent>Font size</TooltipContent>
           </Tooltip>
           <SelectContent>
+            <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
             {FONT_SIZES.map((s) => (
               <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
             ))}
@@ -537,8 +540,10 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         </PopoverTrigger>
         <PopoverContent className="w-[240px] p-3" align="end">
           <div className="text-sm font-medium mb-2">Font Size</div>
-          <div className="flex flex-wrap gap-1 mb-3">
-            {FONT_SIZES.filter(s => parseInt(s) >= 14 && parseInt(s) <= 20).map((s) => (
+          <div className="flex flex-wrap gap-1 mb-3">            <button
+              onClick={() => editor.chain().focus().unsetFontSize().run()}
+              className={`px-2 py-1 text-xs rounded-md border ${!editor.getAttributes("textStyle").fontSize ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
+            >Default (13px)</button>            {FONT_SIZES.filter(s => parseInt(s) >= 14 && parseInt(s) <= 20).map((s) => (
               <button key={s}
                 onClick={() => editor.chain().focus().setFontSize(s + "px").run()}
                 className={`px-2 py-1 text-xs rounded-md border ${editor.getAttributes("textStyle").fontSize?.replace("px","") === s ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
@@ -552,9 +557,9 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
               else editor.chain().focus().setFontFamily(val).run()
             }}
           >
-            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Font" /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Font" className="capitalize" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="default" className="text-xs">Default</SelectItem>
+              <SelectItem value="default" className="text-xs">Default (Geist)</SelectItem>
               {FONTS.map((f) => (
                 <SelectItem key={f} value={f} className="text-xs" style={{ fontFamily: f }}>{f}</SelectItem>
               ))}
