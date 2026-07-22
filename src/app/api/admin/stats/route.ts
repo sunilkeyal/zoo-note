@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
   const db = await connectToDatabase()
 
-  const [kpis, charts, users, activity] = await Promise.all([
+  const [kpis, charts, users, activity, systemHealth] = await Promise.all([
     // ── KPIs ──────────────────────────────────────────────────────────────────
     (async () => {
       try {
@@ -285,7 +285,39 @@ export async function GET(request: NextRequest) {
         return null
       }
     })(),
+
+    // ── System health ─────────────────────────────────────────────────────────
+    (async () => {
+      try {
+        const mongoStart = Date.now()
+        await db.command({ ping: 1 })
+        const responseTimeMs = Date.now() - mongoStart
+
+        const uptimeSeconds = process.uptime()
+        const memoryUsage = process.memoryUsage()
+
+        return {
+          status: "healthy",
+          uptimeSeconds,
+          responseTimeMs,
+          memoryUsedMb: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+          memoryTotalMb: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+          nodeVersion: process.version,
+          environment: process.env.NODE_ENV || "development",
+        }
+      } catch {
+        return {
+          status: "unhealthy",
+          uptimeSeconds: process.uptime(),
+          responseTimeMs: -1,
+          memoryUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+          memoryTotalMb: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+          nodeVersion: process.version,
+          environment: process.env.NODE_ENV || "development",
+        }
+      }
+    })(),
   ])
 
-  return NextResponse.json({ success: true, data: { kpis, charts, users, activity } })
+  return NextResponse.json({ success: true, data: { kpis, charts, users, activity, systemHealth } })
 }

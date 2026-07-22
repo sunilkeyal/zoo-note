@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, RefreshCw, FileText, Folder, Users, HardDrive, Trash2, UserCheck, Sparkles, ChevronDown, ChevronRight } from "lucide-react"
+import { LayoutDashboard, RefreshCw, FileText, Folder, Users, HardDrive, Trash2, UserCheck, Sparkles, ChevronDown, ChevronRight, Activity, Clock, Timer, Server } from "lucide-react"
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,6 +31,16 @@ import {
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Range = "7" | "30" | "90"
+
+type SystemHealthData = {
+  status: "healthy" | "unhealthy"
+  uptimeSeconds: number
+  responseTimeMs: number
+  memoryUsedMb: number
+  memoryTotalMb: number
+  nodeVersion: string
+  environment: string
+} | null
 
 type StatsData = {
   kpis: {
@@ -67,6 +77,7 @@ type StatsData = {
     target: string
     createdAt: string
   }[] | null
+  systemHealth: SystemHealthData
 }
 
 type R2BucketInfo = {
@@ -121,6 +132,15 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400)
+  const hrs = Math.floor((seconds % 86400) / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  if (days > 0) return `${days}d ${hrs}h`
+  if (hrs > 0) return `${hrs}h ${mins}m`
+  return `${mins}m`
+}
+
 // ── KPI card sub-component ─────────────────────────────────────────────────────
 
 function KpiCard({
@@ -130,17 +150,17 @@ function KpiCard({
 }) {
   return (
     <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Icon className="size-4 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground font-medium">{label}</p>
+      <CardContent className="p-2.5">
+        <div className="flex items-center gap-2 mb-1">
+          <Icon className="size-3.5 text-muted-foreground" />
+          <p className="text-[11px] text-muted-foreground font-medium">{label}</p>
         </div>
         {loading ? (
-          <Skeleton className="h-8 w-24 mt-1" />
+          <Skeleton className="h-6 w-20 mt-0.5" />
         ) : (
           <>
-            <p className="text-2xl font-bold">{value}</p>
-            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+            <p className="text-xl font-bold">{value}</p>
+            {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
           </>
         )}
       </CardContent>
@@ -159,7 +179,7 @@ function CollapsibleSection({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <Card>
-        <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-t-xl">
+        <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-muted/50 transition-colors rounded-t-xl">
           <div className="flex items-center gap-2">
             <Icon className="size-4 text-muted-foreground" />
             <p className="text-sm font-semibold">{title}</p>
@@ -167,7 +187,7 @@ function CollapsibleSection({
           {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="pt-0">{children}</CardContent>
+          <CardContent className="pt-0 pb-3">{children}</CardContent>
         </CollapsibleContent>
       </Card>
     </Collapsible>
@@ -277,7 +297,7 @@ export default function DashboardPage() {
     fetchR2Metrics(range)
   }, [fetchR2Metrics, range])
 
-  const { kpis, charts, users, activity } = data ?? {}
+  const { kpis, charts, users, activity, systemHealth } = data ?? {}
 
   return (
     <div className="space-y-8">
@@ -367,16 +387,9 @@ export default function DashboardPage() {
 
       {/* ── Summary KPIs ───────────────────────────────────────────────────── */}
       <section>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
           <KpiCard label="Total Users" value={kpis ? String(kpis.totalUsers) : "—"} sub={kpis ? `${kpis.activeToday} active today` : undefined} icon={Users} loading={loading && !kpis} />
           <KpiCard label="Total Notes" value={kpis ? kpis.totalNotes.toLocaleString() : "—"} sub={kpis ? `+${kpis.newThisWeek} this week` : undefined} icon={FileText} loading={loading && !kpis} />
-          <KpiCard
-            label="MongoDB"
-            value={loading && !kpis ? "—" : kpis?.storageBreakdown ? formatBytes(kpis.storageBreakdown.totalBytes) : "—"}
-            sub={kpis?.storageBreakdown ? `${percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}% of 512 MB` : undefined}
-            icon={HardDrive}
-            loading={loading && !kpis}
-          />
           <KpiCard
             label="R2 Cost"
             value={r2Loading ? "—" : `$${(r2Cost?.cost ?? 0).toFixed(2)}`}
@@ -384,13 +397,216 @@ export default function DashboardPage() {
             icon={Sparkles}
             loading={r2Loading && !r2Cost}
           />
+          <KpiCard
+            label="System Health"
+            value={loading && !systemHealth ? "—" : systemHealth?.status === "healthy" ? "Healthy" : "Issues"}
+            sub={systemHealth?.status === "unhealthy" ? "Check services" : undefined}
+            icon={Activity}
+            loading={loading && !systemHealth}
+          />
+          <KpiCard
+            label="Uptime"
+            value={loading && !systemHealth ? "—" : systemHealth ? formatUptime(systemHealth.uptimeSeconds) : "—"}
+            icon={Clock}
+            loading={loading && !systemHealth}
+          />
+          <KpiCard
+            label="Response Time"
+            value={loading && !systemHealth ? "—" : systemHealth ? `${systemHealth.responseTimeMs}ms` : "—"}
+            sub={systemHealth?.responseTimeMs !== undefined && systemHealth.responseTimeMs > 100 ? "Slow" : undefined}
+            icon={Timer}
+            loading={loading && !systemHealth}
+          />
+          <KpiCard
+            label="System Info"
+            value={loading && !systemHealth ? "—" : systemHealth?.nodeVersion ?? "—"}
+            sub={systemHealth?.environment}
+            icon={Server}
+            loading={loading && !systemHealth}
+          />
         </div>
       </section>
+
+      {/* ── Infrastructure ─────────────────────────────────────────────────── */}
+      <CollapsibleSection title="Infrastructure" icon={HardDrive}>
+        {/* R2 error */}
+        {r2Error && (() => {
+          let parsed: { storageProvider?: string; missingVars?: string[] } | null = null
+          try { parsed = JSON.parse(r2Error) } catch { /* plain error string */ }
+
+          if (parsed?.storageProvider === "local") {
+            return (
+              <div className="rounded-md bg-muted border p-3 text-sm text-muted-foreground mb-4">
+                <p className="font-medium">R2 metrics unavailable in local mode</p>
+                <p className="text-xs mt-1">Using local filesystem storage (<code>STORAGE_PROVIDER=local</code>). R2 metrics are only shown when deployed with <code>STORAGE_PROVIDER=r2</code>.</p>
+              </div>
+            )
+          }
+
+          if (parsed?.storageProvider === "r2" && parsed.missingVars?.length) {
+            return (
+              <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-300 mb-4">
+                <p className="font-medium">R2 credentials incomplete</p>
+                <p className="text-xs mt-1">Storage provider is set to R2 but the following env vars are missing:</p>
+                <ul className="text-xs mt-1 list-disc list-inside">
+                  {parsed.missingVars.map(v => <li key={v}><code>{v}</code></li>)}
+                </ul>
+              </div>
+            )
+          }
+
+          return (
+            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive mb-4">
+              <p className="font-medium">Failed to load R2 metrics</p>
+              <p className="text-xs mt-1">{r2Error}</p>
+            </div>
+          )
+        })()}
+
+        {/* Storage cards side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* MongoDB storage */}
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <HardDrive className="size-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground font-medium">MongoDB Storage</p>
+              </div>
+              {loading && !kpis ? (
+                <Skeleton className="h-8 w-32 mt-1" />
+              ) : kpis?.storageBreakdown ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold">{formatBytes(kpis.storageBreakdown.totalBytes)}</p>
+                    <p className="text-xs text-muted-foreground">/ 512 MB ({percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}%)</p>
+                  </div>
+                  <Progress value={percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)} className="h-1.5 mt-2" />
+                  {kpis.storageBreakdown.databases.filter((d) => d.isAppDb).map((db) => (
+                    <div key={db.name} className="mt-2">
+                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold">{db.name}</span>
+                        <span className="font-medium">{formatBytes(db.sizeOnDisk)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).length > 0 && (
+                    <>
+                      <div className="border-t my-1.5" />
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">System</p>
+                      {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).map((db) => (
+                        <div key={db.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{db.name}</span>
+                          <span>{formatBytes(db.sizeOnDisk)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* R2 storage */}
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <HardDrive className="size-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground font-medium">R2 Storage</p>
+              </div>
+              {r2Loading ? (
+                <Skeleton className="h-8 w-32 mt-1" />
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold">{formatBytes(r2Storage?.totalBytes ?? 0)}</p>
+                    <p className="text-xs text-muted-foreground">/ 10 GB ({percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)}%)</p>
+                  </div>
+                  <Progress value={percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)} className="h-1.5 mt-2" />
+                  {(r2Storage?.buckets ?? []).filter((b) => b.isPrimary).map((b) => (
+                    <div key={b.name} className="mt-2">
+                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold">{b.name}</span>
+                        <span className="font-medium">{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).length > 0 && (
+                    <>
+                      <div className="border-t my-1.5" />
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Other Buckets</p>
+                      {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).map((b) => (
+                        <div key={b.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span>{b.name}</span>
+                          <span>{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* R2 Operations KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mt-4">
+          <KpiCard label="Total Objects" value={r2Loading ? "" : String(r2Storage?.totalObjects ?? 0)} icon={FileText} loading={r2Loading} />
+          <KpiCard label="Total Buckets" value={r2Loading ? "" : String(r2Storage?.buckets?.length ?? 0)} icon={HardDrive} loading={r2Loading} />
+          <KpiCard label="Egress" value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.egress ?? 0)} icon={FileText} loading={r2Loading} />
+          <KpiCard label="Ingress" value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.ingress ?? 0)} icon={FileText} loading={r2Loading} />
+          <KpiCard label="GET Requests" value={r2Loading ? "" : (r2Requests?.requests.get ?? 0).toLocaleString()} icon={FileText} loading={r2Loading} />
+          <KpiCard label="PUT Requests" value={r2Loading ? "" : (r2Requests?.requests.put ?? 0).toLocaleString()} icon={FileText} loading={r2Loading} />
+        </div>
+
+        {/* Cost estimate */}
+        <Card className="mt-3">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="size-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground font-medium">Estimated Monthly Cost</p>
+            </div>
+            {r2Loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <p className="text-2xl font-bold">${(r2Cost?.cost ?? 0).toFixed(2)}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Largest files */}
+        {r2Objects && r2Objects.objects.length > 0 && (
+          <Card className="mt-3">
+            <CardHeader><CardTitle className="text-sm">Largest Files (R2)</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>File</TableHead>
+                    <TableHead className="text-right">Size</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {r2Objects.objects.map((obj) => (
+                    <TableRow key={obj.key}>
+                      <TableCell className="font-mono text-xs">{obj.key}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatBytes(obj.size)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </CollapsibleSection>
 
       {/* ── Application Metrics ────────────────────────────────────────────── */}
       <CollapsibleSection title="Application Metrics" icon={FileText}>
         {/* App KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           <KpiCard label="Active Today" value={kpis ? String(kpis.activeToday) : "—"} sub={kpis ? `${Math.round((kpis.activeToday / Math.max(kpis.totalUsers, 1)) * 100)}% of users` : undefined} icon={UserCheck} loading={loading && !kpis} />
           <KpiCard label="New This Week" value={kpis ? String(kpis.newThisWeek) : "—"} icon={Users} loading={loading && !kpis} />
           <KpiCard label="Total Folders" value={kpis ? kpis.totalFolders.toLocaleString() : "—"} icon={Folder} loading={loading && !kpis} />
@@ -400,7 +616,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Notes Created / Day</CardTitle></CardHeader>
             <CardContent>
@@ -442,8 +658,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Top Users */}
-        <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Top Users (all time)</p>
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Top Users (all time)</p>
           <Card>
             <CardContent className="p-0">
               {loading && !users ? (
@@ -496,182 +712,6 @@ export default function DashboardPage() {
         </div>
       </CollapsibleSection>
 
-      {/* ── Infrastructure ─────────────────────────────────────────────────── */}
-      <CollapsibleSection title="Infrastructure" icon={HardDrive}>
-        {/* R2 error */}
-        {r2Error && (() => {
-          let parsed: { storageProvider?: string; missingVars?: string[] } | null = null
-          try { parsed = JSON.parse(r2Error) } catch { /* plain error string */ }
-
-          if (parsed?.storageProvider === "local") {
-            return (
-              <div className="rounded-md bg-muted border p-3 text-sm text-muted-foreground mb-4">
-                <p className="font-medium">R2 metrics unavailable in local mode</p>
-                <p className="text-xs mt-1">Using local filesystem storage (<code>STORAGE_PROVIDER=local</code>). R2 metrics are only shown when deployed with <code>STORAGE_PROVIDER=r2</code>.</p>
-              </div>
-            )
-          }
-
-          if (parsed?.storageProvider === "r2" && parsed.missingVars?.length) {
-            return (
-              <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-300 mb-4">
-                <p className="font-medium">R2 credentials incomplete</p>
-                <p className="text-xs mt-1">Storage provider is set to R2 but the following env vars are missing:</p>
-                <ul className="text-xs mt-1 list-disc list-inside">
-                  {parsed.missingVars.map(v => <li key={v}><code>{v}</code></li>)}
-                </ul>
-              </div>
-            )
-          }
-
-          return (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive mb-4">
-              <p className="font-medium">Failed to load R2 metrics</p>
-              <p className="text-xs mt-1">{r2Error}</p>
-            </div>
-          )
-        })()}
-
-        {/* Storage cards side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* MongoDB storage */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <HardDrive className="size-4 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground font-medium">MongoDB Storage</p>
-              </div>
-              {loading && !kpis ? (
-                <Skeleton className="h-8 w-32 mt-1" />
-              ) : kpis?.storageBreakdown ? (
-                <>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold">{formatBytes(kpis.storageBreakdown.totalBytes)}</p>
-                    <p className="text-xs text-muted-foreground">/ 512 MB ({percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)}%)</p>
-                  </div>
-                  <Progress value={percent(512 * 1024 * 1024, kpis.storageBreakdown.totalBytes)} className="h-1.5 mt-2" />
-                  {kpis.storageBreakdown.databases.filter((d) => d.isAppDb).map((db) => (
-                    <div key={db.name} className="mt-2">
-                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold">{db.name}</span>
-                        <span className="font-medium">{formatBytes(db.sizeOnDisk)}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).length > 0 && (
-                    <>
-                      <div className="border-t my-1.5" />
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">System</p>
-                      {kpis.storageBreakdown.databases.filter((d) => !d.isAppDb).map((db) => (
-                        <div key={db.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>{db.name}</span>
-                          <span>{formatBytes(db.sizeOnDisk)}</span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">—</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* R2 storage */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <HardDrive className="size-4 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground font-medium">R2 Storage</p>
-              </div>
-              {r2Loading ? (
-                <Skeleton className="h-8 w-32 mt-1" />
-              ) : (
-                <>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold">{formatBytes(r2Storage?.totalBytes ?? 0)}</p>
-                    <p className="text-xs text-muted-foreground">/ 10 GB ({percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)}%)</p>
-                  </div>
-                  <Progress value={percent(10 * 1024 * 1024 * 1024, r2Storage?.totalBytes ?? 0)} className="h-1.5 mt-2" />
-                  {(r2Storage?.buckets ?? []).filter((b) => b.isPrimary).map((b) => (
-                    <div key={b.name} className="mt-2">
-                      <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-400 font-semibold">Primary</p>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold">{b.name}</span>
-                        <span className="font-medium">{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).length > 0 && (
-                    <>
-                      <div className="border-t my-1.5" />
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Other Buckets</p>
-                      {(r2Storage?.buckets ?? []).filter((b) => !b.isPrimary).map((b) => (
-                        <div key={b.name} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>{b.name}</span>
-                          <span>{b.objectCount.toLocaleString()} objects &middot; {formatBytes(b.payloadSize)}</span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* R2 Operations KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
-          <KpiCard label="Total Objects" value={r2Loading ? "" : String(r2Storage?.totalObjects ?? 0)} icon={FileText} loading={r2Loading} />
-          <KpiCard label="Total Buckets" value={r2Loading ? "" : String(r2Storage?.buckets?.length ?? 0)} icon={HardDrive} loading={r2Loading} />
-          <KpiCard label="Egress" value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.egress ?? 0)} icon={FileText} loading={r2Loading} />
-          <KpiCard label="Ingress" value={r2Loading ? "" : formatBytes(r2Requests?.bandwidth.ingress ?? 0)} icon={FileText} loading={r2Loading} />
-          <KpiCard label="GET Requests" value={r2Loading ? "" : (r2Requests?.requests.get ?? 0).toLocaleString()} icon={FileText} loading={r2Loading} />
-          <KpiCard label="PUT Requests" value={r2Loading ? "" : (r2Requests?.requests.put ?? 0).toLocaleString()} icon={FileText} loading={r2Loading} />
-        </div>
-
-        {/* Cost estimate */}
-        <Card className="mt-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="size-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground font-medium">Estimated Monthly Cost</p>
-            </div>
-            {r2Loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <p className="text-2xl font-bold">${(r2Cost?.cost ?? 0).toFixed(2)}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Largest files */}
-        {r2Objects && r2Objects.objects.length > 0 && (
-          <Card className="mt-4">
-            <CardHeader><CardTitle className="text-sm">Largest Files (R2)</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>File</TableHead>
-                    <TableHead className="text-right">Size</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {r2Objects.objects.map((obj) => (
-                    <TableRow key={obj.key}>
-                      <TableCell className="font-mono text-xs">{obj.key}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{formatBytes(obj.size)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-      </CollapsibleSection>
-
       {/* ── Activity ───────────────────────────────────────────────────────── */}
       <CollapsibleSection title="Activity" icon={UserCheck}>
         {/* Storage growth chart */}
@@ -698,7 +738,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent activity feed */}
-        <Card className="mt-4">
+        <Card className="mt-3">
           <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Recent Activity</CardTitle></CardHeader>
           <CardContent className="p-0">
             {loading && !activity ? (
