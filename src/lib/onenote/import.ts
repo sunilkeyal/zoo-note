@@ -317,6 +317,8 @@ export async function processPagesBatch(
   batchSize: number = 10,
   jobId: string = ""
 ): Promise<BatchResult> {
+  // storageReadRaw dispatches to localReadRaw (os.tmpdir()) when STORAGE_PROVIDER=local,
+  // so this function works for both R2 and local deployments without any code change.
   const batchResult: BatchResult = {
     pagesProcessed: 0,
     foldersCreated: 0,

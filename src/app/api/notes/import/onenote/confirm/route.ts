@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
   })
 
   try {
-    // Read the uploaded file from R2
+    // storageReadRaw dispatches to localReadRaw (os.tmpdir()) when STORAGE_PROVIDER=local,
+    // so this works for both R2 and local deployments without any code change.
     const fileData = await storageReadRaw(job.r2Key)
     if (!fileData) {
       throw new Error("Could not read uploaded file from storage")
