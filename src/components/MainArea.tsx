@@ -115,8 +115,7 @@ const HIGHLIGHT_COLORS = [
 ]
 
 const SPACING_PRESETS = [
-  { label: "Default", value: null },
-  { label: "None", value: "0px" },
+  { label: "Default (0px)", value: null },
   { label: "Tight", value: "4px" },
   { label: "Compact", value: "8px" },
   { label: "Normal", value: "10px" },
