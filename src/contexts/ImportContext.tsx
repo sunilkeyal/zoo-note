@@ -208,7 +208,10 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
     const MAX_IMPORT_SIZE = 50 * 1024 * 1024
     if (file.size > MAX_IMPORT_SIZE) {
-      toast.error("File too large", { description: "Maximum import size is 50MB." })
+      toast.error("File too large", {
+        description:
+          "Maximum import size is 50MB. For larger notebooks, configure R2 storage or split the notebook into smaller sections.",
+      })
       return
     }
 
@@ -239,38 +242,63 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const { jobId, uploadUrl } = presignData
+      const { jobId, uploadUrl, localUpload } = presignData
 
       // Store jobId immediately so cancel can work during upload
       jobIdRef.current = jobId
       setJob((prev) => ({ ...prev, jobId }))
 
-      // Step 2: Upload file directly to R2
+      // Step 2: Upload file to storage
       toast.dismiss(loadingToast)
-      const uploadToast = toast.loading("Uploading to storage...")
+      const uploadToast = toast.loading("Uploading...")
 
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhrRef.current = xhr
-        xhr.open("PUT", uploadUrl, true)
-        xhr.setRequestHeader("Content-Type", "application/octet-stream")
-
-        xhr.upload.addEventListener("progress", (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100)
-            toast.loading(`Uploading... ${pct}%`, { id: uploadToast })
-          }
+      if (localUpload) {
+        // Local path: POST multipart to server-side upload endpoint.
+        // fetch does not expose upload progress, so no % updates.
+        const formData = new FormData()
+        formData.append("file", file)
+        const uploadRes = await fetch(`/api/notes/import/onenote/upload?jobId=${jobId}`, {
+          method: "POST",
+          body: formData,
         })
+        if (!uploadRes.ok) {
+          const uploadData = await uploadRes.json().catch(() => ({}))
+          toast.dismiss(uploadToast)
+          toast.error("Upload failed", {
+            description: (uploadData as { error?: string }).error || "Could not upload file",
+          })
+          setJob((prev) => ({
+            ...prev,
+            status: "failed",
+            error: (uploadData as { error?: string }).error || "Upload failed",
+          }))
+          return
+        }
+      } else {
+        // R2 path: XHR PUT to presigned URL with upload progress.
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhrRef.current = xhr
+          xhr.open("PUT", uploadUrl, true)
+          xhr.setRequestHeader("Content-Type", "application/octet-stream")
 
-        xhr.addEventListener("load", () => {
-          xhrRef.current = null
-          if (xhr.status >= 200 && xhr.status < 300) resolve()
-          else reject(new Error(`Upload failed with status ${xhr.status}`))
+          xhr.upload.addEventListener("progress", (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100)
+              toast.loading(`Uploading... ${pct}%`, { id: uploadToast })
+            }
+          })
+
+          xhr.addEventListener("load", () => {
+            xhrRef.current = null
+            if (xhr.status >= 200 && xhr.status < 300) resolve()
+            else reject(new Error(`Upload failed with status ${xhr.status}`))
+          })
+          xhr.addEventListener("error", () => { xhrRef.current = null; reject(new Error("Upload failed")) })
+          xhr.addEventListener("abort", () => { xhrRef.current = null; reject(new Error("Upload aborted")) })
+          xhr.send(file)
         })
-        xhr.addEventListener("error", () => { xhrRef.current = null; reject(new Error("Upload failed")) })
-        xhr.addEventListener("abort", () => { xhrRef.current = null; reject(new Error("Upload aborted")) })
-        xhr.send(file)
-      })
+      }
 
       // Step 3: Confirm upload and start conversion
       toast.dismiss(uploadToast)

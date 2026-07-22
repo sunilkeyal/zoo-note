@@ -18,14 +18,38 @@
 
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { writeFile, readFile, unlink, mkdir } from 'fs/promises'
+import { writeFile, readFile, unlink, mkdir, rm } from 'fs/promises'
 import { join } from 'path'
+import os from 'os'
 
 const PROVIDER = (process.env.STORAGE_PROVIDER ?? 'local') as 'local' | 'r2'
 
-// ─── Local ────────────────────────────────────────────────────────────────────
+// ─── Local (image files) ──────────────────────────────────────────────────────
 
 const LOCAL_DIR = join(process.cwd(), 'public', 'uploads')
+
+// ─── Local (temporary import artefacts) ─────────────────────────────────────
+// Stored outside public/ so Next.js does not serve them as static files.
+
+const BASE_LOCAL_IMPORT_DIR = join(os.tmpdir(), 'zoo-note-imports')
+
+async function localSaveRaw(key: string, data: Buffer): Promise<void> {
+  const dest = join(BASE_LOCAL_IMPORT_DIR, key)
+  await mkdir(join(dest, '..'), { recursive: true })
+  await writeFile(dest, data)
+}
+
+async function localReadRaw(key: string): Promise<Buffer | null> {
+  try {
+    return await readFile(join(BASE_LOCAL_IMPORT_DIR, key))
+  } catch {
+    return null
+  }
+}
+
+async function localDeleteByPrefix(prefix: string): Promise<void> {
+  await rm(join(BASE_LOCAL_IMPORT_DIR, prefix), { recursive: true, force: true })
+}
 
 async function ensureLocalDir(): Promise<void> {
   await mkdir(LOCAL_DIR, { recursive: true })
@@ -249,12 +273,15 @@ export async function getPresignedUploadUrl(
 }
 
 /**
- * Delete all objects under a given R2 prefix.
- * Used to clean up temporary import files.
+ * Delete all objects under a given prefix.
+ * R2:    paginated DeleteObjects call.
+ * Local: recursive removal of the prefix subtree under BASE_LOCAL_IMPORT_DIR.
  */
 export async function deleteByPrefix(prefix: string): Promise<void> {
   if (isR2()) {
     await r2DeleteByPrefix(prefix)
+  } else {
+    await localDeleteByPrefix(prefix)
   }
 }
 
@@ -272,20 +299,24 @@ export async function listByPrefix(prefix: string): Promise<string[]> {
 /**
  * Save raw bytes to an arbitrary key (bypasses image key mapping).
  * Used for temporary import files during async OneNote processing.
+ * R2:    writes to R2 bucket under the given key.
+ * Local: writes to BASE_LOCAL_IMPORT_DIR/{key} (not public/uploads/).
  */
 export async function storageSaveRaw(key: string, data: Buffer, contentType: string): Promise<void> {
   if (isR2()) {
     await r2Save(key, data, contentType)
   } else {
-    await localSave(key, data)
+    await localSaveRaw(key, data)
   }
 }
 
 /**
  * Read raw bytes from an arbitrary key (bypasses image key mapping).
  * Returns null if not found.
+ * R2:    reads from R2 bucket.
+ * Local: reads from BASE_LOCAL_IMPORT_DIR/{key}.
  */
 export async function storageReadRaw(key: string): Promise<Buffer | null> {
   if (isR2()) return r2Read(key)
-  return localRead(key)
+  return localReadRaw(key)
 }

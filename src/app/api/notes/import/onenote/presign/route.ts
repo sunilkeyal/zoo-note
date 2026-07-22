@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { getPresignedUploadUrl } from "@/lib/storage"
+import { getPresignedUploadUrl, isR2 } from "@/lib/storage"
 import { createImportJob, getActiveImportJob, updateImportJob } from "@/lib/onenote/import-job"
 
 const MAX_IMPORT_SIZE = 50 * 1024 * 1024
@@ -32,7 +32,11 @@ export async function POST(request: NextRequest) {
 
   if (fileSize > MAX_IMPORT_SIZE) {
     return NextResponse.json(
-      { success: false, error: "File too large (max 50MB)." },
+      {
+        success: false,
+        error:
+          "File too large (max 50MB). For larger notebooks, configure STORAGE_PROVIDER=r2 or split the notebook into smaller sections.",
+      },
       { status: 400 }
     )
   }
@@ -60,6 +64,20 @@ export async function POST(request: NextRequest) {
   })
 
   await updateImportJob(db, job._id.toHexString(), { status: "uploading" })
+
+  // Local storage: skip presigned URL — client will POST directly to /upload.
+  if (!isR2()) {
+    if (process.env.VERCEL) {
+      console.warn(
+        "[onenote-import] STORAGE_PROVIDER=local on Vercel: temp files may not persist across function invocations."
+      )
+    }
+    return NextResponse.json({
+      success: true,
+      jobId: job._id.toHexString(),
+      localUpload: true,
+    })
+  }
 
   try {
     const uploadUrl = await getPresignedUploadUrl(r2Key, "application/octet-stream", 900)
