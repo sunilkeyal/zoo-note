@@ -62,7 +62,11 @@ export async function importFromZip(
 
   const imageEntries = zip
     .getEntries()
-    .filter((e) => e.entryName.startsWith("images/") && !e.isDirectory)
+    .filter((e) => {
+      // Reject entries with path traversal or absolute paths
+      if (e.entryName.includes("..") || e.entryName.startsWith("/")) return false
+      return e.entryName.startsWith("images/") && !e.isDirectory
+    })
 
   const imageIdMap = new Map<string, string>()
 

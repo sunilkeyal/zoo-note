@@ -35,7 +35,11 @@ export async function POST(request: NextRequest) {
       const tokenHash = hashToken(token)
       await storeResetToken(normalizedEmail, tokenHash)
 
-      const resetLink = `${request.nextUrl.origin}/reset-password?token=${token}`
+      // Use an explicit env var to prevent host-header injection.
+      // NEXTAUTH_URL (v4) or AUTH_URL (v5) must be set in production.
+      const configuredOrigin = (process.env.NEXTAUTH_URL ?? process.env.AUTH_URL ?? "").replace(/\/$/, "")
+      const origin = configuredOrigin || request.nextUrl.origin
+      const resetLink = `${origin}/reset-password?token=${token}`
       await sendPasswordResetEmail(normalizedEmail, resetLink)
     }
 
