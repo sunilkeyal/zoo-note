@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { auth } from "@/lib/auth"
-import { getImportJob, updateImportJob, type ImportJobStatus } from "@/lib/onenote/import-job"
+import { getImportJob, updateImportJob, claimBatchLock, releaseBatchLock, type ImportJobStatus } from "@/lib/onenote/import-job"
 import { processPagesBatch } from "@/lib/onenote/import"
 import { cleanupImportData } from "@/lib/onenote/cleanup"
 import { deleteByPrefix } from "@/lib/storage"
@@ -49,58 +49,66 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  // Poll-triggered processing: if job is in "processing" state, process a batch
+  // Poll-triggered processing: if job is in "processing" state, process a batch.
+  // Acquire an atomic per-job lock first so overlapping polls cannot process the
+  // same batch concurrently — that would create duplicate notes and duplicate
+  // images in storage (R2/local). Only the caller that wins the claim processes.
   if (job.status === "processing" && job.manifest) {
-    try {
-      const batchResult = await processPagesBatch(
-        db,
-        userId,
-        job.manifest,
-        job.progress.processedPages,
-        BATCH_SIZE,
-        job._id.toString()
-      )
+    const locked = await claimBatchLock(db, jobId)
+    if (locked && locked.manifest) {
+      try {
+        const batchResult = await processPagesBatch(
+          db,
+          userId,
+          locked.manifest,
+          locked.progress.processedPages,
+          BATCH_SIZE,
+          locked._id.toString()
+        )
 
-      const newProcessed = job.progress.processedPages + batchResult.pagesProcessed
+        const newProcessed = locked.progress.processedPages + batchResult.pagesProcessed
 
-      // Accumulate results across all batches
-      const prevResult = job.result
-      const cumulativeResult = {
-        foldersCreated: (prevResult?.foldersCreated ?? 0) + batchResult.foldersCreated,
-        notesImported: (prevResult?.notesImported ?? 0) + batchResult.notesImported,
-        imagesImported: (prevResult?.imagesImported ?? 0) + batchResult.imagesImported,
+        // Accumulate results across all batches
+        const prevResult = locked.result
+        const cumulativeResult = {
+          foldersCreated: (prevResult?.foldersCreated ?? 0) + batchResult.foldersCreated,
+          notesImported: (prevResult?.notesImported ?? 0) + batchResult.notesImported,
+          imagesImported: (prevResult?.imagesImported ?? 0) + batchResult.imagesImported,
+        }
+
+        if (batchResult.done) {
+          // Clean up temporary R2 files
+          const r2Prefix = locked.r2Key.substring(0, locked.r2Key.lastIndexOf("/"))
+          await deleteByPrefix(r2Prefix).catch(() => {})
+
+          await releaseBatchLock(db, jobId, {
+            status: "completed",
+            progress: {
+              totalPages: locked.progress.totalPages,
+              processedPages: newProcessed,
+              currentStage: "Import complete!",
+            },
+            result: cumulativeResult,
+          })
+        } else {
+          await releaseBatchLock(db, jobId, {
+            progress: {
+              totalPages: locked.progress.totalPages,
+              processedPages: newProcessed,
+              currentStage: `Importing page ${newProcessed}/${locked.progress.totalPages}...`,
+            },
+            result: cumulativeResult,
+          })
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Processing failed"
+        await cleanupImportData(db, job._id.toString(), job.r2Key).catch(() => {})
+        await releaseBatchLock(db, jobId, { status: "failed", error: message })
+        return NextResponse.json({ status: "failed", error: message })
       }
-
-      if (batchResult.done) {
-        // Clean up temporary R2 files
-        const r2Prefix = job.r2Key.substring(0, job.r2Key.lastIndexOf("/"))
-        await deleteByPrefix(r2Prefix).catch(() => {})
-
-        await updateImportJob(db, jobId, {
-          status: "completed",
-          progress: {
-            totalPages: job.progress.totalPages,
-            processedPages: newProcessed,
-            currentStage: "Import complete!",
-          },
-          result: cumulativeResult,
-        })
-      } else {
-        await updateImportJob(db, jobId, {
-          progress: {
-            totalPages: job.progress.totalPages,
-            processedPages: newProcessed,
-            currentStage: `Importing page ${newProcessed}/${job.progress.totalPages}...`,
-          },
-          result: cumulativeResult,
-        })
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Processing failed"
-      await cleanupImportData(db, job._id.toString(), job.r2Key).catch(() => {})
-      await updateImportJob(db, jobId, { status: "failed", error: message })
-      return NextResponse.json({ status: "failed", error: message })
     }
+    // If not locked, another poll is already processing this batch — fall through
+    // and return the current status without doing any work.
   }
 
   // Return current status
