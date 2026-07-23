@@ -109,6 +109,51 @@ describe("getR2StorageMetrics", () => {
     expect(result).toEqual({ totalObjects: 0, totalBytes: 0, buckets: [] })
   })
 
+  it("falls back to GraphQL payloadSize when S3 ListObjectsV2 fails", async () => {
+    const metricsCol = {
+      findOne: vi.fn().mockResolvedValue(null),
+      updateOne: vi.fn().mockResolvedValue({}),
+    }
+    mockDb.collection.mockImplementation((name: string) => {
+      if (name === "r2_metrics") return metricsCol
+      return {}
+    })
+
+    // S3 ListBuckets fails → triggers GraphQL fallback
+    mockS3Send.mockRejectedValueOnce(new Error("Access Denied"))
+
+    // Mock GraphQL response with payloadSize data
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        data: {
+          viewer: {
+            accounts: [{
+              r2StorageAdaptiveGroups: [
+                { dimensions: { bucketName: "note-dev" }, sum: { payloadSize: 50000 } },
+                { dimensions: { bucketName: "note-dev" }, sum: { payloadSize: 30000 } },
+              ],
+            }],
+          },
+        },
+      }),
+    })
+
+    // S3 ListObjectsV2 also fails for the bucket
+    mockS3Send.mockRejectedValueOnce(new Error("Access Denied"))
+
+    const { getR2StorageMetrics } = await import("@/lib/cf-r2")
+    const result = await getR2StorageMetrics()
+
+    // Should use GraphQL fallback: 50000 + 30000 = 80000 bytes
+    expect(result.totalBytes).toBe(80000)
+    expect(result.totalObjects).toBe(0) // objectCount unavailable from GraphQL
+    expect(result.buckets).toHaveLength(1)
+    expect(result.buckets[0].name).toBe("note-dev")
+    expect(result.buckets[0].payloadSize).toBe(80000)
+    expect(result.buckets[0].isPrimary).toBe(false) // R2_BUCKET_NAME=zoo-note-local in test setup
+  })
+
   it("counts only existing buckets (no stale deleted buckets)", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),

@@ -92,6 +92,8 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   })
 
   let bucketNames: string[]
+  // GraphQL fallback data: bucketName → payloadSize (analytics, may be delayed)
+  let gqlStorageByBucket: Map<string, number> = new Map()
 
   try {
     // Try S3 ListBuckets first (most accurate, real-time)
@@ -99,7 +101,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
     bucketNames = (bucketsRes.Buckets ?? []).map((b) => b.Name ?? "")
   } catch (s3Err) {
     // S3 ListBuckets needs account-level s3:ListBucket permission.
-    // Fall back to CF GraphQL analytics for bucket enumeration.
+    // Fall back to CF GraphQL analytics for bucket enumeration + storage sizes.
     console.warn("S3 ListBuckets failed, falling back to GraphQL:", s3Err instanceof Error ? s3Err.message : s3Err)
     const now = new Date()
     const startDate = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000).toISOString()
@@ -112,6 +114,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
               filter: { datetime_geq: $startDate, datetime_leq: $endDate }
             ) {
               dimensions { bucketName }
+              sum { payloadSize }
             }
           }
         }
@@ -119,6 +122,12 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
       { accountTag: getAccountId(), startDate, endDate: now.toISOString() }
     )
     const groups = data.viewer.accounts[0]?.r2StorageAdaptiveGroups ?? []
+    for (const g of groups) {
+      const bName = g.dimensions?.bucketName
+      if (bName) {
+        gqlStorageByBucket.set(bName, (gqlStorageByBucket.get(bName) ?? 0) + (g.sum?.payloadSize ?? 0))
+      }
+    }
     bucketNames = [...new Set(groups.map((g: any) => g.dimensions.bucketName).filter(Boolean) as string[])]
   }
 
@@ -145,9 +154,17 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
         }
         continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined
       } while (continuationToken)
-    } catch {
-      // Bucket might be inaccessible — skip it
-      continue
+    } catch (s3ListErr) {
+      // S3 ListObjectsV2 failed — fall back to GraphQL analytics data if available
+      const gqlBytes = gqlStorageByBucket.get(name)
+      if (gqlBytes !== undefined) {
+        console.warn(`S3 ListObjectsV2 failed for bucket "${name}", using GraphQL analytics data:`, s3ListErr instanceof Error ? s3ListErr.message : s3ListErr)
+        payloadSize = gqlBytes
+        // objectCount unavailable from GraphQL storage metrics; leave as 0
+      } else {
+        console.error(`S3 ListObjectsV2 failed for bucket "${name}" and no GraphQL fallback available:`, s3ListErr instanceof Error ? s3ListErr.message : s3ListErr)
+        continue
+      }
     }
 
     totalObjects += objectCount
