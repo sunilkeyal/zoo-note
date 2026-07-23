@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useNotes } from "@/contexts/NoteContext"
-import { cn, stripHtml } from "@/lib/utils"
-import { FileText, Star, Search, Plus, ArrowRight } from "lucide-react"
+import { stripHtml } from "@/lib/utils"
+import { FileText, Star, Search, Plus, ArrowRight, FolderPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Note } from "@/types"
@@ -96,9 +96,21 @@ function NoteSection({ title, icon, notes, viewAllHref, emptyMessage, onNoteClic
 export default function HomePage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { notes, loading, error, setActiveNoteId, createNote, fetchNotes, expandedFolders, toggleFolder, toggleFavorite, favoriteNotes } = useNotes()
+  const { notes, loading, error, setActiveNoteId, createNote, fetchNotes, expandedFolders, toggleFolder, toggleFavorite, favoriteNotes, folders } = useNotes()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
+  const [imageCount, setImageCount] = useState(0)
+
+  useEffect(() => {
+    fetch("/api/user/image-count")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setImageCount(json.data.count)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const sortedNotes = useMemo(() => {
     return [...notes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -155,7 +167,7 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 overflow-auto bg-background">
-      <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-2 pb-4 sm:pt-3 sm:pb-6 space-y-8 w-full md:max-w-[900px] lg:max-w-[1140px]">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-2 pb-4 sm:pt-3 sm:pb-6 space-y-6 w-full md:max-w-[900px] lg:max-w-[1140px]">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <Image
@@ -195,29 +207,51 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Sections - Mobile */}
-        <div className="space-y-8 sm:hidden">
-          <NoteSection
-            title="Favorites"
-            icon={<Star className="h-5 w-5 text-amber-500" />}
-            notes={favoriteNotes.slice(0, 5)}
-            viewAllHref="/favorites"
-            emptyMessage="No favorite notes yet. Star notes to see them here!"
-            onNoteClick={handleNoteClick}
-            onToggleFavorite={toggleFavorite}
-          />
-          <NoteSection
-            title="Recent Notes"
-            icon={<FileText className="h-5 w-5 text-primary" />}
-            notes={sortedNotes.slice(0, 5)}
-            viewAllHref="/recent"
-            emptyMessage="No recent notes yet. Create your first note!"
-            onNoteClick={handleNoteClick}
-            onToggleFavorite={toggleFavorite}
-          />
+        {/* Your Stats */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Your Stats</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                <FileText className="h-4 w-4 text-indigo-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold leading-tight">{notes.filter(n => !n.isDeleted).length}</p>
+                <p className="text-xs text-muted-foreground">Notes</p>
+              </div>
+            </div>
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-3">
+              <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                <Star className="h-4 w-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold leading-tight">{favoriteNotes.length}</p>
+                <p className="text-xs text-muted-foreground">Favorites</p>
+              </div>
+            </div>
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-3">
+              <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+                <FolderPlus className="h-4 w-4 text-green-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold leading-tight">{folders.length}</p>
+                <p className="text-xs text-muted-foreground">Folders</p>
+              </div>
+            </div>
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-3">
+              <div className="w-8 h-8 bg-pink-500/10 rounded-lg flex items-center justify-center">
+                <span className="text-sm">🖼️</span>
+              </div>
+              <div>
+                <p className="text-lg font-bold leading-tight">{imageCount}</p>
+                <p className="text-xs text-muted-foreground">Images</p>
+              </div>
+            </div>
+          </div>
         </div>
-        {/* Sections - Desktop */}
-        <div className="hidden sm:grid sm:grid-cols-2 gap-6">
+
+        {/* Favorites & Recent */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <NoteSection
             title="Favorites"
             icon={<Star className="h-5 w-5 text-amber-500" />}
