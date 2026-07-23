@@ -210,7 +210,7 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">Import from OneNote</h3>
             </div>
             <p className="text-xs text-gray-500 mb-3">
-              Import a OneNote notebook (.onepkg) or section (.one). Max 50MB. Folders and notes will be created automatically.
+              Import a OneNote notebook (.onepkg) or section (.one). Max 200MB. Folders and notes will be created automatically.
             </p>
             <div className="mb-3 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>

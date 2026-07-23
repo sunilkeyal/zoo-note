@@ -206,11 +206,11 @@ export function ImportProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const MAX_IMPORT_SIZE = 50 * 1024 * 1024
+    const MAX_IMPORT_SIZE = 200 * 1024 * 1024
     if (file.size > MAX_IMPORT_SIZE) {
       toast.error("File too large", {
         description:
-          "Maximum import size is 50MB. For larger notebooks, configure R2 storage or split the notebook into smaller sections.",
+          "Maximum import size is 200MB. For larger notebooks, configure R2 storage or split the notebook into smaller sections.",
       })
       return
     }
