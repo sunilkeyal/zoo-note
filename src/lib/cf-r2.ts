@@ -114,7 +114,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
               filter: { datetime_geq: $startDate, datetime_leq: $endDate }
             ) {
               dimensions { bucketName }
-              sum { payloadSize }
+              max { payloadSize }
             }
           }
         }
@@ -125,7 +125,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
     for (const g of groups) {
       const bName = g.dimensions?.bucketName
       if (bName) {
-        gqlStorageByBucket.set(bName, (gqlStorageByBucket.get(bName) ?? 0) + (g.sum?.payloadSize ?? 0))
+        gqlStorageByBucket.set(bName, (gqlStorageByBucket.get(bName) ?? 0) + (g.max?.payloadSize ?? 0))
       }
     }
     bucketNames = [...new Set(groups.map((g: any) => g.dimensions.bucketName).filter(Boolean) as string[])]
