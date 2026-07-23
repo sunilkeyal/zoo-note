@@ -109,20 +109,38 @@ describe("POST /api/notes/import/onenote/upload", () => {
     expect(res.status).toBe(409)
   })
 
-  it("returns 400 when file exceeds 50 MB with actionable message", async () => {
+  it("returns 400 when file exceeds 200 MB with actionable message", async () => {
     const { auth } = await import("@/lib/auth")
     vi.mocked(auth).mockResolvedValue(MOCK_SESSION as any)
     const { connectToDatabase } = await import("@/lib/mongodb")
     vi.mocked(connectToDatabase).mockResolvedValue({} as any)
     mockGetImportJob.mockResolvedValue(MOCK_JOB)
 
-    const bigFile = makeFile("big.onepkg", 51 * 1024 * 1024)
+    const bigFile = makeFile("big.onepkg", 1024)
+    Object.defineProperty(bigFile, "size", { value: 201 * 1024 * 1024 })
     const { POST } = await import("@/app/api/notes/import/onenote/upload/route")
     const res = await POST(makeRequest({ jobId: "job-abc", file: bigFile }) as any)
     expect(res.status).toBe(400)
     const body = await res.json()
-    expect(body.error).toMatch(/50MB/)
+    expect(body.error).toMatch(/200MB/)
     expect(body.error).toMatch(/STORAGE_PROVIDER=r2/)
+  })
+
+  it("accepts a file of exactly 200 MB", async () => {
+    const { auth } = await import("@/lib/auth")
+    vi.mocked(auth).mockResolvedValue(MOCK_SESSION as any)
+    const { connectToDatabase } = await import("@/lib/mongodb")
+    vi.mocked(connectToDatabase).mockResolvedValue({} as any)
+    mockGetImportJob.mockResolvedValue(MOCK_JOB)
+    mockStorageSaveRaw.mockResolvedValue(undefined)
+
+    const atLimit = makeFile("limit.onepkg", 1024)
+    Object.defineProperty(atLimit, "size", { value: 200 * 1024 * 1024 })
+    const { POST } = await import("@/app/api/notes/import/onenote/upload/route")
+    const res = await POST(makeRequest({ jobId: "job-abc", file: atLimit }) as any)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
   })
 
   it("returns 200 and calls storageSaveRaw on success", async () => {

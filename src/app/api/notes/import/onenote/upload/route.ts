@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb"
 import { isR2, storageSaveRaw } from "@/lib/storage"
 import { getImportJob } from "@/lib/onenote/import-job"
 
-const MAX_IMPORT_SIZE = 50 * 1024 * 1024
+const MAX_IMPORT_SIZE = 200 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   const session = await auth()
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error:
-          "File too large (max 50MB). For larger notebooks, configure STORAGE_PROVIDER=r2 or split the notebook into smaller sections.",
+          "File too large (max 200MB). For larger notebooks, configure STORAGE_PROVIDER=r2 or split the notebook into smaller sections.",
       },
       { status: 400 }
     )

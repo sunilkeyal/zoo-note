@@ -107,7 +107,7 @@ describe("POST /api/notes/import/onenote/presign", () => {
     expect(res.status).toBe(401)
   })
 
-  it("returns 400 with actionable message when file exceeds 50 MB", async () => {
+  it("returns 400 with actionable message when file exceeds 200 MB", async () => {
     mockIsR2.mockReturnValue(false)
     const { auth } = await import("@/lib/auth")
     vi.mocked(auth).mockResolvedValue(MOCK_SESSION as any)
@@ -115,11 +115,25 @@ describe("POST /api/notes/import/onenote/presign", () => {
     vi.mocked(connectToDatabase).mockResolvedValue({} as any)
 
     const { POST } = await import("@/app/api/notes/import/onenote/presign/route")
-    const res = await POST(makeRequest({ filename: "big.onepkg", fileSize: 51 * 1024 * 1024 }) as any)
+    const res = await POST(makeRequest({ filename: "big.onepkg", fileSize: 201 * 1024 * 1024 }) as any)
     expect(res.status).toBe(400)
     const body = await res.json()
-    expect(body.error).toMatch(/50MB/)
+    expect(body.error).toMatch(/200MB/)
     expect(body.error).toMatch(/STORAGE_PROVIDER=r2/)
+  })
+
+  it("accepts a file of exactly 200 MB", async () => {
+    mockIsR2.mockReturnValue(false)
+    const { auth } = await import("@/lib/auth")
+    vi.mocked(auth).mockResolvedValue(MOCK_SESSION as any)
+    const { connectToDatabase } = await import("@/lib/mongodb")
+    vi.mocked(connectToDatabase).mockResolvedValue({} as any)
+
+    const { POST } = await import("@/app/api/notes/import/onenote/presign/route")
+    const res = await POST(makeRequest({ filename: "limit.onepkg", fileSize: 200 * 1024 * 1024 }) as any)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
   })
 
   it("returns 409 when an import is already in progress", async () => {
