@@ -81,7 +81,7 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
   const cached = await getCached(resolvedDb, "storage")
   if (cached) return cached as R2StorageMetrics
 
-  const { S3Client, ListBucketsCommand, ListObjectsV2Command } = await import("@aws-sdk/client-s3")
+  const { S3Client, ListBucketsCommand, ListObjectsV2Command, HeadBucketCommand } = await import("@aws-sdk/client-s3")
   const s3 = new S3Client({
     region: "auto",
     endpoint: `https://${getAccountId()}.r2.cloudflarestorage.com`,
@@ -155,7 +155,21 @@ export async function getR2StorageMetrics(db?: Db): Promise<R2StorageMetrics> {
         continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined
       } while (continuationToken)
     } catch (s3ListErr) {
-      // S3 ListObjectsV2 failed — fall back to GraphQL analytics data if available
+      // S3 ListObjectsV2 failed — verify bucket exists before using GraphQL fallback
+      let bucketExists = false
+      try {
+        await s3.send(new HeadBucketCommand({ Bucket: name }))
+        bucketExists = true
+      } catch {
+        // HeadBucket failed — bucket doesn't exist or is inaccessible
+      }
+
+      if (!bucketExists) {
+        console.warn(`Bucket "${name}" no longer exists or is inaccessible, skipping (deleted bucket in GraphQL analytics)`)
+        continue
+      }
+
+      // Bucket exists but ListObjectsV2 failed — fall back to GraphQL analytics data
       const gqlBytes = gqlStorageByBucket.get(name)
       if (gqlBytes !== undefined) {
         console.warn(`S3 ListObjectsV2 failed for bucket "${name}", using GraphQL analytics data:`, s3ListErr instanceof Error ? s3ListErr.message : s3ListErr)

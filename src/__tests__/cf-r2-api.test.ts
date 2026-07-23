@@ -16,6 +16,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
   S3Client: class { send = mockS3Send },
   ListBucketsCommand: vi.fn(),
   ListObjectsV2Command: vi.fn(),
+  HeadBucketCommand: vi.fn(),
 }))
 
 beforeEach(() => {
@@ -109,7 +110,7 @@ describe("getR2StorageMetrics", () => {
     expect(result).toEqual({ totalObjects: 0, totalBytes: 0, buckets: [] })
   })
 
-  it("falls back to GraphQL payloadSize when S3 ListObjectsV2 fails", async () => {
+  it("falls back to GraphQL payloadSize when S3 ListObjectsV2 fails but bucket exists", async () => {
     const metricsCol = {
       findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({}),
@@ -130,8 +131,8 @@ describe("getR2StorageMetrics", () => {
           viewer: {
             accounts: [{
               r2StorageAdaptiveGroups: [
-                { dimensions: { bucketName: "note-dev" }, sum: { payloadSize: 50000 } },
-                { dimensions: { bucketName: "note-dev" }, sum: { payloadSize: 30000 } },
+                { dimensions: { bucketName: "note-dev" }, max: { payloadSize: 50000 } },
+                { dimensions: { bucketName: "note-dev" }, max: { payloadSize: 30000 } },
               ],
             }],
           },
@@ -141,6 +142,8 @@ describe("getR2StorageMetrics", () => {
 
     // S3 ListObjectsV2 also fails for the bucket
     mockS3Send.mockRejectedValueOnce(new Error("Access Denied"))
+    // HeadBucket succeeds — bucket exists but ListObjectsV2 has permission issues
+    mockS3Send.mockResolvedValueOnce({})
 
     const { getR2StorageMetrics } = await import("@/lib/cf-r2")
     const result = await getR2StorageMetrics()
@@ -152,6 +155,49 @@ describe("getR2StorageMetrics", () => {
     expect(result.buckets[0].name).toBe("note-dev")
     expect(result.buckets[0].payloadSize).toBe(80000)
     expect(result.buckets[0].isPrimary).toBe(false) // R2_BUCKET_NAME=zoo-note-local in test setup
+  })
+
+  it("skips deleted buckets that appear in GraphQL analytics but no longer exist", async () => {
+    const metricsCol = {
+      findOne: vi.fn().mockResolvedValue(null),
+      updateOne: vi.fn().mockResolvedValue({}),
+    }
+    mockDb.collection.mockImplementation((name: string) => {
+      if (name === "r2_metrics") return metricsCol
+      return {}
+    })
+
+    // S3 ListBuckets fails → triggers GraphQL fallback
+    mockS3Send.mockRejectedValueOnce(new Error("Access Denied"))
+
+    // Mock GraphQL response with a deleted bucket
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        data: {
+          viewer: {
+            accounts: [{
+              r2StorageAdaptiveGroups: [
+                { dimensions: { bucketName: "zoo-note-local" }, max: { payloadSize: 70000000 } },
+              ],
+            }],
+          },
+        },
+      }),
+    })
+
+    // S3 ListObjectsV2 fails for the deleted bucket
+    mockS3Send.mockRejectedValueOnce(new Error("NoSuchBucket"))
+    // HeadBucket fails — bucket no longer exists
+    mockS3Send.mockRejectedValueOnce(new Error("NoSuchBucket"))
+
+    const { getR2StorageMetrics } = await import("@/lib/cf-r2")
+    const result = await getR2StorageMetrics()
+
+    // Deleted bucket should be skipped entirely
+    expect(result.totalBytes).toBe(0)
+    expect(result.totalObjects).toBe(0)
+    expect(result.buckets).toHaveLength(0)
   })
 
   it("counts only existing buckets (no stale deleted buckets)", async () => {
