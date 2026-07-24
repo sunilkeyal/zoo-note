@@ -334,6 +334,13 @@ export default function DashboardPage() {
             Reload Stats
           </Button>
           <div className="h-6 w-px bg-border" />
+          <Link
+            href="/admin/cleanup"
+            className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            <Trash2 className="size-4 mr-1" />
+            Cleanup
+          </Link>
           <Button
             variant="outline"
             size="sm"

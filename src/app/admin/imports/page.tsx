@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash2, Upload, AlertCircle, CheckCircle, Loader2, ChevronLeftIcon, ChevronRightIcon, ArrowUp } from "lucide-react"
+import { Trash2, Upload, AlertCircle, CheckCircle, Loader2, ChevronLeftIcon, ChevronRightIcon, ArrowUp, RotateCcw, Wrench, Search, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 interface ImportJob {
@@ -48,6 +48,7 @@ interface ImportJob {
     notesImported: number
     imagesImported: number
   } | null
+  r2Key: string | null
   error: string | null
   createdAt: string
   updatedAt: string
@@ -103,7 +104,29 @@ export default function ImportsPage() {
   const [cleaning, setCleaning] = useState(false)
   const [r2CleanupJob, setR2CleanupJob] = useState<ImportJob | null>(null)
   const [r2Cleaning, setR2Cleaning] = useState(false)
-
+  const [retryJob, setRetryJob] = useState<ImportJob | null>(null)
+  const [retrying, setRetrying] = useState(false)
+  const [recoverJob, setRecoverJob] = useState<ImportJob | null>(null)
+  const [recovering, setRecovering] = useState(false)
+  const [scanOpen, setScanOpen] = useState(false)
+  const [scanLoading, setScanLoading] = useState(false)
+  const [scanResults, setScanResults] = useState<{
+    imports: {
+      prefix: string
+      jobId: string | null
+      jobExists: boolean
+      jobStatus: string | null
+      fileCount: number
+      totalBytes: number
+      htmlFileCount: number
+      hasConverted: boolean
+    }[]
+    imageFiles: { count: number; totalBytes: number }
+    otherFiles: { count: number; totalBytes: number }
+    totalObjects: number
+    totalBytes: number
+  } | null>(null)
+  const [recoveringPrefix, setRecoveringPrefix] = useState<string | null>(null)
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
@@ -192,6 +215,100 @@ export default function ImportsPage() {
     }
   }
 
+  async function handleRetry() {
+    if (!retryJob) return
+    setRetrying(true)
+    try {
+      const res = await fetch(`/api/admin/imports/${retryJob._id}/retry`, {
+        method: "POST",
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Import retry started", {
+          description: "The import has been reset to processing. Use the status poller to track progress.",
+        })
+        setRetryJob(null)
+        fetchJobs()
+      } else {
+        toast.error("Retry failed", { description: data.error })
+      }
+    } catch {
+      toast.error("Retry failed", { description: "Network error" })
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  async function handleRecovery() {
+    if (!recoverJob) return
+    setRecovering(true)
+    try {
+      const res = await fetch("/api/admin/r2/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: recoverJob._id }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Recovery complete", {
+          description: `Recovered ${data.data.notesImported} notes, ${data.data.foldersCreated} folders, ${data.data.imagesImported} images.`,
+        })
+        setRecoverJob(null)
+        fetchJobs()
+      } else {
+        toast.error("Recovery failed", { description: data.error })
+      }
+    } catch {
+      toast.error("Recovery failed", { description: "Network error" })
+    } finally {
+      setRecovering(false)
+    }
+  }
+
+  async function handleScanR2() {
+    setScanLoading(true)
+    setScanResults(null)
+    try {
+      const res = await fetch("/api/admin/r2/scan", { method: "POST" })
+      const data = await res.json()
+      if (data.success) {
+        setScanResults(data.data)
+      } else {
+        toast.error("Scan failed", { description: data.error })
+      }
+    } catch {
+      toast.error("Scan failed", { description: "Network error" })
+    } finally {
+      setScanLoading(false)
+    }
+  }
+
+  async function handleRecoverPrefix(prefix: string, userId: string) {
+    setRecoveringPrefix(prefix)
+    try {
+      const res = await fetch("/api/admin/r2/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prefix, userId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Recovery complete", {
+          description: `Recovered ${data.data.notesImported} notes, ${data.data.foldersCreated} folders, ${data.data.imagesImported} images.`,
+        })
+        fetchJobs()
+        // Refresh scan results
+        handleScanR2()
+      } else {
+        toast.error("Recovery failed", { description: data.error })
+      }
+    } catch {
+      toast.error("Recovery failed", { description: "Network error" })
+    } finally {
+      setRecoveringPrefix(null)
+    }
+  }
+
   const canCleanup = (status: string) =>
     status !== "completed"
 
@@ -206,6 +323,14 @@ export default function ImportsPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{total} total</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setScanOpen(true); setScanResults(null); handleScanR2() }}
+          >
+            <Search size={14} className="mr-1" />
+            Scan R2
+          </Button>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(1) }}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All statuses" />
@@ -301,26 +426,46 @@ export default function ImportsPage() {
                     {new Date(job.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    {canCleanup(job.status) ? (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setCleanupJob(job)}
-                      >
-                        <Trash2 size={14} className="mr-1" />
-                        Cleanup
-                      </Button>
-                    ) : job.status === "completed" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setR2CleanupJob(job)}
-                      >
-                        Clean Temp Files
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      {job.status === "failed" && job.r2Key && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRecoverJob(job)}
+                        >
+                          <Wrench size={14} className="mr-1" />
+                          Recover
+                        </Button>
+                      )}
+                      {job.status === "failed" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRetryJob(job)}
+                        >
+                          <RotateCcw size={14} className="mr-1" />
+                          Retry
+                        </Button>
+                      )}
+                      {canCleanup(job.status) ? (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setCleanupJob(job)}
+                        >
+                          <Trash2 size={14} className="mr-1" />
+                          Cleanup
+                        </Button>
+                      ) : job.status === "completed" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setR2CleanupJob(job)}
+                        >
+                          Clean Temp Files
+                        </Button>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -473,6 +618,182 @@ export default function ImportsPage() {
             <Button variant="destructive" onClick={handleR2Cleanup} disabled={r2Cleaning}>
               {r2Cleaning ? "Cleaning..." : "Clean Temporary Files"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Retry Confirmation Dialog */}
+      <Dialog open={!!retryJob} onOpenChange={(open) => { if (!open) setRetryJob(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retry Failed Import</DialogTitle>
+            <DialogDescription>
+              This will reset the import to processing state. The status poller will pick it up and continue processing from where it left off.
+            </DialogDescription>
+          </DialogHeader>
+          {retryJob && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Filename</span>
+                <span className="font-medium">{retryJob.filename}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">User</span>
+                <span className="font-medium">{retryJob.user?.email || retryJob.userId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Error</span>
+                <span className="font-medium text-red-500">{retryJob.error || "—"}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRetryJob(null)} disabled={retrying}>
+              Cancel
+            </Button>
+            <Button onClick={handleRetry} disabled={retrying}>
+              {retrying ? "Retrying..." : "Retry Import"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recovery Confirmation Dialog */}
+      <Dialog open={!!recoverJob} onOpenChange={(open) => { if (!open) setRecoverJob(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recover Import from R2</DialogTitle>
+            <DialogDescription>
+              This will scan R2 for converted files under this job&apos;s prefix and create notes from them. A new recovery job will be created to track progress.
+            </DialogDescription>
+          </DialogHeader>
+          {recoverJob && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Filename</span>
+                <span className="font-medium">{recoverJob.filename}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">User</span>
+                <span className="font-medium">{recoverJob.user?.email || recoverJob.userId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">R2 Key</span>
+                <span className="font-medium font-mono text-xs">{recoverJob.r2Key || "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Error</span>
+                <span className="font-medium text-red-500">{recoverJob.error || "—"}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecoverJob(null)} disabled={recovering}>
+              Cancel
+            </Button>
+            <Button onClick={handleRecovery} disabled={recovering}>
+              {recovering ? "Recovering..." : "Recover"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Scan R2 Dialog */}
+      <Dialog open={scanOpen} onOpenChange={(open) => { if (!open) setScanOpen(false) }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Scan R2 for Orphaned Imports</DialogTitle>
+            <DialogDescription>
+              Lists all import prefixes in R2. Prefixes without a matching job in the database are orphaned and can be recovered.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto">
+            {scanLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={20} className="animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Scanning R2...</span>
+              </div>
+            ) : scanResults ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md border p-3 text-sm">
+                    <p className="text-xs text-muted-foreground">Import artifacts</p>
+                    <p className="text-lg font-semibold">{scanResults.imports.length} prefixes</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(scanResults.imports.reduce((s, p) => s + p.totalBytes, 0))}</p>
+                  </div>
+                  <div className="rounded-md border p-3 text-sm">
+                    <p className="text-xs text-muted-foreground">Image files</p>
+                    <p className="text-lg font-semibold">{scanResults.imageFiles.count}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(scanResults.imageFiles.totalBytes)}</p>
+                  </div>
+                </div>
+                {scanResults.otherFiles.count > 0 && (
+                  <div className="rounded-md border p-3 text-sm">
+                    <p className="text-xs text-muted-foreground">Other files</p>
+                    <p className="text-lg font-semibold">{scanResults.otherFiles.count}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(scanResults.otherFiles.totalBytes)}</p>
+                  </div>
+                )}
+                {scanResults.imports.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No import files found in R2.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {scanResults.imports.map((p) => (
+                      <div key={p.prefix} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs truncate">{p.prefix}</span>
+                            {p.jobExists ? (
+                              <Badge variant="secondary" className="shrink-0">job exists ({p.jobStatus})</Badge>
+                            ) : (
+                              <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-800 shrink-0">orphaned</Badge>
+                            )}
+                            {p.hasConverted && (
+                              <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800 shrink-0">{p.htmlFileCount} pages</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {p.fileCount} files, {formatFileSize(p.totalBytes)}
+                          </p>
+                        </div>
+                        {p.hasConverted && !p.jobExists && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="ml-2 shrink-0"
+                            disabled={recoveringPrefix === p.prefix}
+                            onClick={() => {
+                              const userId = window.prompt("Enter the user ID to assign recovered notes to:")
+                              if (userId) handleRecoverPrefix(p.prefix, userId)
+                            }}
+                          >
+                            {recoveringPrefix === p.prefix ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <>
+                                <Wrench size={14} className="mr-1" />
+                                Recover
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScanOpen(false)}>
+              Close
+            </Button>
+            {!scanLoading && (
+              <Button variant="outline" onClick={handleScanR2}>
+                <RefreshCw size={14} className="mr-1" />
+                Rescan
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
