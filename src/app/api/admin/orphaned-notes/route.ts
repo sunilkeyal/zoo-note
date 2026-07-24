@@ -122,6 +122,34 @@ export async function DELETE(request: NextRequest) {
     deletedImages = imgResult.deletedCount
   }
 
+  let r2ObjectsDeleted = 0
+  if (isR2() && mode === "all") {
+    const { S3Client, ListObjectsV2Command, DeleteObjectCommand } = await import("@aws-sdk/client-s3")
+    const s3 = new S3Client({
+      region: "auto",
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      },
+    })
+    const bucket = process.env.R2_BUCKET_NAME!
+    let continuationToken: string | undefined
+    do {
+      const res = await s3.send(new ListObjectsV2Command({
+        Bucket: bucket,
+        MaxKeys: 1000,
+        ContinuationToken: continuationToken,
+      }))
+      const keys = (res.Contents ?? []).map((o) => o.Key!).filter(Boolean)
+      r2ObjectsDeleted += keys.length
+      if (keys.length > 0) {
+        await Promise.all(keys.map((key) => s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))))
+      }
+      continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined
+    } while (continuationToken)
+  }
+
   return NextResponse.json({
     success: true,
     data: {
@@ -129,6 +157,7 @@ export async function DELETE(request: NextRequest) {
       deletedFolders: foldersResult.deletedCount,
       deletedImages,
       freedImageBytes,
+      r2ObjectsDeleted,
     },
   })
 }

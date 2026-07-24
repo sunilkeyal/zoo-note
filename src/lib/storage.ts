@@ -145,25 +145,33 @@ async function r2GetPresignedUrl(key: string, contentType: string, expiresIn: nu
 }
 
 async function r2DeleteByPrefix(prefix: string): Promise<void> {
-  const listResp = await getR2Client().send(
-    new ListObjectsV2Command({
-      Bucket: process.env.R2_BUCKET_NAME!,
-      Prefix: prefix,
-    })
-  )
-  if (!listResp.Contents || listResp.Contents.length === 0) return
-  await Promise.all(
-    listResp.Contents.map((obj) =>
-      obj.Key
-        ? getR2Client().send(
-            new DeleteObjectCommand({
-              Bucket: process.env.R2_BUCKET_NAME!,
-              Key: obj.Key,
-            })
-          )
-        : Promise.resolve()
+  let continuationToken: string | undefined
+
+  do {
+    const listResp = await getR2Client().send(
+      new ListObjectsV2Command({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Prefix: prefix,
+        MaxKeys: 1000,
+        ContinuationToken: continuationToken,
+      })
     )
-  )
+    if (listResp.Contents && listResp.Contents.length > 0) {
+      await Promise.all(
+        listResp.Contents.map((obj) =>
+          obj.Key
+            ? getR2Client().send(
+                new DeleteObjectCommand({
+                  Bucket: process.env.R2_BUCKET_NAME!,
+                  Key: obj.Key,
+                })
+              )
+            : Promise.resolve()
+        )
+      )
+    }
+    continuationToken = listResp.IsTruncated ? listResp.NextContinuationToken : undefined
+  } while (continuationToken)
 }
 
 async function r2ListByPrefix(prefix: string): Promise<string[]> {
