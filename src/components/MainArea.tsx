@@ -17,6 +17,7 @@ import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableHeaderBase from "@tiptap/extension-table-header"
 import TableCellBase from "@tiptap/extension-table-cell"
+import Link from "@tiptap/extension-link"
 
 // Override colwidth default from null → [120] so prosemirror-tables'
 // updateColumns() always has explicit widths for every column.
@@ -626,6 +627,11 @@ export default function MainArea() {
       ParagraphSpacing,
       TaskList,
       CustomTaskItem.configure({ nested: true }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+      }),
       ImageNode,
       Table.configure({ resizable: true, cellMinWidth: 120 }),
       TableRow,
