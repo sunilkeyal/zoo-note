@@ -138,6 +138,17 @@
   color: inherit;
   font-family: inherit;
 }
+
+.ProseMirror a {
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ProseMirror a:hover {
+  opacity: 0.8;
+}
+
 .ProseMirror p { margin: 0; }
 .ProseMirror ul { padding-left: 1.75rem; list-style-type: disc; margin: 8px 0; }
 .ProseMirror ol { padding-left: 1.75rem; list-style-type: decimal; margin: 8px 0; }

@@ -17,6 +17,7 @@ import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableHeaderBase from "@tiptap/extension-table-header"
 import TableCellBase from "@tiptap/extension-table-cell"
+import Link from "@tiptap/extension-link"
 
 // Override colwidth default from null → [120] so prosemirror-tables'
 // updateColumns() always has explicit widths for every column.
@@ -57,6 +58,7 @@ import {
   Highlighter,
   ArrowUpDown,
   ChevronDown,
+  Link as LinkIcon,
 } from "lucide-react"
 import { useNotes } from "@/contexts/NoteContext"
 import NoteEditor from "./NoteEditor"
@@ -142,6 +144,16 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
 }) {
   useToolbarReRender(editor)
 
+  const [showLinkInput, setShowLinkInput] = useState(false)
+  const [linkUrl, setLinkUrl] = useState("")
+  const linkInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (showLinkInput && linkInputRef.current) {
+      linkInputRef.current.focus()
+    }
+  }, [showLinkInput])
+
   return (
     <div className="hidden md:block px-4 sm:px-6 md:px-8 lg:px-10 pt-2 w-full md:max-w-[900px] lg:max-w-[1140px]">
       <TooltipProvider>
@@ -169,6 +181,29 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
               <Strikethrough className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Strikethrough</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger render={
+              <button
+                className={`h-7 w-7 flex items-center justify-center rounded-md border border-input ${
+                  editor.isActive("link") ? "bg-accent text-accent-foreground" : "hover:bg-accent"
+                }`}
+                onClick={() => {
+                  if (editor.isActive("link")) {
+                    editor.chain().focus().unsetLink().run()
+                  } else {
+                    const { from, to } = editor.state.selection
+                    const selectedText = editor.state.doc.textBetween(from, to)
+                    setLinkUrl(editor.getAttributes("link").href || selectedText || "")
+                    setShowLinkInput(true)
+                  }
+                }}
+              >
+                <LinkIcon className="h-4 w-4" />
+              </button>
+            } />
+            <TooltipContent>Insert link</TooltipContent>
           </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 h-6" />
@@ -394,6 +429,55 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
           onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
         />
 
+        {showLinkInput && (
+          <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
+            <PopoverContent className="w-[300px] p-3" align="start">
+              <div className="text-sm font-medium mb-2">Enter URL</div>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={linkInputRef}
+                  type="url"
+                  placeholder="https://example.com"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="flex-1 h-7 px-2 text-sm rounded-md border border-input bg-background"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && linkUrl) {
+                      editor.chain().focus().setLink({ href: linkUrl }).run()
+                      setShowLinkInput(false)
+                      setLinkUrl("")
+                    }
+                  }}
+                />
+                <button
+                  className="h-7 px-3 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => {
+                    if (linkUrl) {
+                      editor.chain().focus().setLink({ href: linkUrl }).run()
+                      setShowLinkInput(false)
+                      setLinkUrl("")
+                    }
+                  }}
+                >
+                  Apply
+                </button>
+              </div>
+              {editor.isActive("link") && (
+                <button
+                  className="mt-2 text-sm text-destructive hover:underline"
+                  onClick={() => {
+                    editor.chain().focus().unsetLink().run()
+                    setShowLinkInput(false)
+                    setLinkUrl("")
+                  }}
+                >
+                  Remove link
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
+        )}
+
       </div>
       </TooltipProvider>
     </div>
@@ -405,6 +489,16 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
   fileInputRef: React.RefObject<HTMLInputElement | null>
 }) {
   useToolbarReRender(editor)
+
+  const [showLinkInput, setShowLinkInput] = useState(false)
+  const [linkUrl, setLinkUrl] = useState("")
+  const linkInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (showLinkInput && linkInputRef.current) {
+      linkInputRef.current.focus()
+    }
+  }, [showLinkInput])
 
   return (
     <div className="editor-toolbar-mobile">
@@ -431,6 +525,21 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("strike") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <Strikethrough className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => {
+          if (editor.isActive("link")) {
+            editor.chain().focus().unsetLink().run()
+          } else {
+            const { from, to } = editor.state.selection
+            const selectedText = editor.state.doc.textBetween(from, to)
+            setLinkUrl(editor.getAttributes("link").href || selectedText || "")
+            setShowLinkInput(true)
+          }
+        }}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("link") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <LinkIcon className="h-5 w-5" />
       </button>
 
       <span className="w-px h-6 bg-border mx-0.5" />
@@ -588,6 +697,55 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
           </div>
         </PopoverContent>
       </Popover>
+
+      {showLinkInput && (
+        <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
+          <PopoverContent className="w-[300px] p-3" align="center" side="top">
+            <div className="text-sm font-medium mb-2">Enter URL</div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={linkInputRef}
+                type="url"
+                placeholder="https://example.com"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                className="flex-1 h-7 px-2 text-sm rounded-md border border-input bg-background"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && linkUrl) {
+                    editor.chain().focus().setLink({ href: linkUrl }).run()
+                    setShowLinkInput(false)
+                    setLinkUrl("")
+                  }
+                }}
+              />
+              <button
+                className="h-7 px-3 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  if (linkUrl) {
+                    editor.chain().focus().setLink({ href: linkUrl }).run()
+                    setShowLinkInput(false)
+                    setLinkUrl("")
+                  }
+                }}
+              >
+                Apply
+              </button>
+            </div>
+            {editor.isActive("link") && (
+              <button
+                className="mt-2 text-sm text-destructive hover:underline"
+                onClick={() => {
+                  editor.chain().focus().unsetLink().run()
+                  setShowLinkInput(false)
+                  setLinkUrl("")
+                }}
+              >
+                Remove link
+              </button>
+            )}
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   )
 })
@@ -626,6 +784,11 @@ export default function MainArea() {
       ParagraphSpacing,
       TaskList,
       CustomTaskItem.configure({ nested: true }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+      }),
       ImageNode,
       Table.configure({ resizable: true, cellMinWidth: 120 }),
       TableRow,
