@@ -24,6 +24,8 @@ const FOLDER_ICONS: Record<string, string> = {
   Ideas: "💡",
   Research: "🔬",
   Archive: "📦",
+  House: "🏠",
+  Home: "🏠",
 }
 
 function getFolderColor(name: string): string {

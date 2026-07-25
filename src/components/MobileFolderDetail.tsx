@@ -18,6 +18,8 @@ const FOLDER_ICONS: Record<string, string> = {
   Ideas: "💡",
   Research: "🔬",
   Archive: "📦",
+  House: "🏠",
+  Home: "🏠",
 }
 
 function getFolderIcon(name: string): string {

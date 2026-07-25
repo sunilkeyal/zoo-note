@@ -211,6 +211,9 @@ const folderIcons: Record<string, typeof FolderIcon> = {
   faq: Info,
   help: Info,
   wiki: Info,
+  // House / Home
+  house: House,
+  home: House,
   // Meetings
   meetings: Users,
   meeting: Users,
@@ -283,6 +286,8 @@ const folderIconColors: Record<string, string> = {
   faq: "text-blue-500 dark:text-blue-400",
   help: "text-blue-500 dark:text-blue-400",
   wiki: "text-blue-500 dark:text-blue-400",
+  house: "text-orange-600 dark:text-orange-500",
+  home: "text-orange-600 dark:text-orange-500",
   meetings: "text-violet-600 dark:text-violet-500",
   meeting: "text-violet-600 dark:text-violet-500",
   conference: "text-violet-600 dark:text-violet-500",
