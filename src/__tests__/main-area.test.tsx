@@ -92,6 +92,7 @@ vi.mock('lucide-react', () => ({
   ListChecks: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-ListChecks', ...props }),
   Image: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Image', ...props }),
   Table: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Table', ...props }),
+  Link: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Link', ...props }),
 }))
 
 vi.mock('next/navigation', () => ({
