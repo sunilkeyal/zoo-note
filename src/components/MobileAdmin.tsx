@@ -1,13 +1,23 @@
 "use client"
 
 import React from "react"
+import { useRouter } from "next/navigation"
 
 interface MobileAdminProps {
   stats: { users: number; notes: number; storage: string; imports: number }
   onBack: () => void
 }
 
+const adminLinks = [
+  { icon: "📊", label: "Dashboard", desc: "System overview and metrics", route: "/admin" },
+  { icon: "📥", label: "Import Jobs", desc: "View import history and status", route: "/admin/imports" },
+  { icon: "👥", label: "User Management", desc: "View and manage user accounts", route: "/admin/users" },
+  { icon: "🔧", label: "System Settings", desc: "App configuration and limits", route: "/admin/settings" },
+]
+
 export default function MobileAdmin({ stats, onBack }: MobileAdminProps) {
+  const router = useRouter()
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-border">
@@ -32,14 +42,12 @@ export default function MobileAdmin({ stats, onBack }: MobileAdminProps) {
         </div>
 
         <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Management</div>
-        {[
-          { icon: "👥", label: "User Management", desc: "View and manage user accounts" },
-          { icon: "📝", label: "All Notes", desc: "Browse and moderate all notes" },
-          { icon: "📁", label: "Folder Management", desc: "Create, rename, delete folders" },
-          { icon: "🔧", label: "System Settings", desc: "App configuration and limits" },
-          { icon: "📋", label: "Audit Logs", desc: "View system activity history" },
-        ].map((item, i) => (
-          <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border">
+        {adminLinks.map((item, i) => (
+          <div
+            key={i}
+            onClick={() => router.push(item.route)}
+            className="flex items-center gap-3 py-2.5 border-b border-border cursor-pointer"
+          >
             <span className="text-lg">{item.icon}</span>
             <div className="flex-1">
               <div className="text-sm font-medium">{item.label}</div>
