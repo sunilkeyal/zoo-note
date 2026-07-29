@@ -17,12 +17,15 @@ import MobileNewFolder from "./MobileNewFolder"
 import MobileMore from "./MobileMore"
 import MobileSettings from "./MobileSettings"
 import MobileAdmin from "./MobileAdmin"
+import MobileAccount from "./MobileAccount"
+import MobileImportExport from "./MobileImportExport"
 import MainArea from "./MainArea"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useThemeSync } from "@/contexts/ThemeSyncContext"
 import type { Note, Folder } from "@/types"
 
-type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail"
+type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail" | "account" | "import-export"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -33,6 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const isMobile = useIsMobile()
+  const { theme, setTheme } = useThemeSync()
   const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder, activeNoteId, setActiveNoteId } = useNotes()
 
   const [mobileScreen, setMobileScreen] = useState<MobileScreen>("home")
@@ -183,6 +187,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {mobileScreen === "search" && "Search"}
                 {mobileScreen === "new-folder" && "New Folder"}
                 {mobileScreen === "settings" && "Settings"}
+                {mobileScreen === "account" && "Account"}
+                {mobileScreen === "import-export" && "Import / Export"}
                 {mobileScreen === "admin" && "Admin Dashboard"}
               </span>
             </div>
@@ -226,10 +232,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <MobileNewFolder existingFolders={folders.map((f) => f.name)} onBack={() => setMobileScreen("folders")} onCreate={handleNewFolder} />
             )}
             {mobileScreen === "more" && (
-              <MobileMore isAdmin={isAdmin} userName={(session?.user as { email?: string })?.email || ""} onSettings={() => setMobileScreen("settings")} onAdmin={() => setMobileScreen("admin")} onSignOut={handleSignOut} />
+              <MobileMore
+                isAdmin={isAdmin}
+                userName={(session?.user as { email?: string })?.email || ""}
+                onSettings={() => setMobileScreen("settings")}
+                onAdmin={() => setMobileScreen("admin")}
+                onSignOut={handleSignOut}
+                onProfile={() => setMobileScreen("account")}
+                onImportExport={() => setMobileScreen("import-export")}
+              />
             )}
             {mobileScreen === "settings" && (
-              <MobileSettings currentTheme="light" onBack={() => setMobileScreen("more")} onThemeChange={() => {}} />
+              <MobileSettings currentTheme={theme || "light"} onBack={() => setMobileScreen("more")} onThemeChange={(t) => setTheme(t as "light" | "dark" | "system")} />
+            )}
+            {mobileScreen === "account" && (
+              <MobileAccount
+                name={(session?.user as { name?: string })?.name || ""}
+                email={(session?.user as { email?: string })?.email || ""}
+                onBack={() => setMobileScreen("more")}
+              />
+            )}
+            {mobileScreen === "import-export" && (
+              <MobileImportExport onBack={() => setMobileScreen("more")} />
             )}
             {mobileScreen === "admin" && (
               <MobileAdmin stats={{ users: 0, notes: notes.length, storage: "0 GB", imports: 0 }} onBack={() => setMobileScreen("more")} />
