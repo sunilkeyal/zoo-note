@@ -55,8 +55,8 @@ export default function MobileAccount({ name, email, onBack, onSave }: MobileAcc
           setNewPassword("")
           setConfirmPassword("")
         }
-      } catch {
-        setErrors({ form: "Failed to save. Please try again." })
+      } catch (e) {
+        setErrors({ form: e instanceof Error ? e.message : "Failed to save. Please try again." })
       } finally {
         setLoading(false)
       }

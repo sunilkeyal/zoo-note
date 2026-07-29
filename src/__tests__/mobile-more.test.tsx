@@ -18,8 +18,7 @@ describe('MobileMore', () => {
     expect(screen.getByText('Profile')).toBeInTheDocument()
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
     expect(screen.getByText('Appearance')).toBeInTheDocument()
-    expect(screen.getByText('Import')).toBeInTheDocument()
-    expect(screen.getByText('Export')).toBeInTheDocument()
+    expect(screen.getByText('Import / Export')).toBeInTheDocument()
     expect(screen.getByText('Sign Out')).toBeInTheDocument()
   })
 
@@ -57,15 +56,9 @@ describe('MobileMore', () => {
     expect(mockOnProfile).toHaveBeenCalled()
   })
 
-  it('calls onImportExport when Import is clicked', () => {
+  it('calls onImportExport when Import / Export is clicked', () => {
     render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
-    fireEvent.click(screen.getByText('Import'))
-    expect(mockOnImportExport).toHaveBeenCalled()
-  })
-
-  it('calls onImportExport when Export is clicked', () => {
-    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
-    fireEvent.click(screen.getByText('Export'))
+    fireEvent.click(screen.getByText('Import / Export'))
     expect(mockOnImportExport).toHaveBeenCalled()
   })
 })
