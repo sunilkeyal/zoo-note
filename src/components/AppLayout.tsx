@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
@@ -23,7 +23,17 @@ import MainArea from "./MainArea"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useThemeSync } from "@/contexts/ThemeSyncContext"
+import { getInitialSidebarWidth, fetchSidebarWidth, saveSidebarWidthLocal, saveSidebarWidthApi } from "@/hooks/use-sidebar-width"
 import type { Note, Folder } from "@/types"
+import type { PanelImperativeHandle, LayoutChangedMeta } from "react-resizable-panels"
+
+let defaultSidebarWidth: number | undefined
+function getDefaultSidebarWidth(): number {
+  if (defaultSidebarWidth === undefined) {
+    defaultSidebarWidth = getInitialSidebarWidth()
+  }
+  return defaultSidebarWidth
+}
 
 type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail" | "account" | "import-export"
 
@@ -38,6 +48,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isMobile = useIsMobile()
   const { theme, setTheme } = useThemeSync()
   const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder, activeNoteId, setActiveNoteId } = useNotes()
+
+  const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null)
+  const sidebarWidthRef = useRef(getInitialSidebarWidth())
+  const userChangedRef = useRef(false)
+  const isFirstLayoutRef = useRef(true)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [mobileScreen, setMobileScreen] = useState<MobileScreen>("home")
   const [activeTab, setActiveTab] = useState<MobileTab>("home")
@@ -112,6 +128,57 @@ export default function AppLayout({ children }: AppLayoutProps) {
     if (mobileScreen === "admin") fetchAdminStats()
   }, [mobileScreen, fetchAdminStats])
 
+  const handleLayoutChanged = useCallback((_layout: Record<string, number>, meta: LayoutChangedMeta) => {
+    if (isFirstLayoutRef.current) {
+      isFirstLayoutRef.current = false
+      return
+    }
+    if (!meta.isUserInteraction && sidebarPanelRef.current) {
+      const currentSize = sidebarPanelRef.current.getSize()
+      if (Math.round(currentSize.inPixels) !== sidebarWidthRef.current) {
+        sidebarPanelRef.current.resize(sidebarWidthRef.current)
+      }
+    }
+  }, [])
+
+  const handleSidebarResize = useCallback((panelSize: { inPixels: number }) => {
+    const w = Math.round(panelSize.inPixels)
+    userChangedRef.current = true
+    sidebarWidthRef.current = w
+    saveSidebarWidthLocal(w)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => saveSidebarWidthApi(w), 300)
+  }, [])
+
+  const handleSaveAccount = useCallback(async (data: { name: string; email: string; newPassword?: string }) => {
+    const res = await fetch("/api/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    const result = await res.json()
+    if (!res.ok) throw new Error(result.error || "Failed to save")
+    const { changed } = result as { changed: string[] }
+    if (changed.includes("email") || changed.includes("password")) {
+      setTimeout(() => signOut({ callbackUrl: "/login" }), 500)
+    } else {
+      if (changed.includes("name")) {
+        await update({ name: data.name })
+      }
+    }
+    return result
+  }, [update])
+
+  useEffect(() => {
+    fetchSidebarWidth().then((apiWidth) => {
+      if (apiWidth !== null && !userChangedRef.current) {
+        saveSidebarWidthLocal(apiWidth)
+        sidebarWidthRef.current = apiWidth
+        sidebarPanelRef.current?.resize(apiWidth)
+      }
+    })
+  }, [])
+
   if (status !== "authenticated") return null
 
   const isAdmin = (session?.user as { role?: string })?.role === "admin"
@@ -181,25 +248,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     router.push("/api/auth/signout")
   }
 
-  const handleSaveAccount = useCallback(async (data: { name: string; email: string; newPassword?: string }) => {
-    const res = await fetch("/api/account", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    const result = await res.json()
-    if (!res.ok) throw new Error(result.error || "Failed to save")
-    const { changed } = result as { changed: string[] }
-    if (changed.includes("email") || changed.includes("password")) {
-      setTimeout(() => signOut({ callbackUrl: "/login" }), 500)
-    } else {
-      if (changed.includes("name")) {
-        await update({ name: data.name })
-      }
-    }
-    return result
-  }, [update])
-
   // Desktop layout — resizable sidebar
   if (!isMobile) {
     return (
@@ -208,12 +256,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
           orientation="horizontal"
           className="flex-1"
           style={{ height: '100dvh' }}
+          onLayoutChanged={handleLayoutChanged}
         >
-          <ResizablePanel id="sidebar" defaultSize="18%" minSize="200px" maxSize="25%" className="h-full">
+          <ResizablePanel
+            id="sidebar"
+            defaultSize={getDefaultSidebarWidth()}
+            minSize={200}
+            maxSize={500}
+            groupResizeBehavior="preserve-pixel-size"
+            onResize={handleSidebarResize}
+            panelRef={sidebarPanelRef}
+            className="h-full"
+          >
             <NotesSidebar resizable />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel id="content" defaultSize="82%" minSize="65%" className="h-full">
+          <ResizablePanel id="content" className="h-full">
             <SidebarInset className="overflow-hidden">
               <AppHeader />
               <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1140px]">

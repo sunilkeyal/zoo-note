@@ -14,7 +14,7 @@ const LEGACY_DENSITY_MAP: Record<string, SidebarDensity> = {
 const WRITE_DENSITIES = [...NEW_DENSITIES, "dense"] // accept old dense on write too
 const VALID_THEMES = ["light", "dark", "system"]
 
-const VALID_PREF_KEYS = new Set(["sidebarDensity", "theme"])
+const VALID_PREF_KEYS = new Set(["sidebarDensity", "theme", "sidebarWidth"])
 
 export async function GET() {
   const session = await auth()
@@ -42,6 +42,9 @@ export async function GET() {
     theme: (VALID_THEMES.includes(preferences.theme)
       ? preferences.theme
       : null) as Theme | null,
+    sidebarWidth: (typeof preferences.sidebarWidth === "number"
+      ? preferences.sidebarWidth
+      : null) as number | null,
   })
 }
 
@@ -92,6 +95,16 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  if ("sidebarWidth" in body) {
+    const w = Number(body.sidebarWidth)
+    if (!Number.isInteger(w) || w < 200 || w > 600) {
+      return NextResponse.json(
+        { error: "sidebarWidth must be an integer between 200 and 600." },
+        { status: 400 }
+      )
+    }
+  }
+
   const db = await connectToDatabase()
   let userId: ObjectId
   try {
@@ -100,12 +113,15 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid session." }, { status: 400 })
   }
 
-  const update: Record<string, string> = {}
+  const update: Record<string, string | number> = {}
   if (body.sidebarDensity !== undefined) {
     update["preferences.sidebarDensity"] = body.sidebarDensity as string
   }
   if (body.theme !== undefined) {
     update["preferences.theme"] = body.theme as string
+  }
+  if (body.sidebarWidth !== undefined) {
+    update["preferences.sidebarWidth"] = Number(body.sidebarWidth)
   }
 
   await db.collection("users").updateOne({ _id: userId }, { $set: update })
