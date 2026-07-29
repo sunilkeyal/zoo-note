@@ -8,9 +8,11 @@ interface MobileMoreProps {
   onSettings: () => void
   onAdmin: () => void
   onSignOut: () => void
+  onProfile: () => void
+  onImportExport: () => void
 }
 
-export default function MobileMore({ isAdmin, userName, onSettings, onAdmin, onSignOut }: MobileMoreProps) {
+export default function MobileMore({ isAdmin, userName, onSettings, onAdmin, onSignOut, onProfile, onImportExport }: MobileMoreProps) {
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
       <div className="px-4 pt-3 pb-2">
@@ -20,7 +22,7 @@ export default function MobileMore({ isAdmin, userName, onSettings, onAdmin, onS
       <div className="px-4 flex-1 overflow-y-auto">
         {/* Account */}
         <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Account</div>
-        <div className="flex items-center gap-3 py-2.5 border-b border-border">
+        <div onClick={onProfile} className="flex items-center gap-3 py-2.5 border-b border-border cursor-pointer">
           <span className="text-lg">👤</span>
           <div className="flex-1">
             <div className="text-sm font-medium">Profile</div>
@@ -39,7 +41,7 @@ export default function MobileMore({ isAdmin, userName, onSettings, onAdmin, onS
 
         {/* Data */}
         <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-1.5">Data</div>
-        <div className="flex items-center gap-3 py-2.5 border-b border-border">
+        <div onClick={onImportExport} className="flex items-center gap-3 py-2.5 border-b border-border cursor-pointer">
           <span className="text-lg">📥</span>
           <div className="flex-1">
             <div className="text-sm font-medium">Import</div>
@@ -47,7 +49,7 @@ export default function MobileMore({ isAdmin, userName, onSettings, onAdmin, onS
           </div>
           <span className="text-muted-foreground">›</span>
         </div>
-        <div className="flex items-center gap-3 py-2.5 border-b border-border">
+        <div onClick={onImportExport} className="flex items-center gap-3 py-2.5 border-b border-border cursor-pointer">
           <span className="text-lg">📤</span>
           <div className="flex-1">
             <div className="text-sm font-medium">Export</div>

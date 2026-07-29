@@ -6,13 +6,15 @@ describe('MobileMore', () => {
   const mockOnSettings = vi.fn()
   const mockOnAdmin = vi.fn()
   const mockOnSignOut = vi.fn()
+  const mockOnProfile = vi.fn()
+  const mockOnImportExport = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('renders all menu items', () => {
-    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} />)
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
     expect(screen.getByText('Profile')).toBeInTheDocument()
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
     expect(screen.getByText('Appearance')).toBeInTheDocument()
@@ -22,30 +24,48 @@ describe('MobileMore', () => {
   })
 
   it('shows Admin Dashboard for admin users', () => {
-    render(<MobileMore isAdmin={true} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} />)
+    render(<MobileMore isAdmin={true} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
     expect(screen.getByText('Admin Dashboard')).toBeInTheDocument()
   })
 
   it('hides Admin Dashboard for non-admin users', () => {
-    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} />)
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
     expect(screen.queryByText('Admin Dashboard')).not.toBeInTheDocument()
   })
 
   it('calls onSettings when Appearance is clicked', () => {
-    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} />)
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
     fireEvent.click(screen.getByText('Appearance'))
     expect(mockOnSettings).toHaveBeenCalled()
   })
 
   it('calls onAdmin when Admin Dashboard is clicked', () => {
-    render(<MobileMore isAdmin={true} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} />)
+    render(<MobileMore isAdmin={true} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
     fireEvent.click(screen.getByText('Admin Dashboard'))
     expect(mockOnAdmin).toHaveBeenCalled()
   })
 
   it('calls onSignOut when Sign Out is clicked', () => {
-    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} />)
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
     fireEvent.click(screen.getByText('Sign Out'))
     expect(mockOnSignOut).toHaveBeenCalled()
+  })
+
+  it('calls onProfile when Profile is clicked', () => {
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
+    fireEvent.click(screen.getByText('Profile'))
+    expect(mockOnProfile).toHaveBeenCalled()
+  })
+
+  it('calls onImportExport when Import is clicked', () => {
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
+    fireEvent.click(screen.getByText('Import'))
+    expect(mockOnImportExport).toHaveBeenCalled()
+  })
+
+  it('calls onImportExport when Export is clicked', () => {
+    render(<MobileMore isAdmin={false} userName="test@example.com" onSettings={mockOnSettings} onAdmin={mockOnAdmin} onSignOut={mockOnSignOut} onProfile={mockOnProfile} onImportExport={mockOnImportExport} />)
+    fireEvent.click(screen.getByText('Export'))
+    expect(mockOnImportExport).toHaveBeenCalled()
   })
 })
