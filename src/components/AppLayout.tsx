@@ -22,6 +22,7 @@ import MobileImportExport from "./MobileImportExport"
 import MainArea from "./MainArea"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useSidebarWidth } from "@/hooks/use-sidebar-width"
 import { useThemeSync } from "@/contexts/ThemeSyncContext"
 import type { Note, Folder } from "@/types"
 
@@ -37,6 +38,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const { theme, setTheme } = useThemeSync()
+  const { width: sidebarWidthPx, setWidth: setSidebarWidthPx } = useSidebarWidth()
   const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder, activeNoteId, setActiveNoteId } = useNotes()
 
   const [mobileScreen, setMobileScreen] = useState<MobileScreen>("home")
@@ -200,6 +202,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return result
   }, [update])
 
+  const handleSidebarResize = useCallback((panelSize: { inPixels: number }) => {
+    setSidebarWidthPx(Math.round(panelSize.inPixels))
+  }, [setSidebarWidthPx])
+
   // Desktop layout — resizable sidebar
   if (!isMobile) {
     return (
@@ -209,11 +215,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
           className="flex-1"
           style={{ height: '100dvh' }}
         >
-          <ResizablePanel id="sidebar" defaultSize="18%" minSize="200px" maxSize="25%" className="h-full">
+          <ResizablePanel
+            id="sidebar"
+            defaultSize={sidebarWidthPx}
+            minSize={200}
+            maxSize={500}
+            groupResizeBehavior="preserve-pixel-size"
+            onResize={handleSidebarResize}
+            className="h-full"
+          >
             <NotesSidebar resizable />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel id="content" defaultSize="82%" minSize="65%" className="h-full">
+          <ResizablePanel id="content" minSize="65%" className="h-full">
             <SidebarInset className="overflow-hidden">
               <AppHeader />
               <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1140px]">
