@@ -375,7 +375,7 @@ function subItemClass(density: SidebarDensity): string {
   return base
 }
 
-export default function NotesSidebar() {
+export default function NotesSidebar({ resizable = false }: { resizable?: boolean }) {
   const {
     notes, folders, expandedFolders, createNote, deleteNote, updateNote,
     activeNoteId, setActiveNoteId, createFolder, renameFolder,
@@ -761,6 +761,9 @@ export default function NotesSidebar() {
     } else {
       toggleSelect(note._id)
     }
+  } else if (e.button === 1) { // Middle mouse button
+    e.preventDefault()
+    window.open(`/notes/${note._id}`, '_blank')
   } else {
     if (isSelecting) clearSelection()
     preSelectIdRef.current = note._id
@@ -1010,7 +1013,7 @@ export default function NotesSidebar() {
 
   return (
     <>
-      <Sidebar collapsible="icon" ref={sidebarRef}>
+      <Sidebar collapsible={resizable ? "none" : "icon"} ref={sidebarRef} className={resizable ? "w-full h-full" : undefined}>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-1 py-1">
             <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
