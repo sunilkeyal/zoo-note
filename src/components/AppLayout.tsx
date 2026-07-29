@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import React, { useState, useEffect, useCallback } from "react"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -17,22 +17,26 @@ import MobileNewFolder from "./MobileNewFolder"
 import MobileMore from "./MobileMore"
 import MobileSettings from "./MobileSettings"
 import MobileAdmin from "./MobileAdmin"
+import MobileAccount from "./MobileAccount"
+import MobileImportExport from "./MobileImportExport"
 import MainArea from "./MainArea"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useThemeSync } from "@/contexts/ThemeSyncContext"
 import type { Note, Folder } from "@/types"
 
-type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail"
+type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail" | "account" | "import-export"
 
 interface AppLayoutProps {
   children: React.ReactNode
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const router = useRouter()
   const pathname = usePathname()
   const isMobile = useIsMobile()
+  const { theme, setTheme } = useThemeSync()
   const { notes, folders, fetchNotes, fetchFolders, createNote, createFolder, activeNoteId, setActiveNoteId } = useNotes()
 
   const [mobileScreen, setMobileScreen] = useState<MobileScreen>("home")
@@ -41,6 +45,59 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [showFolderPicker, setShowFolderPicker] = useState(false)
   const [previousScreen, setPreviousScreen] = useState<MobileScreen>("home")
   const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const [adminStats, setAdminStats] = useState<{
+    totalUsers: number; activeToday: number; totalNotes: number; newThisWeek: number; storage: string
+    health: { status: string; uptime: string; responseTime: string; nodeVersion: string; environment: string } | null
+    r2: { storageBytes: number; totalObjects: number; cost: number } | null
+  } | null>(null)
+
+  const formatBytes = useCallback((bytes: number): string => {
+    if (bytes === 0) return "0 B"
+    const units = ["B", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[Math.min(i, units.length - 1)]}`
+  }, [])
+
+  const fetchAdminStats = useCallback(async () => {
+    const results = await Promise.allSettled([
+      fetch("/api/admin/stats?range=7").then(r => r.json()),
+      fetch("/api/admin/r2?metric=storage").then(r => r.json()),
+      fetch("/api/admin/r2?metric=cost&range=7").then(r => r.json()),
+    ])
+
+    const statsJson = results[0].status === "fulfilled" ? results[0].value : null
+    if (!statsJson?.success) return
+
+    const { kpis, systemHealth } = statsJson.data
+    if (!kpis) return
+
+    let r2Data: { storageBytes: number; totalObjects: number; cost: number } | null = null
+    const r2Storage = results[1].status === "fulfilled" ? results[1].value : null
+    const r2Cost = results[2].status === "fulfilled" ? results[2].value : null
+    if (r2Storage?.success && r2Cost?.success) {
+      r2Data = {
+        storageBytes: r2Storage.data.totalBytes ?? 0,
+        totalObjects: r2Storage.data.totalObjects ?? 0,
+        cost: r2Cost.data.cost ?? 0,
+      }
+    }
+
+    setAdminStats({
+      totalUsers: kpis.totalUsers ?? 0,
+      activeToday: kpis.activeToday ?? 0,
+      totalNotes: kpis.totalNotes ?? 0,
+      newThisWeek: kpis.newThisWeek ?? 0,
+      storage: formatBytes(kpis.storageBreakdown?.totalBytes ?? kpis.storageUsedBytes ?? 0),
+      health: systemHealth ? {
+        status: systemHealth.status,
+        uptime: String(Math.round(systemHealth.uptimeSeconds)),
+        responseTime: String(systemHealth.responseTimeMs),
+        nodeVersion: systemHealth.nodeVersion,
+        environment: systemHealth.environment,
+      } : null,
+      r2: r2Data,
+    })
+  }, [formatBytes])
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login")
@@ -50,6 +107,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
     fetchNotes()
     fetchFolders()
   }, [fetchNotes, fetchFolders])
+
+  useEffect(() => {
+    if (mobileScreen === "admin") fetchAdminStats()
+  }, [mobileScreen, fetchAdminStats])
 
   if (status !== "authenticated") return null
 
@@ -120,6 +181,25 @@ export default function AppLayout({ children }: AppLayoutProps) {
     router.push("/api/auth/signout")
   }
 
+  const handleSaveAccount = useCallback(async (data: { name: string; email: string; newPassword?: string }) => {
+    const res = await fetch("/api/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    const result = await res.json()
+    if (!res.ok) throw new Error(result.error || "Failed to save")
+    const { changed } = result as { changed: string[] }
+    if (changed.includes("email") || changed.includes("password")) {
+      setTimeout(() => signOut({ callbackUrl: "/login" }), 500)
+    } else {
+      if (changed.includes("name")) {
+        await update({ name: data.name })
+      }
+    }
+    return result
+  }, [update])
+
   // Desktop layout — resizable sidebar
   if (!isMobile) {
     return (
@@ -183,6 +263,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {mobileScreen === "search" && "Search"}
                 {mobileScreen === "new-folder" && "New Folder"}
                 {mobileScreen === "settings" && "Settings"}
+                {mobileScreen === "account" && "Account"}
+                {mobileScreen === "import-export" && "Import / Export"}
                 {mobileScreen === "admin" && "Admin Dashboard"}
               </span>
             </div>
@@ -226,13 +308,32 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <MobileNewFolder existingFolders={folders.map((f) => f.name)} onBack={() => setMobileScreen("folders")} onCreate={handleNewFolder} />
             )}
             {mobileScreen === "more" && (
-              <MobileMore isAdmin={isAdmin} userName={(session?.user as { email?: string })?.email || ""} onSettings={() => setMobileScreen("settings")} onAdmin={() => setMobileScreen("admin")} onSignOut={handleSignOut} />
+              <MobileMore
+                isAdmin={isAdmin}
+                userName={(session?.user as { email?: string })?.email || ""}
+                onSettings={() => setMobileScreen("settings")}
+                onAdmin={() => setMobileScreen("admin")}
+                onSignOut={handleSignOut}
+                onProfile={() => setMobileScreen("account")}
+                onImportExport={() => setMobileScreen("import-export")}
+              />
             )}
             {mobileScreen === "settings" && (
-              <MobileSettings currentTheme="light" onBack={() => setMobileScreen("more")} onThemeChange={() => {}} />
+              <MobileSettings currentTheme={theme || "light"} onBack={() => setMobileScreen("more")} onThemeChange={(t) => setTheme(t as "light" | "dark" | "system")} />
+            )}
+            {mobileScreen === "account" && (
+              <MobileAccount
+                name={(session?.user as { name?: string })?.name || ""}
+                email={(session?.user as { email?: string })?.email || ""}
+                onBack={() => setMobileScreen("more")}
+                onSave={handleSaveAccount}
+              />
+            )}
+            {mobileScreen === "import-export" && (
+              <MobileImportExport onBack={() => setMobileScreen("more")} />
             )}
             {mobileScreen === "admin" && (
-              <MobileAdmin stats={{ users: 0, notes: notes.length, storage: "0 GB", imports: 0 }} onBack={() => setMobileScreen("more")} />
+              <MobileAdmin stats={adminStats ?? { totalUsers: 0, activeToday: 0, totalNotes: 0, newThisWeek: 0, storage: "0 B", health: null, r2: null }} onBack={() => setMobileScreen("more")} />
             )}
           </>
         )}
