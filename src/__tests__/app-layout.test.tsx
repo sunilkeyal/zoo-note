@@ -28,6 +28,11 @@ vi.mock('@/contexts/SidebarDensityContext', () => ({
   useSidebarDensity: vi.fn(() => ({ density: 'default', setDensity: vi.fn() })),
 }))
 
+vi.mock('@/contexts/ThemeSyncContext', () => ({
+  ThemeSyncProvider: ({ children }: { children: React.ReactNode }) => children,
+  useThemeSync: vi.fn(() => ({ theme: 'light', setTheme: vi.fn() })),
+}))
+
 const mockCreateNote = vi.fn()
 const mockUpdateNote = vi.fn()
 const mockDeleteNote = vi.fn()

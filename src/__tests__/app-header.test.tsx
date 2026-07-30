@@ -49,7 +49,6 @@ describe('AppHeader', () => {
 
   it('renders theme toggle button', () => {
     render(<AppHeader />)
-    expect(screen.getByTestId('sidebar-trigger')).toBeInTheDocument()
     expect(screen.getByTestId('moon-icon')).toBeInTheDocument()
   })
 

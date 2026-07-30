@@ -553,7 +553,9 @@ export function parsePageOrderFromToc(tocHtml: string): string[] {
   while ((match = hrefRegex.exec(tocHtml)) !== null) {
     const href = match[1]
     const decoded = decodeURIComponent(href)
-    filenames.push(path.basename(decoded))
+    // OneNote ToC hrefs use Windows-style backslash paths; normalize both
+    // separators so filenames resolve correctly regardless of host OS.
+    filenames.push(decoded.split(/[\\/]/).pop() || decoded)
   }
   return filenames
 }
