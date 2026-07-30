@@ -56,7 +56,6 @@ import {
   Strikethrough,
   Palette,
   Highlighter,
-  ArrowUpDown,
   ChevronDown,
   Plus,
   Link as LinkIcon,
@@ -318,14 +317,15 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
 
         <Popover>
           <Tooltip>
-            <TooltipTrigger render={<PopoverTrigger className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent relative" />}>
+            <TooltipTrigger render={<PopoverTrigger className="h-7 px-1.5 flex items-center gap-1 rounded-md border border-input hover:bg-accent relative" />}>
               <Palette className="h-4 w-4" />
               <span
-                className="absolute bottom-1 h-[3px] w-3 rounded-full"
+                className="absolute bottom-1 left-1.5 h-[3px] w-4 rounded-full"
                 style={{ backgroundColor: editor.getAttributes("textStyle").color || "currentColor" }}
               />
+              <ChevronDown className="h-3 w-3 opacity-60" />
             </TooltipTrigger>
-            <TooltipContent>Text color</TooltipContent>
+            <TooltipContent>Text &amp; highlight color, spacing</TooltipContent>
           </Tooltip>
           <PopoverContent className="w-[280px] p-3" align="start">
             <div className="text-sm font-medium mb-2">Text Color</div>
@@ -348,19 +348,9 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
                 Clear
               </button>
             </div>
-          </PopoverContent>
-        </Popover>
 
-        <Popover>
-          <Tooltip>
-            <TooltipTrigger render={<PopoverTrigger className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent" />}>
-              <Highlighter className="h-4 w-4" />
-            </TooltipTrigger>
-            <TooltipContent>Highlight color</TooltipContent>
-          </Tooltip>
-          <PopoverContent className="w-[280px] p-3" align="start">
-            <div className="text-sm font-medium mb-2">Highlight Color</div>
-            <div className="grid grid-cols-5 gap-1.5 mb-2">
+            <div className="text-sm font-medium mb-2 mt-3">Highlight Color</div>
+            <div className="grid grid-cols-5 gap-1.5">
               {HIGHLIGHT_COLORS.map((c) => (
                 <button key={c}
                   className="h-8 w-full rounded-md border border-input hover:scale-110 transition-transform"
@@ -368,29 +358,19 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
                   onClick={() => editor.chain().focus().toggleHighlight({ color: c }).run()}
                 />
               ))}
-              <div className="flex items-center gap-2 pt-2 border-t border-border">
-                <input type="text" placeholder="#hex"
-                  className="flex-1 h-7 px-2 text-xs rounded-md border border-input bg-background font-mono"
-                  onKeyDown={(e) => { if (e.key === "Enter") { editor.chain().focus().toggleHighlight({ color: (e.target as HTMLInputElement).value }).run() }}}
-                />
-                <button className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => editor.chain().focus().unsetHighlight().run()}>
-                  Clear
-                </button>
-              </div>
             </div>
-          </PopoverContent>
-        </Popover>
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
+              <input type="text" placeholder="#hex"
+                className="flex-1 h-7 px-2 text-xs rounded-md border border-input bg-background font-mono"
+                onKeyDown={(e) => { if (e.key === "Enter") { editor.chain().focus().toggleHighlight({ color: (e.target as HTMLInputElement).value }).run() }}}
+              />
+              <button className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => editor.chain().focus().unsetHighlight().run()}>
+                Clear
+              </button>
+            </div>
 
-        <Popover>
-          <Tooltip>
-            <TooltipTrigger render={<PopoverTrigger className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent" />}>
-              <ArrowUpDown className="h-4 w-4" />
-            </TooltipTrigger>
-            <TooltipContent>Paragraph spacing</TooltipContent>
-          </Tooltip>
-          <PopoverContent className="w-[260px] p-3" align="start">
-            <div className="text-sm font-medium mb-3">Paragraph Spacing</div>
+            <div className="text-sm font-medium mb-2 mt-3">Paragraph Spacing</div>
             <div className="flex flex-col gap-2">
               {SPACING_PRESETS.map((p) => {
                 const currentSpacing = editor.getAttributes("paragraph").paragraphSpacing
@@ -445,61 +425,54 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
           </SelectContent>
         </Select>
 
-        <Popover>
+        <Select
+          value={editor.getAttributes("textStyle").fontFamily || "default"}
+          onValueChange={(val) => {
+            if (val === "default") editor.chain().focus().unsetFontFamily().run()
+            else editor.chain().focus().setFontFamily(val).run()
+          }}
+        >
           <Tooltip>
-            <TooltipTrigger render={<PopoverTrigger className="h-7 px-2 flex items-center gap-1 rounded-md border border-input hover:bg-accent text-sm font-semibold" />}>
-              <span style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }}>Aa</span>
-              <ChevronDown className="h-3 w-3 opacity-60" />
+            <TooltipTrigger render={<SelectTrigger className="h-7 w-[110px] text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }} />}>
+              <SelectValue placeholder="Font" className="capitalize" />
             </TooltipTrigger>
-            <TooltipContent>Font</TooltipContent>
+            <TooltipContent>Font family</TooltipContent>
           </Tooltip>
-          <PopoverContent className="w-[220px] p-3" align="start">
-            <div className="text-sm font-medium mb-2">Font family</div>
-            <Select
-              value={editor.getAttributes("textStyle").fontFamily || "default"}
-              onValueChange={(val) => {
-                if (val === "default") editor.chain().focus().unsetFontFamily().run()
-                else editor.chain().focus().setFontFamily(val).run()
-              }}
-            >
-              <SelectTrigger className="h-8 w-full text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }}>
-                <SelectValue placeholder="Font" className="capitalize" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
-                {FONTS.map((f) => (
-                  <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <SelectContent>
+            <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
+            {FONTS.map((f) => (
+              <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <div className="text-sm font-medium mb-2 mt-3">Font size</div>
-            <Select
-              value={(() => {
-                const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
-                if (explicit) return explicit
-                if (editor.isActive("heading", { level: 1 })) return "20"
-                if (editor.isActive("heading", { level: 2 })) return "18"
-                if (editor.isActive("heading", { level: 3 })) return "16"
-                return "default"
-              })()}
-              onValueChange={(val) => {
-                if (val === "default") editor.chain().focus().unsetFontSize().run()
-                else editor.chain().focus().setFontSize(val + "px").run()
-              }}
-            >
-              <SelectTrigger className="h-8 w-full text-sm">
-                <SelectValue className="capitalize" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
-                {FONT_SIZES.map((s) => (
-                  <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </PopoverContent>
-        </Popover>
+        <Select
+          value={(() => {
+            const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
+            if (explicit) return explicit
+            if (editor.isActive("heading", { level: 1 })) return "20"
+            if (editor.isActive("heading", { level: 2 })) return "18"
+            if (editor.isActive("heading", { level: 3 })) return "16"
+            return "default"
+          })()}
+          onValueChange={(val) => {
+            if (val === "default") editor.chain().focus().unsetFontSize().run()
+            else editor.chain().focus().setFontSize(val + "px").run()
+          }}
+        >
+          <Tooltip>
+            <TooltipTrigger render={<SelectTrigger className="h-7 w-[90px] text-sm" />}>
+              <SelectValue className="capitalize" />
+            </TooltipTrigger>
+            <TooltipContent>Font size</TooltipContent>
+          </Tooltip>
+          <SelectContent>
+            <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
+            {FONT_SIZES.map((s) => (
+              <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {showLinkInput && (
           <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
