@@ -5,7 +5,6 @@ import { X, Eye, EyeOff } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -52,6 +51,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
       errs.email = "Invalid email format."
     }
     if (newPassword || confirmPassword || currentPassword) {
+      if (!currentPassword) errs.currentPassword = "Current password is required."
       if (newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters."
       if (newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match."
     }
@@ -59,23 +59,18 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     return Object.keys(errs).length === 0
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit() {
     if (!validate()) return
-
-    // allow pending React state updates to flush (microtask)
-    await Promise.resolve()
 
     setLoading(true)
     setSuccessMsg("")
     setErrors({})
 
-    const body: Record<string, string> = {
-      name: (document.querySelector('input[name="name"]') as HTMLInputElement)?.value ?? name,
-      email: (document.querySelector('input[name="email"]') as HTMLInputElement)?.value ?? email,
+    const body: Record<string, string> = { name, email }
+    if (newPassword) {
+      body.currentPassword = currentPassword
+      body.newPassword = newPassword
     }
-    body.currentPassword = currentPassword
-    body.newPassword = newPassword
 
     try {
       const res = await fetch("/api/account", {
@@ -126,12 +121,12 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
       <DrawerContent className="w-80 flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <DrawerTitle className="text-sm font-semibold text-gray-900 dark:text-white">Account</DrawerTitle>
-          <DrawerClose render={<button aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />}>
+          <button type="button" aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X size={15} />
-          </DrawerClose>
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
             {/* Avatar row */}
             <div className="flex items-center gap-3">
@@ -154,7 +149,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
                 Display name
               </label>
               <input
-                name="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 ${
@@ -173,7 +167,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
               </label>
               <input
                 type="email"
-                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 ${
@@ -289,8 +282,9 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
           {/* Sticky footer */}
           <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-2 shrink-0">
             <button
-              type="submit"
+              type="button"
               disabled={loading}
+              onClick={handleSubmit}
               className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {loading ? "Saving…" : "Save changes"}

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { render as rtlRender, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import React from "react"
 
@@ -17,8 +17,34 @@ vi.mock("next-auth/react", () => ({
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
+// The shadcn Base UI Drawer is a modal that registers module-level focus/scroll
+// state when open. React Testing Library's cleanup unmounts an *open* drawer
+// without running its close transition, leaving that state registered and
+// breaking focus (and therefore typing) in subsequent tests. To avoid this, we
+// track the active render and close the drawer (open=false) before unmounting.
+let active: { result: ReturnType<typeof rtlRender>; element: React.ReactElement } | null = null
+function render(ui: React.ReactElement) {
+  const result = rtlRender(ui)
+  active = { result, element: ui }
+  return result
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+})
+
+afterEach(async () => {
+  if (active) {
+    const closed = React.cloneElement(active.element, { open: false } as { open: boolean })
+    await act(async () => {
+      active!.result.rerender(closed)
+    })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350))
+    })
+    active = null
+  }
+  cleanup()
 })
 
 describe("AccountSheet", () => {
@@ -129,9 +155,9 @@ describe("AccountSheet", () => {
     })
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
-    const inputs = screen.getAllByPlaceholderText(/password/i)
-    await userEvent.type(inputs[0], "newpassword1")
-    await userEvent.type(inputs[1], "newpassword1")
+    await userEvent.type(screen.getByPlaceholderText(/^new password/i), "newpassword1")
+    await userEvent.type(screen.getByPlaceholderText(/repeat new password/i), "newpassword1")
+    await userEvent.type(screen.getByPlaceholderText(/your current password/i), "oldpassword1")
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "/login" }))
   })
