@@ -2,9 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import React from 'react'
 
+// Stable spies for the toolbar commands under test, so tests can assert the
+// correct editor command fires. Hoisted so the vi.mock factory can reference them.
+const commandSpies = vi.hoisted(() => ({
+  toggleCode: vi.fn(() => ({ run: vi.fn() })),
+  toggleBlockquote: vi.fn(() => ({ run: vi.fn() })),
+  toggleCodeBlock: vi.fn(() => ({ run: vi.fn() })),
+  setHorizontalRule: vi.fn(() => ({ run: vi.fn() })),
+  undo: vi.fn(() => ({ run: vi.fn() })),
+  redo: vi.fn(() => ({ run: vi.fn() })),
+}))
+
 vi.mock('@tiptap/react', () => {
   const mockEditor = {
     isActive: vi.fn(() => false),
+    can: vi.fn(() => ({ undo: () => true, redo: () => true })),
     chain: vi.fn(() => ({
       focus: vi.fn(() => ({
         toggleBold: vi.fn(() => ({ run: vi.fn() })),
@@ -27,6 +39,12 @@ vi.mock('@tiptap/react', () => {
         unsetFontFamily: vi.fn(() => ({ run: vi.fn() })),
         setFontFamily: vi.fn(() => ({ run: vi.fn() })),
         setFontSize: vi.fn(() => ({ run: vi.fn() })),
+        toggleCode: commandSpies.toggleCode,
+        toggleBlockquote: commandSpies.toggleBlockquote,
+        toggleCodeBlock: commandSpies.toggleCodeBlock,
+        setHorizontalRule: commandSpies.setHorizontalRule,
+        undo: commandSpies.undo,
+        redo: commandSpies.redo,
         insertTable: vi.fn(() => ({ run: vi.fn() })),
         addRowBefore: vi.fn(() => ({ run: vi.fn() })),
         addRowAfter: vi.fn(() => ({ run: vi.fn() })),
@@ -93,6 +111,12 @@ vi.mock('lucide-react', () => ({
   Image: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Image', ...props }),
   Table: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Table', ...props }),
   Link: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Link', ...props }),
+  Quote: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Quote', ...props }),
+  Code: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Code', ...props }),
+  SquareCode: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-SquareCode', ...props }),
+  Minus: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Minus', ...props }),
+  Undo2: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Undo2', ...props }),
+  Redo2: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Redo2', ...props }),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -201,6 +225,24 @@ describe('MainArea', () => {
     expect(screen.getByTestId('note-editor')).toBeInTheDocument()
   })
 
+  it('renders the new toolbar buttons (undo, redo, inline code, blockquote, code block, horizontal rule)', () => {
+    vi.mocked(useNotes).mockReturnValue({
+      activeNote: createActiveNote(),
+      activeNoteId: 'note1',
+      updateNote: vi.fn(),
+      createNote: vi.fn(),
+    } as ReturnType<typeof vi.fn>)
+
+    render(<MainArea />)
+
+    expect(screen.getAllByTestId('icon-Undo2').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('icon-Redo2').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('icon-Code').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('icon-Quote').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('icon-SquareCode').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('icon-Minus').length).toBeGreaterThan(0)
+  })
+
   it('renders with search query parameter without crashing', () => {
     const originalLocation = window.location
     delete (window as any).location
@@ -213,5 +255,37 @@ describe('MainArea', () => {
     expect(screen.getByTestId('note-editor')).toBeDefined()
     
     window.location = originalLocation
+  })
+
+  it('new toolbar buttons invoke the correct editor commands when clicked', () => {
+    vi.mocked(useNotes).mockReturnValue({
+      activeNote: createActiveNote(),
+      activeNoteId: 'note1',
+      updateNote: vi.fn(),
+      createNote: vi.fn(),
+    } as ReturnType<typeof vi.fn>)
+
+    render(<MainArea />)
+
+    const clickFirst = (testId: string) =>
+      fireEvent.click(screen.getAllByTestId(testId)[0].closest('button')!)
+
+    clickFirst('icon-Undo2')
+    expect(commandSpies.undo).toHaveBeenCalled()
+
+    clickFirst('icon-Redo2')
+    expect(commandSpies.redo).toHaveBeenCalled()
+
+    clickFirst('icon-Code')
+    expect(commandSpies.toggleCode).toHaveBeenCalled()
+
+    clickFirst('icon-Quote')
+    expect(commandSpies.toggleBlockquote).toHaveBeenCalled()
+
+    clickFirst('icon-SquareCode')
+    expect(commandSpies.toggleCodeBlock).toHaveBeenCalled()
+
+    clickFirst('icon-Minus')
+    expect(commandSpies.setHorizontalRule).toHaveBeenCalled()
   })
 })

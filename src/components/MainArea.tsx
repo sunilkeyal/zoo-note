@@ -80,6 +80,12 @@ import {
   ListOrdered,
   ListChecks,
   Image,
+  Quote,
+  Code,
+  SquareCode,
+  Minus,
+  Undo2,
+  Redo2,
 } from "lucide-react"
 
 const FONT_SIZES = ["10", "11", "12", "13", "14", "15", "16", "18", "20", "22"]
@@ -155,32 +161,113 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
   }, [showLinkInput])
 
   return (
-    <div className="hidden md:block px-4 sm:px-6 md:px-8 lg:px-10 pt-2 w-full md:max-w-[900px] lg:max-w-[1140px]">
+    <div className="hidden md:block px-4 sm:px-6 md:px-0 pt-2 w-full">
       <TooltipProvider>
-      <div className="flex items-center gap-1 px-3 py-1 border rounded-lg bg-card overflow-x-auto">
+      <div className="flex items-center gap-2 px-3 py-1 border rounded-lg bg-card flex-nowrap overflow-x-auto w-fit max-w-full [&>*]:shrink-0">
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("bold")} onPressedChange={() => editor.chain().focus().toggleBold().run()} size="sm" />}>
+            <TooltipTrigger render={
+              <button
+                disabled={!editor.can().undo()}
+                className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent disabled:opacity-40 disabled:pointer-events-none"
+                onClick={() => editor.chain().focus().undo().run()}
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+            } />
+            <TooltipContent>Undo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger render={
+              <button
+                disabled={!editor.can().redo()}
+                className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent disabled:opacity-40 disabled:pointer-events-none"
+                onClick={() => editor.chain().focus().redo().run()}
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            } />
+            <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+
+        <Select
+          value={editor.getAttributes("textStyle").fontFamily || "default"}
+          onValueChange={(val) => {
+            if (val === "default") editor.chain().focus().unsetFontFamily().run()
+            else editor.chain().focus().setFontFamily(val).run()
+          }}
+        >
+          <Tooltip>
+            <TooltipTrigger render={<SelectTrigger className="h-7 w-[130px] text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }} />}>
+              <SelectValue placeholder="Font" className="capitalize" />
+            </TooltipTrigger>
+            <TooltipContent>Font family</TooltipContent>
+          </Tooltip>
+          <SelectContent>
+            <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
+            {FONTS.map((f) => (
+              <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={(() => {
+            const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
+            if (explicit) return explicit
+            if (editor.isActive("heading", { level: 1 })) return "20"
+            if (editor.isActive("heading", { level: 2 })) return "18"
+            if (editor.isActive("heading", { level: 3 })) return "16"
+            return "default"
+          })()}
+          onValueChange={(val) => {
+            if (val === "default") editor.chain().focus().unsetFontSize().run()
+            else editor.chain().focus().setFontSize(val + "px").run()
+          }}
+        >
+          <Tooltip>
+            <TooltipTrigger render={<SelectTrigger className="h-7 w-[90px] text-sm" />}>
+              <SelectValue className="capitalize" />
+            </TooltipTrigger>
+            <TooltipContent>Font size</TooltipContent>
+          </Tooltip>
+          <SelectContent>
+            <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
+            {FONT_SIZES.map((s) => (
+              <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+          <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("bold")} onPressedChange={() => editor.chain().focus().toggleBold().run()} size="sm" className="w-7 px-0" />}>
               <Bold className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Bold</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("italic")} onPressedChange={() => editor.chain().focus().toggleItalic().run()} size="sm" />}>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("italic")} onPressedChange={() => editor.chain().focus().toggleItalic().run()} size="sm" className="w-7 px-0" />}>
               <Italic className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Italic</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("underline")} onPressedChange={() => editor.chain().focus().toggleUnderline().run()} size="sm" />}>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("underline")} onPressedChange={() => editor.chain().focus().toggleUnderline().run()} size="sm" className="w-7 px-0" />}>
               <UnderlineIcon className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Underline</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("strike")} onPressedChange={() => editor.chain().focus().toggleStrike().run()} size="sm" />}>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("strike")} onPressedChange={() => editor.chain().focus().toggleStrike().run()} size="sm" className="w-7 px-0" />}>
               <Strikethrough className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Strikethrough</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("code")} onPressedChange={() => editor.chain().focus().toggleCode().run()} size="sm" className="w-7 px-0" />}>
+              <Code className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Inline code</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -206,32 +293,89 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
             <TooltipContent>Insert link</TooltipContent>
           </Tooltip>
 
-        <Separator orientation="vertical" className="mx-1 h-6" />
-
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("bulletList")} onPressedChange={() => editor.chain().focus().toggleBulletList().run()} size="sm" />}>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("blockquote")} onPressedChange={() => editor.chain().focus().toggleBlockquote().run()} size="sm" className="w-7 px-0" />}>
+              <Quote className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Blockquote</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("codeBlock")} onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()} size="sm" className="w-7 px-0" />}>
+              <SquareCode className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Code block</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("bulletList")} onPressedChange={() => editor.chain().focus().toggleBulletList().run()} size="sm" className="w-7 px-0" />}>
               <List className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Bullet list</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("orderedList")} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()} size="sm" />}>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("orderedList")} onPressedChange={() => editor.chain().focus().toggleOrderedList().run()} size="sm" className="w-7 px-0" />}>
               <ListOrdered className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Ordered list</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger render={<Toggle pressed={editor.isActive("taskList")} onPressedChange={() => editor.chain().focus().toggleTaskList().run()} size="sm" />}>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("taskList")} onPressedChange={() => editor.chain().focus().toggleTaskList().run()} size="sm" className="w-7 px-0" />}>
               <ListChecks className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Todo list</TooltipContent>
           </Tooltip>
 
-        <Separator orientation="vertical" className="mx-1 h-6" />
+        <Select
+          value={
+            editor.isActive("heading", { level: 1 }) ? "h1" :
+            editor.isActive("heading", { level: 2 }) ? "h2" :
+            editor.isActive("heading", { level: 3 }) ? "h3" : "paragraph"
+          }
+          onValueChange={(val) => {
+            const chain = editor.chain().focus().setParagraph()
+            if (val === "h1") chain.unsetFontSize().toggleHeading({ level: 1 })
+            else if (val === "h2") chain.unsetFontSize().toggleHeading({ level: 2 })
+            else if (val === "h3") chain.unsetFontSize().toggleHeading({ level: 3 })
+            chain.run()
+          }}
+        >
+          <Tooltip>
+            <TooltipTrigger render={<SelectTrigger className="h-7 w-[110px] text-sm" />}>
+              <SelectValue className="capitalize" />
+            </TooltipTrigger>
+            <TooltipContent>Styles</TooltipContent>
+          </Tooltip>
+          <SelectContent>
+            {HEADINGS.map((h) => (
+              <SelectItem key={h.value} value={h.value} className="text-sm">{h.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <TableGridPicker editor={editor} />
-
-        <Separator orientation="vertical" className="mx-1 h-6" />
+        <Tooltip>
+          <TooltipTrigger render={
+            <button
+              className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+          } />
+          <TooltipContent>Horizontal rule</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger render={
+            <button className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Image className="h-4 w-4" />
+            </button>
+          } />
+          <TooltipContent>Insert image</TooltipContent>
+        </Tooltip>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
+        />
 
         <Popover>
           <Tooltip>
@@ -333,102 +477,6 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
           </PopoverContent>
         </Popover>
 
-        <Separator orientation="vertical" className="mx-1 h-6" />
-
-        <Select
-          value={
-            editor.isActive("heading", { level: 1 }) ? "h1" :
-            editor.isActive("heading", { level: 2 }) ? "h2" :
-            editor.isActive("heading", { level: 3 }) ? "h3" : "paragraph"
-          }
-          onValueChange={(val) => {
-            const chain = editor.chain().focus().setParagraph()
-            if (val === "h1") chain.unsetFontSize().toggleHeading({ level: 1 })
-            else if (val === "h2") chain.unsetFontSize().toggleHeading({ level: 2 })
-            else if (val === "h3") chain.unsetFontSize().toggleHeading({ level: 3 })
-            chain.run()
-          }}
-        >
-          <Tooltip>
-            <TooltipTrigger render={<SelectTrigger className="h-7 w-[110px] text-sm" />}>
-              <SelectValue className="capitalize" />
-            </TooltipTrigger>
-            <TooltipContent>Styles</TooltipContent>
-          </Tooltip>
-          <SelectContent>
-            {HEADINGS.map((h) => (
-              <SelectItem key={h.value} value={h.value} className="text-sm">{h.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={editor.getAttributes("textStyle").fontFamily || "default"}
-          onValueChange={(val) => {
-            if (val === "default") editor.chain().focus().unsetFontFamily().run()
-            else editor.chain().focus().setFontFamily(val).run()
-          }}
-        >
-          <Tooltip>
-            <TooltipTrigger render={<SelectTrigger className="h-7 w-[130px] text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }} />}>
-              <SelectValue placeholder="Font" className="capitalize" />
-            </TooltipTrigger>
-            <TooltipContent>Font family</TooltipContent>
-          </Tooltip>
-          <SelectContent>
-            <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
-            {FONTS.map((f) => (
-              <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={(() => {
-            const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
-            if (explicit) return explicit
-            if (editor.isActive("heading", { level: 1 })) return "20"
-            if (editor.isActive("heading", { level: 2 })) return "18"
-            if (editor.isActive("heading", { level: 3 })) return "16"
-            return "default"
-          })()}
-          onValueChange={(val) => {
-            if (val === "default") editor.chain().focus().unsetFontSize().run()
-            else editor.chain().focus().setFontSize(val + "px").run()
-          }}
-        >
-          <Tooltip>
-            <TooltipTrigger render={<SelectTrigger className="h-7 w-[90px] text-sm" />}>
-              <SelectValue className="capitalize" />
-            </TooltipTrigger>
-            <TooltipContent>Font size</TooltipContent>
-          </Tooltip>
-          <SelectContent>
-            <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
-            {FONT_SIZES.map((s) => (
-              <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Separator orientation="vertical" className="mx-1 h-6" />
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Image className="h-4 w-4" />
-              </button>
-            }
-          />
-          <TooltipContent>Insert image</TooltipContent>
-        </Tooltip>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
-        />
-
         {showLinkInput && (
           <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
             <PopoverContent className="w-[300px] p-3" align="start">
@@ -503,6 +551,23 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
   return (
     <div className="editor-toolbar-mobile">
       <button
+        disabled={!editor.can().undo()}
+        onClick={() => editor.chain().focus().undo().run()}
+        className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <Undo2 className="h-5 w-5" />
+      </button>
+      <button
+        disabled={!editor.can().redo()}
+        onClick={() => editor.chain().focus().redo().run()}
+        className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <Redo2 className="h-5 w-5" />
+      </button>
+
+      <span className="w-px h-6 bg-border mx-0.5" />
+
+      <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("bold") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
@@ -540,6 +605,12 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("link") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <LinkIcon className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().toggleCode().run()}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("code") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <Code className="h-5 w-5" />
       </button>
 
       <span className="w-px h-6 bg-border mx-0.5" />
@@ -589,6 +660,18 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("taskList") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <ListChecks className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("blockquote") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <Quote className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("codeBlock") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <SquareCode className="h-5 w-5" />
       </button>
 
       <TableGridPicker
@@ -695,6 +778,13 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
               )
             })}
           </div>
+          <div className="text-sm font-medium mb-2 mt-2">Insert</div>
+          <button
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-md border bg-background hover:bg-accent w-full"
+          >
+            <Minus className="h-4 w-4" /> Horizontal rule
+          </button>
         </PopoverContent>
       </Popover>
 
@@ -950,7 +1040,7 @@ export default function MainArea() {
         </>
       )}
 
-      <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-3 pb-0 w-full md:max-w-[900px] lg:max-w-[1140px]">
+      <div className="px-4 sm:px-6 md:px-0 pt-3 pb-0 w-full">
         <Input
           value={title}
           onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
@@ -965,7 +1055,7 @@ export default function MainArea() {
 
       <div
         ref={editorContainerRef}
-        className={`flex-1 overflow-auto relative px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[900px] lg:max-w-[1140px] py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}
+        className={`flex-1 overflow-auto relative px-4 sm:px-6 md:px-0 w-full py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}
       >
         <NoteEditor note={activeNote} editor={editor} />
         {editor && (
