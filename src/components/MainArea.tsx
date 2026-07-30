@@ -80,6 +80,12 @@ import {
   ListOrdered,
   ListChecks,
   Image,
+  Quote,
+  Code,
+  SquareCode,
+  Minus,
+  Undo2,
+  Redo2,
 } from "lucide-react"
 
 const FONT_SIZES = ["10", "11", "12", "13", "14", "15", "16", "18", "20", "22"]
@@ -159,6 +165,33 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
       <TooltipProvider>
       <div className="flex items-center gap-1 px-3 py-1 border rounded-lg bg-card overflow-x-auto">
           <Tooltip>
+            <TooltipTrigger render={
+              <button
+                disabled={!editor.can().undo()}
+                className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent disabled:opacity-40 disabled:pointer-events-none"
+                onClick={() => editor.chain().focus().undo().run()}
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+            } />
+            <TooltipContent>Undo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger render={
+              <button
+                disabled={!editor.can().redo()}
+                className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent disabled:opacity-40 disabled:pointer-events-none"
+                onClick={() => editor.chain().focus().redo().run()}
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            } />
+            <TooltipContent>Redo</TooltipContent>
+          </Tooltip>
+
+        <Separator orientation="vertical" className="mx-1 h-6" />
+
+          <Tooltip>
             <TooltipTrigger render={<Toggle pressed={editor.isActive("bold")} onPressedChange={() => editor.chain().focus().toggleBold().run()} size="sm" />}>
               <Bold className="h-4 w-4" />
             </TooltipTrigger>
@@ -181,6 +214,13 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
               <Strikethrough className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent>Strikethrough</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("code")} onPressedChange={() => editor.chain().focus().toggleCode().run()} size="sm" />}>
+              <Code className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Inline code</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -209,6 +249,18 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
         <Separator orientation="vertical" className="mx-1 h-6" />
 
           <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("blockquote")} onPressedChange={() => editor.chain().focus().toggleBlockquote().run()} size="sm" />}>
+              <Quote className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Blockquote</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger render={<Toggle pressed={editor.isActive("codeBlock")} onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()} size="sm" />}>
+              <SquareCode className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipContent>Code block</TooltipContent>
+          </Tooltip>
+          <Tooltip>
             <TooltipTrigger render={<Toggle pressed={editor.isActive("bulletList")} onPressedChange={() => editor.chain().focus().toggleBulletList().run()} size="sm" />}>
               <List className="h-4 w-4" />
             </TooltipTrigger>
@@ -230,6 +282,30 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
         <Separator orientation="vertical" className="mx-1 h-6" />
 
         <TableGridPicker editor={editor} />
+        <Tooltip>
+          <TooltipTrigger render={
+            <button
+              className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+          } />
+          <TooltipContent>Horizontal rule</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger render={
+            <button className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Image className="h-4 w-4" />
+            </button>
+          } />
+          <TooltipContent>Insert image</TooltipContent>
+        </Tooltip>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
+        />
 
         <Separator orientation="vertical" className="mx-1 h-6" />
 
@@ -412,22 +488,6 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
         </Select>
 
         <Separator orientation="vertical" className="mx-1 h-6" />
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Image className="h-4 w-4" />
-              </button>
-            }
-          />
-          <TooltipContent>Insert image</TooltipContent>
-        </Tooltip>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
-        />
 
         {showLinkInput && (
           <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
