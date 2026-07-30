@@ -487,8 +487,6 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
           </SelectContent>
         </Select>
 
-        <Separator orientation="vertical" className="mx-1 h-6" />
-
         {showLinkInput && (
           <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
             <PopoverContent className="w-[300px] p-3" align="start">
