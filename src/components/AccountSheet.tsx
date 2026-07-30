@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { X, Eye, EyeOff } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
@@ -51,7 +51,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errs.email = "Invalid email format."
     }
-    if (newPassword || confirmPassword) {
+    if (newPassword || confirmPassword || currentPassword) {
       if (newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters."
       if (newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match."
     }
@@ -61,6 +61,8 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // allow pending input events to flush (helps tests that type then submit)
+    await new Promise((r) => setTimeout(r, 0))
     // submit handler called
     if (!validate()) return
 
@@ -69,9 +71,8 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     setErrors({})
 
     const body: Record<string, string> = { name, email }
-    if (newPassword) {
-      body.newPassword = newPassword
-    }
+    body.currentPassword = currentPassword
+    body.newPassword = newPassword
 
     try {
       const res = await fetch("/api/account", {
@@ -82,7 +83,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
       setLoading(false)
       const data = await res.json()
-      console.log("AccountSheet fetch result:", data)
 
       if (!res.ok) {
         if (res.status === 409) {
@@ -151,7 +151,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
                 Display name
               </label>
               <input
-                autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 ${
