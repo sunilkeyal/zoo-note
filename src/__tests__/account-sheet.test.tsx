@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render as rtlRender, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import React from "react"
 
 const mockUpdate = vi.fn()
@@ -82,7 +81,7 @@ describe("AccountSheet", () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
     const nameInput = screen.getByDisplayValue("Test User")
-    await userEvent.clear(nameInput)
+    fireEvent.change(nameInput, { target: { value: "" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
     expect(await screen.findByText("Name is required.")).toBeInTheDocument()
     expect(mockFetch).not.toHaveBeenCalled()
@@ -92,8 +91,8 @@ describe("AccountSheet", () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
     const inputs = screen.getAllByPlaceholderText(/password/i)
-    await userEvent.type(inputs[0], "newpassword1")
-    await userEvent.type(inputs[1], "differentpass")
+    fireEvent.change(inputs[0], { target: { value: "newpassword1" } })
+    fireEvent.change(inputs[1], { target: { value: "differentpass" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
     expect(await screen.findByText("Passwords do not match.")).toBeInTheDocument()
     expect(mockFetch).not.toHaveBeenCalled()
@@ -107,8 +106,7 @@ describe("AccountSheet", () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
     const nameInput = screen.getByDisplayValue("Test User")
-    await userEvent.clear(nameInput)
-    await userEvent.type(nameInput, "New Name")
+    fireEvent.change(nameInput, { target: { value: "New Name" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(
       "/api/account",
@@ -126,8 +124,7 @@ describe("AccountSheet", () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
     const nameInput = screen.getByDisplayValue("Test User")
-    await userEvent.clear(nameInput)
-    await userEvent.type(nameInput, "New Name")
+    fireEvent.change(nameInput, { target: { value: "New Name" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith({ name: "New Name" }))
     expect(screen.getByText("Account updated.")).toBeInTheDocument()
@@ -142,10 +139,11 @@ describe("AccountSheet", () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
     const emailInput = screen.getByDisplayValue("test@example.com")
-    await userEvent.clear(emailInput)
-    await userEvent.type(emailInput, "new@example.com")
+    fireEvent.change(emailInput, { target: { value: "new@example.com" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "/login" }))
+    // signOut is deferred by a 500ms timeout in the component; allow extra time
+    // so this stays reliable under parallel test load.
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "/login" }), { timeout: 3000 })
   })
 
   it("calls signOut when password is changed", async () => {
@@ -155,11 +153,13 @@ describe("AccountSheet", () => {
     })
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
-    await userEvent.type(screen.getByPlaceholderText(/^new password/i), "newpassword1")
-    await userEvent.type(screen.getByPlaceholderText(/repeat new password/i), "newpassword1")
-    await userEvent.type(screen.getByPlaceholderText(/your current password/i), "oldpassword1")
+    fireEvent.change(screen.getByPlaceholderText(/^new password/i), { target: { value: "newpassword1" } })
+    fireEvent.change(screen.getByPlaceholderText(/repeat new password/i), { target: { value: "newpassword1" } })
+    fireEvent.change(screen.getByPlaceholderText(/your current password/i), { target: { value: "oldpassword1" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "/login" }))
+    // signOut is deferred by a 500ms timeout in the component; allow extra time
+    // so this stays reliable under parallel test load.
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "/login" }), { timeout: 3000 })
   })
 
   it("shows inline error when email is already taken (409)", async () => {
@@ -171,8 +171,7 @@ describe("AccountSheet", () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     render(<AccountSheet open={true} onClose={() => {}} />)
     const emailInput = screen.getByDisplayValue("test@example.com")
-    await userEvent.clear(emailInput)
-    await userEvent.type(emailInput, "taken@example.com")
+    fireEvent.change(emailInput, { target: { value: "taken@example.com" } })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
     expect(await screen.findByText("An account with this email already exists.")).toBeInTheDocument()
   })
