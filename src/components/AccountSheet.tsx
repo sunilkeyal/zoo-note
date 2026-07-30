@@ -5,6 +5,7 @@ import { X, Eye, EyeOff } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -121,9 +122,9 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
       <DrawerContent className="w-80 flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <DrawerTitle className="text-sm font-semibold text-gray-900 dark:text-white">Account</DrawerTitle>
-          <button type="button" aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <DrawerClose render={<button aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />}>
             <X size={15} />
-          </button>
+          </DrawerClose>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="flex-1 flex flex-col overflow-hidden">
@@ -244,36 +245,36 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
               )}
             </div>
 
-              {/* Current password */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  Current password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showCurrent ? "text" : "password"}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Your current password"
-                    className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 pr-8 ${
-                      errors.currentPassword
-                        ? "border-red-400 focus:ring-red-400"
-                        : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrent(!showCurrent)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
-                    aria-label={showCurrent ? "Hide password" : "Show password"}
-                  >
-                    {showCurrent ? <EyeOff size={13} /> : <Eye size={13} />}
-                  </button>
-                </div>
-                {errors.currentPassword && (
-                  <p className="text-xs text-red-500">{errors.currentPassword}</p>
-                )}
+            {/* Current password */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                Current password
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Your current password"
+                  className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 pr-8 ${
+                    errors.currentPassword
+                      ? "border-red-400 focus:ring-red-400"
+                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-label={showCurrent ? "Hide password" : "Show password"}
+                >
+                  {showCurrent ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
               </div>
+              {errors.currentPassword && (
+                <p className="text-xs text-red-500">{errors.currentPassword}</p>
+              )}
+            </div>
 
             {errors.form && <p className="text-xs text-red-500">{errors.form}</p>}
             {successMsg && <p className="text-xs text-green-600">{successMsg}</p>}
