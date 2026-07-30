@@ -61,16 +61,19 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // allow pending input events to flush (helps tests that type then submit)
-    await new Promise((r) => setTimeout(r, 0))
-    // submit handler called
     if (!validate()) return
+
+    // allow pending React state updates to flush (microtask)
+    await Promise.resolve()
 
     setLoading(true)
     setSuccessMsg("")
     setErrors({})
 
-    const body: Record<string, string> = { name, email }
+    const body: Record<string, string> = {
+      name: (document.querySelector('input[name="name"]') as HTMLInputElement)?.value ?? name,
+      email: (document.querySelector('input[name="email"]') as HTMLInputElement)?.value ?? email,
+    }
     body.currentPassword = currentPassword
     body.newPassword = newPassword
 
@@ -151,6 +154,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
                 Display name
               </label>
               <input
+                name="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 ${
@@ -169,6 +173,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
               </label>
               <input
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 ${
