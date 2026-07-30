@@ -5,6 +5,17 @@ import React from 'react'
 import NotesSidebar from '@/components/NotesSidebar'
 import type { Note, Folder } from '@/types'
 
+const { mockSetTheme, mockUseThemeSync } = vi.hoisted(() => {
+  const mockSetTheme = vi.fn()
+  const mockUseThemeSync = vi.fn(() => ({ theme: 'light', setTheme: mockSetTheme }))
+  return { mockSetTheme, mockUseThemeSync }
+})
+
+vi.mock('@/contexts/ThemeSyncContext', () => ({
+  ThemeSyncProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useThemeSync: mockUseThemeSync,
+}))
+
 vi.mock('@/contexts/NoteContext', () => ({
   useNotes: vi.fn(),
   NoteProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -218,6 +229,8 @@ vi.mock('lucide-react', () => ({
   Clock: () => <span>Clock</span>,
   CalendarDays: () => <span>CalendarDays</span>,
   RotateCcw: () => <span>RotateCcw</span>,
+  Moon: () => <span data-testid="moon-icon">Moon</span>,
+  Sun: () => <span data-testid="sun-icon">Sun</span>,
   X: () => <span>X</span>,
   XIcon: () => <span>XIcon</span>,
 }))
@@ -478,6 +491,33 @@ describe('NotesSidebar', () => {
     renderSidebar()
     const expandButtons = screen.getAllByText(/>|</)
     expect(expandButtons.length).toBeGreaterThan(0)
+  })
+
+  it('renders the theme toggle as the last action after Collapse all', () => {
+    mockUseThemeSync.mockReturnValue({ theme: 'light', setTheme: mockSetTheme })
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+    const toggle = screen.getByLabelText('Switch to dark mode')
+    const toolbar = screen.getByRole('toolbar', { name: /sidebar actions/i })
+    expect(toolbar).toContainElement(toggle)
+    const buttons = toolbar.querySelectorAll('button')
+    expect(buttons[buttons.length - 1]).toBe(toggle)
+  })
+
+  it('switches from light to dark when the toggle is clicked', () => {
+    mockUseThemeSync.mockReturnValue({ theme: 'light', setTheme: mockSetTheme })
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+    fireEvent.click(screen.getByLabelText('Switch to dark mode'))
+    expect(mockSetTheme).toHaveBeenCalledWith('dark')
+  })
+
+  it('switches from dark to light when the toggle is clicked', () => {
+    mockUseThemeSync.mockReturnValue({ theme: 'dark', setTheme: mockSetTheme })
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+    fireEvent.click(screen.getByLabelText('Switch to light mode'))
+    expect(mockSetTheme).toHaveBeenCalledWith('light')
   })
 })
 

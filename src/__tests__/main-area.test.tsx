@@ -184,6 +184,23 @@ describe('MainArea', () => {
     expect(screen.getAllByTestId('icon-Italic').length).toBeGreaterThan(0)
   })
 
+  it('keeps the desktop formatting toolbar outside the scrolling content region', () => {
+    vi.mocked(useNotes).mockReturnValue({
+      activeNote: createActiveNote({ title: 'My Note' }),
+      activeNoteId: 'note1',
+      updateNote: vi.fn(),
+      createNote: vi.fn(),
+    } as ReturnType<typeof vi.fn>)
+
+    const { container } = render(<MainArea />)
+
+    // The scroll region sits below the toolbar so its scrollbar does not span the toolbar.
+    const scroller = container.querySelector('.flex-1.overflow-auto')
+    expect(scroller).not.toBeNull()
+    // The Bold button lives in the fixed toolbar, not inside the scroll region.
+    expect(scroller).not.toContainElement(screen.getAllByTestId('icon-Bold')[0])
+  })
+
   it('calls updateNote when title is changed after debounce', () => {
     vi.useFakeTimers()
 

@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
-import AppHeader from "@/components/AppHeader"
 import NotesSidebar from "@/components/NotesSidebar"
 import { getInitialSidebarWidth, saveSidebarWidthLocal, saveSidebarWidthApi } from "@/hooks/use-sidebar-width"
 
@@ -60,7 +59,6 @@ export default function AdminLayout({
         <ResizableHandle withHandle />
         <ResizablePanel id="content" className="h-full">
           <SidebarInset className="overflow-hidden">
-            <AppHeader />
             <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1140px]">{children}</main>
           </SidebarInset>
         </ResizablePanel>
