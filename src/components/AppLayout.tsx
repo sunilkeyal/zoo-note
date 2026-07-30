@@ -5,7 +5,6 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
-import AppHeader from "@/components/AppHeader"
 import NotesSidebar from "@/components/NotesSidebar"
 import MobileTabBar, { type MobileTab } from "./MobileTabBar"
 import NoteCardGrid from "./NoteCardGrid"
@@ -243,7 +242,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Desktop layout — resizable sidebar
   if (!isMobile) {
     return (
-      <SidebarProvider>
+      <SidebarProvider className="h-dvh min-h-0 overflow-hidden">
         <ResizablePanelGroup
           orientation="horizontal"
           className="flex-1"
@@ -264,9 +263,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel id="content" className="h-full">
-            <SidebarInset className="overflow-hidden">
-              <AppHeader />
-              <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[1142px]">
+            <SidebarInset className="h-full overflow-hidden">
+              <main className="flex-1 flex flex-col overflow-hidden w-full">
                 {children}
               </main>
             </SidebarInset>

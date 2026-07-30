@@ -161,7 +161,7 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
   }, [showLinkInput])
 
   return (
-    <div className="hidden md:block px-4 sm:px-6 md:px-0 pt-2 w-full">
+    <div className="hidden md:block px-4 sm:px-6 md:px-8 lg:px-10 pt-4 pb-4 w-full bg-background">
       <TooltipProvider>
       <div className="flex items-center gap-2 px-3 py-1 border rounded-lg bg-card flex-nowrap overflow-x-auto w-fit max-w-full [&>*]:shrink-0">
           <Tooltip>
@@ -1040,24 +1040,27 @@ export default function MainArea() {
         </>
       )}
 
-      <div className="px-4 sm:px-6 md:px-0 pt-3 pb-0 w-full">
-        <Input
-          value={title}
-          onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
-          className="font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0 text-xl md:text-[21px]"
-          placeholder="Untitled"
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          Last updated: {new Date(activeNote.updatedAt).toLocaleString()}
-        </p>
-        <Separator className="mt-2" />
-      </div>
-
       <div
         ref={editorContainerRef}
-        className={`flex-1 overflow-auto relative px-4 sm:px-6 md:px-0 w-full py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}
+        className="flex-1 overflow-auto relative min-h-0 w-full"
       >
-        <NoteEditor note={activeNote} editor={editor} />
+        <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-3 pb-0 w-full md:max-w-[1142px]">
+          <Input
+            value={title}
+            onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
+            className="font-semibold leading-tight border-0 shadow-none px-0 h-auto focus-visible:ring-0 text-xl md:text-[21px]"
+            placeholder="Untitled"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Last updated: {new Date(activeNote.updatedAt).toLocaleString()}
+          </p>
+          <Separator className="mt-2" />
+        </div>
+
+        <div className={`px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[1142px] py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}>
+          <NoteEditor note={activeNote} editor={editor} />
+        </div>
+
         {editor && (
           <>
             <TableContextMenu editor={editor} editorContainerRef={editorContainerRef} />

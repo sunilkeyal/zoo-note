@@ -13,6 +13,11 @@ vi.mock('@/contexts/NoteContext', () => ({
   NoteProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
+vi.mock('@/contexts/ThemeSyncContext', () => ({
+  ThemeSyncProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useThemeSync: vi.fn(() => ({ theme: 'light', setTheme: vi.fn() })),
+}))
+
 vi.mock('@/contexts/SidebarDensityContext', () => ({
   SidebarDensityProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useSidebarDensity: vi.fn(() => ({ density: 'default', setDensity: vi.fn() })),

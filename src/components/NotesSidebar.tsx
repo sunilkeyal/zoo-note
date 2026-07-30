@@ -111,6 +111,8 @@ import {
   BookOpen,
   Info,
   RotateCcw,
+  Moon,
+  Sun,
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import {
@@ -126,6 +128,7 @@ import { LogOut, Settings, User as UserIcon, Rocket, LayoutDashboard, Database, 
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
+import { useThemeSync } from "@/contexts/ThemeSyncContext"
 
 const folderIcons: Record<string, typeof FolderIcon> = {
   // Work
@@ -403,6 +406,8 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
   const pathname = usePathname()
   const router = useRouter()
 
+  const { theme, setTheme } = useThemeSync()
+  const isDark = theme === "dark"
   const { selectedIds, lastSelectedId, isSelecting, toggleSelect, selectRange, selectAll, clearSelection } = useMultiSelect()
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ notes: string[]; folders: string[] } | null>(null)
   const skipNextClearRef = useRef(false)
@@ -1048,6 +1053,13 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
                 <ChevronsUpDown />
               </TooltipTrigger>
               <TooltipContent>Collapse all</TooltipContent>
+            </Tooltip>
+            <div className="mx-0.5 h-5 w-px bg-sidebar-border" aria-hidden="true" />
+            <Tooltip>
+              <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => setTheme(isDark ? "light" : "dark")} aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"} role="menuitem" />}>
+                {isDark ? <Sun /> : <Moon />}
+              </TooltipTrigger>
+              <TooltipContent>{isDark ? "Switch to light mode" : "Switch to dark mode"}</TooltipContent>
             </Tooltip>
           </div>
           </TooltipProvider>

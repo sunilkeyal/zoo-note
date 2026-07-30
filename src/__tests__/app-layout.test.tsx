@@ -19,10 +19,6 @@ vi.mock('@/components/NotesSidebar', () => ({
   default: () => <div data-testid="notes-sidebar">Sidebar</div>,
 }))
 
-vi.mock('@/components/AppHeader', () => ({
-  default: () => <div data-testid="app-header">Header</div>,
-}))
-
 vi.mock('@/contexts/SidebarDensityContext', () => ({
   SidebarDensityProvider: ({ children }: { children: React.ReactNode }) => children,
   useSidebarDensity: vi.fn(() => ({ density: 'default', setDensity: vi.fn() })),
