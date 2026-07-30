@@ -27,14 +27,6 @@ import { getInitialSidebarWidth, fetchSidebarWidth, saveSidebarWidthLocal, saveS
 import type { Note, Folder } from "@/types"
 import type { PanelImperativeHandle, LayoutChangedMeta } from "react-resizable-panels"
 
-let defaultSidebarWidth: number | undefined
-function getDefaultSidebarWidth(): number {
-  if (defaultSidebarWidth === undefined) {
-    defaultSidebarWidth = getInitialSidebarWidth()
-  }
-  return defaultSidebarWidth
-}
-
 type MobileScreen = "home" | "folders" | "folder-detail" | "favorites" | "more" | "search" | "new-folder" | "settings" | "admin" | "note-detail" | "account" | "import-export"
 
 interface AppLayoutProps {
@@ -260,7 +252,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         >
           <ResizablePanel
             id="sidebar"
-            defaultSize={getDefaultSidebarWidth()}
+            defaultSize={getInitialSidebarWidth()}
             minSize={200}
             maxSize={500}
             groupResizeBehavior="preserve-pixel-size"
