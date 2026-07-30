@@ -25,7 +25,7 @@ const modes: { value: SidebarDensity; label: string; description: string }[] = [
 export default function SettingsSheet({ open, onClose, density, onDensityChange }: SettingsSheetProps) {
   return (
     <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()} swipeDirection="right">
-      <DrawerContent className="w-80 flex flex-col">
+      <DrawerContent className="w-80 flex flex-col [--drawer-inset:0.5rem] [--drawer-bleed-background:transparent] rounded-xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <DrawerTitle className="text-sm font-semibold text-gray-900 dark:text-white">Settings</DrawerTitle>
           <DrawerClose render={<button aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />}>
