@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import React from 'react'
 
+// Stable spies for the toolbar commands under test, so tests can assert the
+// correct editor command fires. Hoisted so the vi.mock factory can reference them.
+const commandSpies = vi.hoisted(() => ({
+  toggleCode: vi.fn(() => ({ run: vi.fn() })),
+  toggleBlockquote: vi.fn(() => ({ run: vi.fn() })),
+  toggleCodeBlock: vi.fn(() => ({ run: vi.fn() })),
+  setHorizontalRule: vi.fn(() => ({ run: vi.fn() })),
+  undo: vi.fn(() => ({ run: vi.fn() })),
+  redo: vi.fn(() => ({ run: vi.fn() })),
+}))
+
 vi.mock('@tiptap/react', () => {
   const mockEditor = {
     isActive: vi.fn(() => false),
@@ -28,12 +39,12 @@ vi.mock('@tiptap/react', () => {
         unsetFontFamily: vi.fn(() => ({ run: vi.fn() })),
         setFontFamily: vi.fn(() => ({ run: vi.fn() })),
         setFontSize: vi.fn(() => ({ run: vi.fn() })),
-        toggleCode: vi.fn(() => ({ run: vi.fn() })),
-        toggleBlockquote: vi.fn(() => ({ run: vi.fn() })),
-        toggleCodeBlock: vi.fn(() => ({ run: vi.fn() })),
-        setHorizontalRule: vi.fn(() => ({ run: vi.fn() })),
-        undo: vi.fn(() => ({ run: vi.fn() })),
-        redo: vi.fn(() => ({ run: vi.fn() })),
+        toggleCode: commandSpies.toggleCode,
+        toggleBlockquote: commandSpies.toggleBlockquote,
+        toggleCodeBlock: commandSpies.toggleCodeBlock,
+        setHorizontalRule: commandSpies.setHorizontalRule,
+        undo: commandSpies.undo,
+        redo: commandSpies.redo,
         insertTable: vi.fn(() => ({ run: vi.fn() })),
         addRowBefore: vi.fn(() => ({ run: vi.fn() })),
         addRowAfter: vi.fn(() => ({ run: vi.fn() })),
@@ -246,7 +257,7 @@ describe('MainArea', () => {
     window.location = originalLocation
   })
 
-  it('horizontal-rule button is clickable without throwing', () => {
+  it('new toolbar buttons invoke the correct editor commands when clicked', () => {
     vi.mocked(useNotes).mockReturnValue({
       activeNote: createActiveNote(),
       activeNoteId: 'note1',
@@ -255,7 +266,26 @@ describe('MainArea', () => {
     } as ReturnType<typeof vi.fn>)
 
     render(<MainArea />)
-    const hrButton = screen.getAllByTestId('icon-Minus')[0].closest('button')!
-    expect(() => fireEvent.click(hrButton)).not.toThrow()
+
+    const clickFirst = (testId: string) =>
+      fireEvent.click(screen.getAllByTestId(testId)[0].closest('button')!)
+
+    clickFirst('icon-Undo2')
+    expect(commandSpies.undo).toHaveBeenCalled()
+
+    clickFirst('icon-Redo2')
+    expect(commandSpies.redo).toHaveBeenCalled()
+
+    clickFirst('icon-Code')
+    expect(commandSpies.toggleCode).toHaveBeenCalled()
+
+    clickFirst('icon-Quote')
+    expect(commandSpies.toggleBlockquote).toHaveBeenCalled()
+
+    clickFirst('icon-SquareCode')
+    expect(commandSpies.toggleCodeBlock).toHaveBeenCalled()
+
+    clickFirst('icon-Minus')
+    expect(commandSpies.setHorizontalRule).toHaveBeenCalled()
   })
 })
