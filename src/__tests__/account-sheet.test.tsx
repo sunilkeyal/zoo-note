@@ -22,10 +22,10 @@ beforeEach(() => {
 })
 
 describe("AccountSheet", () => {
-  it("renders nothing when open=false", async () => {
+  it("does not show the dialog when open=false", async () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
-    const { container } = render(<AccountSheet open={false} onClose={() => {}} />)
-    expect(container.firstChild).toBeNull()
+    render(<AccountSheet open={false} onClose={() => {}} />)
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 
   it("renders the sheet with prefilled name and email when open=true", async () => {
@@ -44,11 +44,11 @@ describe("AccountSheet", () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
-  it("calls onClose when the overlay is clicked", async () => {
+  it("calls onClose when the X close button is clicked", async () => {
     const { default: AccountSheet } = await import("@/components/AccountSheet")
     const onClose = vi.fn()
     render(<AccountSheet open={true} onClose={onClose} />)
-    fireEvent.click(screen.getByLabelText("Close account sheet overlay"))
+    fireEvent.click(screen.getByRole("button", { name: /close/i }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 

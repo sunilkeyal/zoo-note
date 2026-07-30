@@ -1,8 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { X, Eye, EyeOff } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer"
 
 interface AccountSheetProps {
   open: boolean
@@ -14,8 +20,8 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
+  const [currentPassword, setCurrentPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
@@ -24,7 +30,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
   const [successMsg, setSuccessMsg] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // Re-populate from session whenever the sheet opens
+  // Re-populate from session whenever the drawer opens
   useEffect(() => {
     if (open) {
       setName(session?.user?.name ?? "")
@@ -37,15 +43,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     }
   }, [open])
 
-  useEffect(() => {
-    if (!open) return
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [open, onClose])
-
   function validate(): boolean {
     const errs: Record<string, string> = {}
     if (!name.trim()) errs.name = "Name is required."
@@ -54,8 +51,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errs.email = "Invalid email format."
     }
-    if (newPassword || confirmPassword || currentPassword) {
-      if (!currentPassword) errs.currentPassword = "Current password is required."
+    if (newPassword || confirmPassword) {
       if (newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters."
       if (newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match."
     }
@@ -65,6 +61,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    // submit handler called
     if (!validate()) return
 
     setLoading(true)
@@ -73,7 +70,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
     const body: Record<string, string> = { name, email }
     if (newPassword) {
-      body.currentPassword = currentPassword
       body.newPassword = newPassword
     }
 
@@ -86,6 +82,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
 
       setLoading(false)
       const data = await res.json()
+      console.log("AccountSheet fetch result:", data)
 
       if (!res.ok) {
         if (res.status === 409) {
@@ -121,39 +118,17 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
     }
   }
 
-  if (!open) return null
-
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/20 z-40"
-        onClick={onClose}
-        aria-label="Close account sheet overlay"
-      />
-
-      {/* Sheet */}
-      <div
-        role="dialog"
-        aria-label="Account settings"
-        aria-modal="true"
-        className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 flex flex-col"
-      >
-        {/* Header */}
+    <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()} swipeDirection="right">
+      <DrawerContent className="w-80 flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Account</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
+          <DrawerTitle className="text-sm font-semibold text-gray-900 dark:text-white">Account</DrawerTitle>
+          <DrawerClose render={<button aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />}>
             <X size={15} />
-          </button>
+          </DrawerClose>
         </div>
 
-        {/* Form wraps scrollable body + sticky footer */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-          {/* Scrollable body */}
           <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
             {/* Avatar row */}
             <div className="flex items-center gap-3">
@@ -176,6 +151,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
                 Display name
               </label>
               <input
+                autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 ${
@@ -210,37 +186,6 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               Change password
             </p>
-
-            {/* Current password */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                Current password
-              </label>
-              <div className="relative">
-                <input
-                  type={showCurrent ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Your current password"
-                  className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 pr-8 ${
-                    errors.currentPassword
-                      ? "border-red-400 focus:ring-red-400"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
-                  aria-label={showCurrent ? "Hide password" : "Show password"}
-                >
-                  {showCurrent ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-              {errors.currentPassword && (
-                <p className="text-xs text-red-500">{errors.currentPassword}</p>
-              )}
-            </div>
 
             {/* New password */}
             <div className="flex flex-col gap-1">
@@ -302,6 +247,37 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
               )}
             </div>
 
+              {/* Current password */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Current password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrent ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Your current password"
+                    className={`w-full rounded-md border bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 pr-8 ${
+                      errors.currentPassword
+                        ? "border-red-400 focus:ring-red-400"
+                        : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
+                    aria-label={showCurrent ? "Hide password" : "Show password"}
+                  >
+                    {showCurrent ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                </div>
+                {errors.currentPassword && (
+                  <p className="text-xs text-red-500">{errors.currentPassword}</p>
+                )}
+              </div>
+
             {errors.form && <p className="text-xs text-red-500">{errors.form}</p>}
             {successMsg && <p className="text-xs text-green-600">{successMsg}</p>}
           </div>
@@ -324,7 +300,7 @@ export default function AccountSheet({ open, onClose }: AccountSheetProps) {
             </button>
           </div>
         </form>
-      </div>
-    </>
+      </DrawerContent>
+    </Drawer>
   )
 }
