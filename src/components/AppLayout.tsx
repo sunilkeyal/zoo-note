@@ -142,7 +142,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     debounceRef.current = setTimeout(() => saveSidebarWidthApi(w), 300)
   }, [])
 
-  const handleSaveAccount = useCallback(async (data: { name: string; email: string; newPassword?: string }) => {
+  const handleSaveAccount = useCallback(async (data: { name: string; email: string; currentPassword?: string; newPassword?: string }) => {
     const res = await fetch("/api/account", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

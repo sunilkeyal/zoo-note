@@ -6,14 +6,16 @@ interface MobileAccountProps {
   name: string
   email: string
   onBack: () => void
-  onSave?: (data: { name: string; email: string; newPassword?: string }) => Promise<{ changed: string[] }>
+  onSave?: (data: { name: string; email: string; currentPassword?: string; newPassword?: string }) => Promise<{ changed: string[] }>
 }
 
 export default function MobileAccount({ name, email, onBack, onSave }: MobileAccountProps) {
   const [displayName, setDisplayName] = useState(name)
   const [displayEmail, setDisplayEmail] = useState(email)
+  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -28,7 +30,8 @@ export default function MobileAccount({ name, email, onBack, onSave }: MobileAcc
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(displayEmail)) {
       errs.email = "Invalid email format."
     }
-    if (newPassword || confirmPassword) {
+    if (newPassword || confirmPassword || currentPassword) {
+      if (!currentPassword) errs.currentPassword = "Current password is required."
       if (newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters."
       if (newPassword !== confirmPassword) errs.confirmPassword = "Passwords do not match."
     }
@@ -45,13 +48,17 @@ export default function MobileAccount({ name, email, onBack, onSave }: MobileAcc
       setErrors({})
       setSuccessMsg("")
       try {
-        const body: { name: string; email: string; newPassword?: string } = { name: displayName, email: displayEmail }
-        if (newPassword) body.newPassword = newPassword
+        const body: { name: string; email: string; currentPassword?: string; newPassword?: string } = { name: displayName, email: displayEmail }
+        if (newPassword) {
+          body.currentPassword = currentPassword
+          body.newPassword = newPassword
+        }
         const result = await onSave(body)
         if (result.changed.includes("email") || result.changed.includes("password")) {
           setSuccessMsg("Saved! Redirecting to login…")
         } else {
           setSuccessMsg("Account updated.")
+          setCurrentPassword("")
           setNewPassword("")
           setConfirmPassword("")
         }
@@ -115,6 +122,31 @@ export default function MobileAccount({ name, email, onBack, onSave }: MobileAcc
           <hr className="border-border" />
 
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Change password</p>
+
+          {/* Current password */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Current password</label>
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Your current password"
+                className={`w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 pr-8 ${
+                  errors.currentPassword ? "border-red-400 focus:ring-red-400" : "border-border focus:ring-blue-500"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                aria-label={showCurrent ? "Hide password" : "Show password"}
+              >
+                {showCurrent ? "🙈" : "👁"}
+              </button>
+            </div>
+            {errors.currentPassword && <p className="text-xs text-red-500">{errors.currentPassword}</p>}
+          </div>
 
           {/* New password */}
           <div className="flex flex-col gap-1">
