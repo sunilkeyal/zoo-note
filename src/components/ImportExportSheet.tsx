@@ -4,6 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import { X, Download, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useNotes } from "@/contexts/NoteContext"
 import { useImport } from "@/contexts/ImportContext"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer"
 
 interface ImportExportSheetProps {
   open: boolean
@@ -21,15 +27,6 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
   const [importMessage, setImportMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const onenoteFileInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [open, onClose])
 
   useEffect(() => {
     if (!open) {
@@ -107,30 +104,14 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
     startImport(file)
   }
 
-  if (!open) return null
-
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/20 z-40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-label="Import / Export"
-        aria-modal="true"
-        className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 flex flex-col"
-      >
+    <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()} swipeDirection="right">
+      <DrawerContent className="w-80 flex flex-col [--drawer-inset:0.5rem] [--drawer-bleed-background:transparent] rounded-xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Import / Export</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
+          <DrawerTitle className="text-sm font-semibold text-gray-900 dark:text-white">Import / Export</DrawerTitle>
+          <DrawerClose render={<button aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />}>
             <X size={15} />
-          </button>
+          </DrawerClose>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-6">
@@ -282,7 +263,7 @@ export default function ImportExportSheet({ open, onClose }: ImportExportSheetPr
             )}
           </div>
         </div>
-      </div>
-    </>
+      </DrawerContent>
+    </Drawer>
   )
 }

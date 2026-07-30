@@ -123,6 +123,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Anchors the shadcn Drawer's iOS Safari overlay positioning. */
+    position: relative;
   }
   html {
     @apply font-sans;
