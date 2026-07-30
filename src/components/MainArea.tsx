@@ -561,6 +561,23 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
   return (
     <div className="editor-toolbar-mobile">
       <button
+        disabled={!editor.can().undo()}
+        onClick={() => editor.chain().focus().undo().run()}
+        className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <Undo2 className="h-5 w-5" />
+      </button>
+      <button
+        disabled={!editor.can().redo()}
+        onClick={() => editor.chain().focus().redo().run()}
+        className="flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <Redo2 className="h-5 w-5" />
+      </button>
+
+      <span className="w-px h-6 bg-border mx-0.5" />
+
+      <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("bold") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
@@ -598,6 +615,12 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("link") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <LinkIcon className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().toggleCode().run()}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("code") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <Code className="h-5 w-5" />
       </button>
 
       <span className="w-px h-6 bg-border mx-0.5" />
@@ -647,6 +670,18 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
         className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("taskList") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
       >
         <ListChecks className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("blockquote") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <Quote className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        className={`flex items-center justify-center rounded-md min-h-[44px] min-w-[44px] ${editor.isActive("codeBlock") ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <SquareCode className="h-5 w-5" />
       </button>
 
       <TableGridPicker
@@ -753,6 +788,13 @@ const MobileToolbar = React.memo(function MobileToolbar({ editor, fileInputRef }
               )
             })}
           </div>
+          <div className="text-sm font-medium mb-2 mt-2">Insert</div>
+          <button
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-md border bg-background hover:bg-accent w-full"
+          >
+            <Minus className="h-4 w-4" /> Horizontal rule
+          </button>
         </PopoverContent>
       </Popover>
 
