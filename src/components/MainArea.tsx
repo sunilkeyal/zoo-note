@@ -39,7 +39,7 @@ const TableHeader = TableHeaderBase.extend({
 })
 import { ImageNode } from "@/extensions/ImageNode"
 import SearchHighlight from "@/extensions/SearchHighlight"
-import { TableGridPicker } from "@/components/TableGridPicker"
+import { TableGridPicker, TableSizeGrid } from "@/components/TableGridPicker"
 import { TableContextMenu } from "@/components/TableContextMenu"
 import {
   Tooltip,
@@ -58,6 +58,7 @@ import {
   Highlighter,
   ArrowUpDown,
   ChevronDown,
+  Plus,
   Link as LinkIcon,
 } from "lucide-react"
 import { useNotes } from "@/contexts/NoteContext"
@@ -152,6 +153,7 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
 
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
+  const [insertOpen, setInsertOpen] = useState(false)
   const linkInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -281,28 +283,33 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
 
         <Separator orientation="vertical" className="mx-1 h-6" />
 
-        <TableGridPicker editor={editor} />
-        <Tooltip>
-          <TooltipTrigger render={
-            <button
-              className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
-              onClick={() => editor.chain().focus().setHorizontalRule().run()}
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-          } />
-          <TooltipContent>Horizontal rule</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger render={
-            <button className="h-7 w-7 flex items-center justify-center rounded-md border border-input hover:bg-accent"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Image className="h-4 w-4" />
-            </button>
-          } />
-          <TooltipContent>Insert image</TooltipContent>
-        </Tooltip>
+        <Popover open={insertOpen} onOpenChange={setInsertOpen}>
+          <Tooltip>
+            <TooltipTrigger render={<PopoverTrigger className="h-7 px-2 flex items-center gap-1 rounded-md border border-input hover:bg-accent" />}>
+              <Plus className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3 opacity-60" />
+            </TooltipTrigger>
+            <TooltipContent>Insert</TooltipContent>
+          </Tooltip>
+          <PopoverContent className="w-auto p-3" align="start">
+            <TableSizeGrid editor={editor} onInsert={() => setInsertOpen(false)} />
+            <div className="my-2 border-t border-border" />
+            <div className="flex flex-col gap-1">
+              <button
+                className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-accent text-left"
+                onClick={() => { editor.chain().focus().setHorizontalRule().run(); setInsertOpen(false) }}
+              >
+                <Minus className="h-4 w-4" /> Horizontal rule
+              </button>
+              <button
+                className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-accent text-left"
+                onClick={() => { fileInputRef.current?.click(); setInsertOpen(false) }}
+              >
+                <Image className="h-4 w-4" /> Image
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
           onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(file); e.target.value = '' }}
         />
@@ -438,54 +445,61 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
           </SelectContent>
         </Select>
 
-        <Select
-          value={editor.getAttributes("textStyle").fontFamily || "default"}
-          onValueChange={(val) => {
-            if (val === "default") editor.chain().focus().unsetFontFamily().run()
-            else editor.chain().focus().setFontFamily(val).run()
-          }}
-        >
+        <Popover>
           <Tooltip>
-            <TooltipTrigger render={<SelectTrigger className="h-7 w-[130px] text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }} />}>
-              <SelectValue placeholder="Font" className="capitalize" />
+            <TooltipTrigger render={<PopoverTrigger className="h-7 px-2 flex items-center gap-1 rounded-md border border-input hover:bg-accent text-sm font-semibold" />}>
+              <span style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }}>Aa</span>
+              <ChevronDown className="h-3 w-3 opacity-60" />
             </TooltipTrigger>
-            <TooltipContent>Font family</TooltipContent>
+            <TooltipContent>Font</TooltipContent>
           </Tooltip>
-          <SelectContent>
-            <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
-            {FONTS.map((f) => (
-              <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <PopoverContent className="w-[220px] p-3" align="start">
+            <div className="text-sm font-medium mb-2">Font family</div>
+            <Select
+              value={editor.getAttributes("textStyle").fontFamily || "default"}
+              onValueChange={(val) => {
+                if (val === "default") editor.chain().focus().unsetFontFamily().run()
+                else editor.chain().focus().setFontFamily(val).run()
+              }}
+            >
+              <SelectTrigger className="h-8 w-full text-sm" style={{ fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit" }}>
+                <SelectValue placeholder="Font" className="capitalize" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default" className="text-sm">Default (Geist)</SelectItem>
+                {FONTS.map((f) => (
+                  <SelectItem key={f} value={f} className="text-sm" style={{ fontFamily: f }}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select
-          value={(() => {
-            const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
-            if (explicit) return explicit
-            if (editor.isActive("heading", { level: 1 })) return "20"
-            if (editor.isActive("heading", { level: 2 })) return "18"
-            if (editor.isActive("heading", { level: 3 })) return "16"
-            return "default"
-          })()}
-          onValueChange={(val) => {
-            if (val === "default") editor.chain().focus().unsetFontSize().run()
-            else editor.chain().focus().setFontSize(val + "px").run()
-          }}
-        >
-          <Tooltip>
-            <TooltipTrigger render={<SelectTrigger className="h-7 w-[90px] text-sm" />}>
-              <SelectValue className="capitalize" />
-            </TooltipTrigger>
-            <TooltipContent>Font size</TooltipContent>
-          </Tooltip>
-          <SelectContent>
-            <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
-            {FONT_SIZES.map((s) => (
-              <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <div className="text-sm font-medium mb-2 mt-3">Font size</div>
+            <Select
+              value={(() => {
+                const explicit = editor.getAttributes("textStyle").fontSize?.replace("px", "")
+                if (explicit) return explicit
+                if (editor.isActive("heading", { level: 1 })) return "20"
+                if (editor.isActive("heading", { level: 2 })) return "18"
+                if (editor.isActive("heading", { level: 3 })) return "16"
+                return "default"
+              })()}
+              onValueChange={(val) => {
+                if (val === "default") editor.chain().focus().unsetFontSize().run()
+                else editor.chain().focus().setFontSize(val + "px").run()
+              }}
+            >
+              <SelectTrigger className="h-8 w-full text-sm">
+                <SelectValue className="capitalize" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default" className="text-sm">Default (13px)</SelectItem>
+                {FONT_SIZES.map((s) => (
+                  <SelectItem key={s} value={s} className="text-sm">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </PopoverContent>
+        </Popover>
 
         {showLinkInput && (
           <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>

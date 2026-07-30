@@ -117,6 +117,7 @@ vi.mock('lucide-react', () => ({
   Minus: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Minus', ...props }),
   Undo2: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Undo2', ...props }),
   Redo2: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Redo2', ...props }),
+  Plus: (props: Record<string, unknown>) => React.createElement('svg', { 'data-testid': 'icon-Plus', ...props }),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -126,6 +127,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/TableGridPicker', () => ({
   TableGridPicker: () => React.createElement('div', { 'data-testid': 'table-grid-picker' }),
+  TableSizeGrid: () => React.createElement('div', { 'data-testid': 'table-size-grid' }),
 }))
 vi.mock('@/components/TableContextMenu', () => ({
   TableContextMenu: () => null,
@@ -240,7 +242,7 @@ describe('MainArea', () => {
     expect(screen.getAllByTestId('icon-Code').length).toBeGreaterThan(0)
     expect(screen.getAllByTestId('icon-Quote').length).toBeGreaterThan(0)
     expect(screen.getAllByTestId('icon-SquareCode').length).toBeGreaterThan(0)
-    expect(screen.getAllByTestId('icon-Minus').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('icon-Plus').length).toBeGreaterThan(0)
   })
 
   it('renders with search query parameter without crashing', () => {
@@ -284,8 +286,5 @@ describe('MainArea', () => {
 
     clickFirst('icon-SquareCode')
     expect(commandSpies.toggleCodeBlock).toHaveBeenCalled()
-
-    clickFirst('icon-Minus')
-    expect(commandSpies.setHorizontalRule).toHaveBeenCalled()
   })
 })
