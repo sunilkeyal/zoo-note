@@ -15,7 +15,7 @@ describe('PageContainer', () => {
     expect(outer?.className).toContain('overflow-auto')
     const inner = outer?.firstElementChild
     expect(inner?.className).toContain('md:max-w-[900px]')
-    expect(inner?.className).toContain('lg:max-w-[1140px]')
+    expect(inner?.className).toContain('lg:max-w-[1142px]')
     expect(inner?.className).toContain('px-4')
   })
 
@@ -29,6 +29,6 @@ describe('PageContainer', () => {
     const { container } = render(<PageContainer className="lg:max-w-xl"><p>Hi</p></PageContainer>)
     const inner = container.firstElementChild?.firstElementChild
     expect(inner?.className).toContain('lg:max-w-xl')
-    expect(inner?.className).not.toContain('lg:max-w-[1140px]')
+    expect(inner?.className).not.toContain('lg:max-w-[1142px]')
   })
 })

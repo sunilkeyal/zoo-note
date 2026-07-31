@@ -61,7 +61,9 @@ export default function AdminLayout({
         <ResizablePanel id="content" className="h-full">
           <SidebarInset className="overflow-hidden">
             <ContentCard>
-              <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1140px]">{children}</main>
+              <main className="flex-1 overflow-auto w-full">
+                <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1142px]">{children}</div>
+              </main>
             </ContentCard>
           </SidebarInset>
         </ResizablePanel>
