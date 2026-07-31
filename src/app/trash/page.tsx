@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Trash2 } from "lucide-react"
 import TrashTable from "@/components/TrashTable"
 import EmptyTrashDialog from "@/components/EmptyTrashDialog"
+import PageContainer from "@/components/PageContainer"
 import { useNotes } from "@/contexts/NoteContext"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -99,7 +100,7 @@ export default function TrashPage() {
   }
 
   return (
-    <div>
+    <PageContainer>
       <div className="flex items-center gap-3 mb-6">
         <div className="size-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
           <Trash2 className="size-5 text-rose-600 dark:text-rose-500" />
@@ -146,6 +147,6 @@ export default function TrashPage() {
         onConfirm={handleEmptyTrashConfirm}
         onCancel={() => setEmptyTrashDialogOpen(false)}
       />
-    </div>
+    </PageContainer>
   )
 }

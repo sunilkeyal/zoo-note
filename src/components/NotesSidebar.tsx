@@ -376,6 +376,10 @@ function subItemClass(density: SidebarDensity): string {
   return base
 }
 
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="px-3 pb-1 pt-2 text-xs font-semibold text-sidebar-foreground/50">{children}</div>
+)
+
 export default function NotesSidebar({ resizable = false }: { resizable?: boolean }) {
   const {
     notes, folders, expandedFolders, createNote, deleteNote, updateNote,
@@ -1016,7 +1020,7 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
 
   return (
     <>
-      <Sidebar collapsible={resizable ? "none" : "icon"} ref={sidebarRef} className={resizable ? "w-full h-full" : undefined}>
+      <Sidebar collapsible={resizable ? "none" : "icon"} variant="floating" ref={sidebarRef} className={resizable ? "w-full h-full" : undefined}>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-1 py-1">
             <img src="/ZooNote.png" alt="ZooNote" className="size-6 rounded-sm" />
@@ -1094,6 +1098,7 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
 
         <SidebarContent>
           <SidebarSeparator className="mb-2 mt-0" />
+          <SectionLabel>Views</SectionLabel>
 
           {/* Primary navigation */}
           <SidebarGroup className="py-0">
@@ -1128,6 +1133,10 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
           </SidebarGroup>
 
           <SidebarSeparator className="my-2" />
+
+          {(folders.length > 0 || notes.length > 0) && (
+            <SectionLabel>Notebooks</SectionLabel>
+          )}
 
           <DndContext
             sensors={sensors}
@@ -1184,6 +1193,8 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
             <SidebarSeparator className="my-2" />
           )}
 
+          <SectionLabel>Trash</SectionLabel>
+
           {/* Trash */}
           <SidebarGroup className="py-0">
             <SidebarGroupContent>
@@ -1233,9 +1244,7 @@ export default function NotesSidebar({ resizable = false }: { resizable?: boolea
           {session?.user?.role === "admin" && (
             <>
               <SidebarSeparator className="my-2" />
-              <div className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                Admin
-              </div>
+              <SectionLabel>Admin</SectionLabel>
               <SidebarGroup className="py-0" role="menu" aria-label="Admin">
                 <SidebarGroupContent>
                   <SidebarMenu>

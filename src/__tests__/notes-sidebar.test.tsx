@@ -323,7 +323,7 @@ describe('NotesSidebar', () => {
   it('renders trash link', () => {
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
-    expect(screen.getByText('Trash')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Trash' })).toBeInTheDocument()
   })
 
   it('renders folders', () => {
@@ -484,6 +484,30 @@ describe('NotesSidebar', () => {
     vi.mocked(useNotes).mockReturnValue(createMockContext())
     renderSidebar()
     expect(screen.getByText('ZooNote')).toBeInTheDocument()
+  })
+
+  it('renders the Views section label', () => {
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+    expect(screen.getByText('Views')).toBeInTheDocument()
+  })
+
+  it('renders the Notebooks section label when folders or notes exist', () => {
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+    expect(screen.getByText('Notebooks')).toBeInTheDocument()
+  })
+
+  it('hides the Notebooks section label when there are no folders or notes', () => {
+    vi.mocked(useNotes).mockReturnValue(createMockContext({ notes: [], folders: [] }))
+    renderSidebar()
+    expect(screen.queryByText('Notebooks')).not.toBeInTheDocument()
+  })
+
+  it('renders the Trash section label', () => {
+    vi.mocked(useNotes).mockReturnValue(createMockContext())
+    renderSidebar()
+    expect(screen.getAllByText('Trash').length).toBeGreaterThanOrEqual(2)
   })
 
   it('shows expand all and collapse all buttons', () => {

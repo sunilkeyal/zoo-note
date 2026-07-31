@@ -147,7 +147,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -155,7 +155,7 @@ export default function HomePage() {
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-destructive">{error}</p>
           <Button variant="outline" onClick={() => fetchNotes()}>
