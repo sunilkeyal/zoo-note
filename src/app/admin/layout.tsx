@@ -40,7 +40,7 @@ export default function AdminLayout({
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-dvh min-h-0 overflow-hidden">
       <ResizablePanelGroup
         orientation="horizontal"
         className="flex-1"
@@ -59,7 +59,7 @@ export default function AdminLayout({
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel id="content" className="h-full">
-          <SidebarInset className="overflow-auto">
+          <SidebarInset className="h-full overflow-auto">
             <ContentCard>
               <main className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6">{children}</main>
             </ContentCard>
