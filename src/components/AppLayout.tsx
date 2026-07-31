@@ -265,7 +265,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <ResizableHandle withHandle />
           <ResizablePanel id="content" className="h-full">
             <SidebarInset className="h-full overflow-hidden">
-              <ContentCard>
+              <ContentCard capped={/^\/notes\/[^/]+$/.test(pathname)}>
                 <main className="flex-1 flex flex-col overflow-hidden w-full">
                   {children}
                 </main>

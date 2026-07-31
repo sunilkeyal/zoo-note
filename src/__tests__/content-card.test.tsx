@@ -14,9 +14,15 @@ describe('ContentCard', () => {
     const card = container.querySelector('[data-slot="content-card"]')!
     const outer = card.parentElement!
     expect(card).toHaveClass('floating-card-surface', 'bg-card', 'text-card-foreground', 'ring-1', 'ring-sidebar-border')
-    expect(card).toHaveClass('max-w-[1142px]')
+    expect(card).not.toHaveClass('max-w-[1142px]')
     expect(card).not.toHaveClass('rounded-2xl')
     expect(outer).toHaveClass('p-2')
+  })
+
+  it('caps the card to the editor toolbar width when capped', () => {
+    const { container } = render(<ContentCard capped><p>Hi</p></ContentCard>)
+    const card = container.querySelector('[data-slot="content-card"]')!
+    expect(card).toHaveClass('max-w-[1142px]')
   })
 
   it('merges an extra className onto the card', () => {
