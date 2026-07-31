@@ -161,7 +161,7 @@ const DesktopToolbar = React.memo(function DesktopToolbar({ editor, uploadImage,
   }, [showLinkInput])
 
   return (
-    <div className="hidden md:block px-4 sm:px-6 md:px-8 lg:px-10 pt-4 pb-4 w-full bg-background">
+    <div className="hidden md:block px-4 sm:px-6 md:px-8 lg:px-10 pt-4 pb-4 w-full">
       <TooltipProvider>
       <div className="flex items-center gap-2 px-3 py-1 border rounded-lg bg-card flex-nowrap overflow-x-auto w-fit max-w-full [&>*]:shrink-0">
           <Tooltip>
@@ -1031,7 +1031,7 @@ export default function MainArea() {
   if (!activeNote) return null
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-background">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {editor && (
         <>
           <DesktopToolbar editor={editor} uploadImage={uploadImage} fileInputRef={fileInputRef} />
