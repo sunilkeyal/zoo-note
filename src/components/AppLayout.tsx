@@ -19,6 +19,7 @@ import MobileAdmin from "./MobileAdmin"
 import MobileAccount from "./MobileAccount"
 import MobileImportExport from "./MobileImportExport"
 import MainArea from "./MainArea"
+import ContentCard from "@/components/ui/content-card"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useThemeSync } from "@/contexts/ThemeSyncContext"
@@ -264,9 +265,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <ResizableHandle withHandle />
           <ResizablePanel id="content" className="h-full">
             <SidebarInset className="h-full overflow-hidden">
-              <main className="flex-1 flex flex-col overflow-hidden w-full">
-                {children}
-              </main>
+              <ContentCard>
+                <main className="flex-1 flex flex-col overflow-hidden w-full">
+                  {children}
+                </main>
+              </ContentCard>
             </SidebarInset>
           </ResizablePanel>
         </ResizablePanelGroup>
