@@ -8,7 +8,7 @@ export default function ContentCard({
   className?: string
 }) {
   return (
-    <div className="flex h-full flex-col p-3.5">
+    <div className="flex h-full flex-col p-2">
       <div
         data-slot="content-card"
         className={cn(

@@ -28,6 +28,6 @@ describe('floating Sidebar surface', () => {
     const surface = outer.querySelector(':scope > div')!
     expect(surface).toHaveClass('floating-card-surface', 'bg-sidebar', 'ring-1', 'ring-sidebar-border')
     expect(surface).not.toHaveClass('rounded-2xl')
-    expect(outer).toHaveClass('p-3.5')
+    expect(outer).toHaveClass('p-2')
   })
 })
