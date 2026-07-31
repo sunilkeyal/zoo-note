@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Note } from "@/types"
 import SearchDropdown from "@/components/SearchDropdown"
+import PageContainer from "@/components/PageContainer"
 
 function formatRelativeTime(dateStr: string): string {
   const now = Date.now()
@@ -166,8 +167,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-background">
-      <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-2 pb-4 sm:pt-3 sm:pb-6 space-y-6 w-full md:max-w-[900px] lg:max-w-[1140px]">
+    <PageContainer>
+      <div className="space-y-6">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <Image
@@ -272,6 +273,6 @@ export default function HomePage() {
           />
         </div>
       </div>
-    </div>
+    </PageContainer>
   )
 }

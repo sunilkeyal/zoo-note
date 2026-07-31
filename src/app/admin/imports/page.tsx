@@ -193,10 +193,15 @@ export default function ImportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Upload className="size-5 text-purple-600" />
-          <h1 className="text-2xl font-bold">Import Jobs</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
+            <Upload className="size-5 text-purple-600 dark:text-purple-500" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Import Jobs</h1>
+            <p className="text-xs text-muted-foreground">Monitor notebook imports and clean up failed jobs</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{total} total</span>

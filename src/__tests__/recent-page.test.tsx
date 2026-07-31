@@ -95,6 +95,11 @@ describe('RecentPage', () => {
     expect(screen.getByRole('heading', { name: /recent/i })).toBeInTheDocument()
   })
 
+  it('wraps content in the scroll container', () => {
+    const { container } = render(<RecentPage />)
+    expect(container.querySelector('.overflow-auto')).not.toBeNull()
+  })
+
   it('shows the most recently edited note as the hero card', () => {
     render(<RecentPage />)
     // NOTE_A has a more recent updatedAt — it should be the hero
