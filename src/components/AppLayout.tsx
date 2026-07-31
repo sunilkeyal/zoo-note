@@ -20,6 +20,7 @@ import MobileAccount from "./MobileAccount"
 import MobileImportExport from "./MobileImportExport"
 import MainArea from "./MainArea"
 import ContentCard from "@/components/ui/content-card"
+import { cn } from "@/lib/utils"
 import { useNotes } from "@/contexts/NoteContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useThemeSync } from "@/contexts/ThemeSyncContext"
@@ -242,6 +243,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Desktop layout — resizable sidebar
   if (!isMobile) {
+    const isEditor = /^\/notes\/[^/]+$/.test(pathname)
     return (
       <SidebarProvider className="h-dvh min-h-0 overflow-hidden">
         <ResizablePanelGroup
@@ -264,9 +266,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel id="content" className="h-full">
-            <SidebarInset className="h-full overflow-hidden">
-              <ContentCard>
-                <main className="flex-1 flex flex-col overflow-hidden w-full">
+            <SidebarInset className={cn("h-full", isEditor ? "overflow-hidden" : "overflow-auto")}>
+              <ContentCard fill={isEditor}>
+                <main className={cn("w-full", isEditor && "flex-1 flex flex-col overflow-hidden")}>
                   {children}
                 </main>
               </ContentCard>

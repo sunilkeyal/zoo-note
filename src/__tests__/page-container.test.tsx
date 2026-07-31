@@ -9,10 +9,10 @@ describe('PageContainer', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('applies the scroll container and full-width padded inner', () => {
+  it('renders a full-width padded inner without its own scroll or width cap', () => {
     const { container } = render(<PageContainer><p>Hi</p></PageContainer>)
     const outer = container.firstElementChild
-    expect(outer?.className).toContain('overflow-auto')
+    expect(outer?.className).not.toContain('overflow-auto')
     const inner = outer?.firstElementChild
     expect(inner?.className).toContain('w-full')
     expect(inner?.className).not.toContain('max-w-[1142px]')

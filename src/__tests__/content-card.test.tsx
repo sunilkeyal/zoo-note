@@ -14,9 +14,20 @@ describe('ContentCard', () => {
     const card = container.querySelector('[data-slot="content-card"]')!
     const outer = card.parentElement!
     expect(card).toHaveClass('floating-card-surface', 'bg-card', 'text-card-foreground', 'ring-1', 'ring-sidebar-border')
-    expect(card).not.toHaveClass('max-w-[1142px]')
+    expect(card).toHaveClass('max-w-[1142px]')
     expect(card).not.toHaveClass('rounded-2xl')
     expect(outer).toHaveClass('p-2')
+  })
+
+  it('grows (no internal clip) by default and fills height when fill is set', () => {
+    const { container, rerender } = render(<ContentCard><p>Hi</p></ContentCard>)
+    const grow = container.querySelector('[data-slot="content-card"]')!
+    expect(grow).toHaveClass('min-h-full')
+    expect(grow).not.toHaveClass('overflow-hidden')
+
+    rerender(<ContentCard fill><p>Hi</p></ContentCard>)
+    const fill = container.querySelector('[data-slot="content-card"]')!
+    expect(fill).toHaveClass('h-full', 'overflow-hidden')
   })
 
   it('merges an extra className onto the card', () => {
