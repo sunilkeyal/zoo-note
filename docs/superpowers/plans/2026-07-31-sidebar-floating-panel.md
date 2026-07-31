@@ -49,7 +49,9 @@
 - Create: `src/components/ui/content-card.tsx`
 - Test: `src/__tests__/content-card.test.tsx`
 
-- [ ] **Step 1: Write the failing test**
+**Status: DONE**
+
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/content-card.test.tsx`:
 
@@ -83,12 +85,12 @@ describe('ContentCard', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/content-card.test.tsx`
 Expected: FAIL — cannot resolve `@/components/ui/content-card` (module does not exist yet).
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 Create `src/components/ui/content-card.tsx`:
 
@@ -118,12 +120,12 @@ export default function ContentCard({
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/content-card.test.tsx`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/ui/content-card.tsx src/__tests__/content-card.test.tsx
@@ -139,7 +141,9 @@ git commit -m "feat(sidebar): add ContentCard floating panel component"
 - Modify: `src/app/admin/layout.tsx:60-64`
 - Modify: `src/__tests__/app-layout.test.tsx:59-63`
 
-- [ ] **Step 1: Write the failing test**
+**Status: DONE**
+
+- [x] **Step 1: Write the failing test**
 
 In `src/__tests__/app-layout.test.tsx`, extend the existing desktop test (lines 59-63) to assert the content is wrapped in the floating card:
 
@@ -154,12 +158,12 @@ In `src/__tests__/app-layout.test.tsx`, extend the existing desktop test (lines 
   })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/app-layout.test.tsx`
 Expected: FAIL — `content-card` selector returns null because `AppLayout` does not render `ContentCard` yet.
 
-- [ ] **Step 3: Apply in `AppLayout.tsx`**
+- [x] **Step 3: Apply in `AppLayout.tsx`**
 
 Add the import at the top of `src/components/AppLayout.tsx` (with the other component imports, near line 21):
 
@@ -181,12 +185,12 @@ Replace the desktop content panel (lines 265-271):
           </ResizablePanel>
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/app-layout.test.tsx`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Apply in `admin/layout.tsx`**
+- [x] **Step 5: Apply in `admin/layout.tsx`**
 
 Add the import at the top of `src/app/admin/layout.tsx` (with the other component imports, near line 8):
 
@@ -206,12 +210,12 @@ Replace the content panel (lines 60-64):
         </ResizablePanel>
 ```
 
-- [ ] **Step 6: Run the app-layout tests again**
+- [x] **Step 6: Run the app-layout tests again**
 
 Run: `npx vitest run src/__tests__/app-layout.test.tsx src/__tests__/content-card.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/components/AppLayout.tsx src/app/admin/layout.tsx src/__tests__/app-layout.test.tsx
@@ -228,7 +232,9 @@ git commit -m "feat(sidebar): wrap desktop content in ContentCard floating panel
 - Modify: `src/components/MainArea.tsx:1034`
 - Modify: `src/components/HomePage.tsx:150,158`
 
-- [ ] **Step 1: Remove `bg-background` from `PageContainer`**
+**Status: DONE**
+
+- [x] **Step 1: Remove `bg-background` from `PageContainer`**
 
 In `src/components/PageContainer.tsx`, line 13, change:
 
@@ -242,7 +248,7 @@ to:
     <div className="flex-1 overflow-auto">
 ```
 
-- [ ] **Step 2: Remove `bg-background` from `MainArea`**
+- [x] **Step 2: Remove `bg-background` from `MainArea`**
 
 In `src/components/MainArea.tsx`, line 164, change:
 
@@ -284,12 +290,14 @@ to:
 
 (There are exactly two occurrences — the loading state and the error state.)
 
-- [ ] **Step 4: Run the affected tests**
+- [x] **Step 3: Remove `bg-background` from `HomePage` empty states** (marked above)
+
+- [x] **Step 4: Run the affected tests**
 
 Run: `npx vitest run src/__tests__/page-container.test.tsx src/__tests__/main-area.test.tsx`
 Expected: PASS — no test asserts `bg-background`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/PageContainer.tsx src/components/MainArea.tsx src/components/HomePage.tsx
@@ -302,17 +310,21 @@ git commit -m "fix(sidebar): drop explicit bg-background from inner content root
 
 **Files:** none
 
-- [ ] **Step 1: Lint the changed files**
+- [x] **Step 1: Lint the changed files**
 
 Run: `npx eslint src/components/ui/content-card.tsx src/components/AppLayout.tsx src/app/admin/layout.tsx src/components/PageContainer.tsx src/components/MainArea.tsx src/components/HomePage.tsx src/__tests__/content-card.test.tsx src/__tests__/app-layout.test.tsx`
 Expected: No errors (the pre-existing `img`-element warning in `NotesSidebar.tsx:1026` is unrelated and out of scope).
 
-- [ ] **Step 2: Run the full test suite**
+Actual: The 8 changed files produce only pre-existing lint issues in code untouched by this branch (`AppLayout.tsx:120` setState-in-effect, `AppLayout.tsx:305` `<img>`, and several `MainArea.tsx` hook/`<img>`/memoization findings). Confirmed present on base commit `e456f70`; none introduced by this feature.
+
+- [x] **Step 2: Run the full test suite**
 
 Run: `npm test`
 Expected: All tests pass except the pre-existing `admin-stats-api.test.ts` timeouts (5 failures — Mongo connection issues, unrelated to this feature; the file is untouched by this branch).
 
-- [ ] **Step 3: Manual visual check**
+Actual: 71 test files, 651 tests, all passing.
+
+- [ ] **Step 3: Manual visual check** (requires running `npm run dev` — pending user)
 
 Run: `npm run dev`, open the app at desktop width, and confirm:
 1. The sidebar is a rounded floating card with ~14px margins, a hairline ring, and a soft shadow (already verified).
