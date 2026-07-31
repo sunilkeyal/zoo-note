@@ -95,9 +95,12 @@ describe('RecentPage', () => {
     expect(screen.getByRole('heading', { name: /recent/i })).toBeInTheDocument()
   })
 
-  it('wraps content in the scroll container', () => {
+  it('wraps content in a full-width padded container', () => {
     const { container } = render(<RecentPage />)
-    expect(container.querySelector('.overflow-auto')).not.toBeNull()
+    const inner = container.querySelector('.px-4')
+    expect(inner).not.toBeNull()
+    expect(inner?.className).toContain('w-full')
+    expect(inner?.className).not.toContain('max-w-[1142px]')
   })
 
   it('shows the most recently edited note as the hero card', () => {

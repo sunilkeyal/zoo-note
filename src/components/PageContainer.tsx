@@ -10,10 +10,10 @@ export default function PageContainer({
   className?: string
 }) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="w-full">
       <div
         className={cn(
-          "px-4 sm:px-6 md:px-8 lg:px-10 pt-6 pb-4 sm:pb-6 w-full md:max-w-[900px] lg:max-w-[1140px]",
+          "px-4 sm:px-6 md:px-8 lg:px-10 pt-6 pb-4 sm:pb-6 w-full",
           className
         )}
       >

@@ -62,7 +62,7 @@ describe('AppLayout', () => {
     expect(screen.getByText('Content')).toBeInTheDocument()
     const card = container.querySelector('[data-slot="content-card"]')
     expect(card).not.toBeNull()
-    expect(card).toHaveClass('rounded-2xl', 'bg-card', 'ring-sidebar-border')
+    expect(card).toHaveClass('floating-card-surface', 'bg-card', 'ring-sidebar-border')
   })
 
   it('shows tab bar on mobile', () => {

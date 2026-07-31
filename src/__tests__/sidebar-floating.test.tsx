@@ -18,16 +18,15 @@ function renderSidebar(variant: 'sidebar' | 'floating') {
 }
 
 describe('Sidebar floating variant', () => {
-  it('wraps children in a rounded floating card when variant is floating', () => {
+  it('wraps children in the shared floating card surface when variant is floating', () => {
     renderSidebar('floating')
     const content = screen.getByTestId('content')
     const card = content.parentElement!
     const outer = card.parentElement!
-    expect(card).toHaveClass('rounded-2xl', 'bg-sidebar', 'ring-1', 'ring-sidebar-border')
-    expect(card).toHaveClass('shadow-[0_10px_28px_rgba(15,23,42,0.10)]')
-    expect(card).toHaveClass('dark:shadow-[0_12px_32px_rgba(0,0,0,0.5)]')
+    expect(card).toHaveClass('floating-card-surface', 'bg-sidebar', 'ring-1', 'ring-sidebar-border')
+    expect(card).not.toHaveClass('rounded-2xl')
     expect(outer).toHaveAttribute('data-slot', 'sidebar')
-    expect(outer).toHaveClass('p-3.5')
+    expect(outer).toHaveClass('p-2')
   })
 
   it('keeps the flat layout when variant is not floating', () => {
@@ -36,6 +35,6 @@ describe('Sidebar floating variant', () => {
     const outer = content.parentElement!
     expect(outer).toHaveAttribute('data-slot', 'sidebar')
     expect(outer).toHaveClass('bg-sidebar')
-    expect(outer).not.toHaveClass('p-3.5')
+    expect(outer).not.toHaveClass('p-2')
   })
 })

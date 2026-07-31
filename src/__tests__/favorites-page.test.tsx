@@ -85,9 +85,12 @@ describe('FavoritesPage', () => {
     expect(screen.getByRole('heading', { name: /favorites/i })).toBeInTheDocument()
   })
 
-  it('wraps content in the scroll container', () => {
+  it('wraps content in a full-width padded container', () => {
     const { container } = render(<FavoritesPage />)
-    expect(container.querySelector('.overflow-auto')).not.toBeNull()
+    const inner = container.querySelector('.px-4')
+    expect(inner).not.toBeNull()
+    expect(inner?.className).toContain('w-full')
+    expect(inner?.className).not.toContain('max-w-[1142px]')
   })
 
   it('renders favorite notes', () => {

@@ -40,7 +40,7 @@ export default function AdminLayout({
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-dvh min-h-0 overflow-hidden">
       <ResizablePanelGroup
         orientation="horizontal"
         className="flex-1"
@@ -57,11 +57,11 @@ export default function AdminLayout({
         >
           <NotesSidebar resizable />
         </ResizablePanel>
-        <ResizableHandle withHandle />
+        <ResizableHandle />
         <ResizablePanel id="content" className="h-full">
-          <SidebarInset className="overflow-hidden">
+          <SidebarInset className="h-full overflow-auto focus:outline-none">
             <ContentCard>
-              <main className="flex-1 overflow-auto px-4 sm:px-6 md:px-8 lg:px-10 py-6 w-full md:max-w-[900px] lg:max-w-[1140px]">{children}</main>
+              <main className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6">{children}</main>
             </ContentCard>
           </SidebarInset>
         </ResizablePanel>

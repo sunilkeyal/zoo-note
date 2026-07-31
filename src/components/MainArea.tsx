@@ -1044,7 +1044,7 @@ export default function MainArea() {
         ref={editorContainerRef}
         className="flex-1 overflow-auto relative min-h-0 w-full"
       >
-        <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-3 pb-0 w-full md:max-w-[1142px]">
+        <div className="px-4 sm:px-6 md:px-8 lg:px-10 pt-3 pb-0 w-full">
           <Input
             value={title}
             onChange={(e) => handleTitleChange(activeNote._id, e.target.value)}
@@ -1057,7 +1057,7 @@ export default function MainArea() {
           <Separator className="mt-2" />
         </div>
 
-        <div className={`px-4 sm:px-6 md:px-8 lg:px-10 w-full md:max-w-[1142px] py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}>
+        <div className={`px-4 sm:px-6 md:px-8 lg:px-10 w-full py-4 ${keyboardOpen ? "pb-4" : "pb-16 md:pb-4"}`}>
           <NoteEditor note={activeNote} editor={editor} />
         </div>
 
