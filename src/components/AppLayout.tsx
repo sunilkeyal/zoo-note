@@ -266,7 +266,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel id="content" className="h-full">
-            <SidebarInset className={cn("h-full", isEditor ? "overflow-hidden" : "overflow-auto")}>
+            <SidebarInset className={cn("h-full focus:outline-none", isEditor ? "overflow-hidden" : "overflow-auto")}>
               <ContentCard fill={isEditor}>
                 <main className={cn("w-full", isEditor && "flex-1 flex flex-col overflow-hidden")}>
                   {children}
