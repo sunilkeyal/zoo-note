@@ -9,13 +9,13 @@ describe('PageContainer', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('applies the scroll container and responsive max-width', () => {
+  it('applies the scroll container and full-width padded inner', () => {
     const { container } = render(<PageContainer><p>Hi</p></PageContainer>)
     const outer = container.firstElementChild
     expect(outer?.className).toContain('overflow-auto')
     const inner = outer?.firstElementChild
-    expect(inner?.className).toContain('md:max-w-[900px]')
-    expect(inner?.className).toContain('lg:max-w-[1142px]')
+    expect(inner?.className).toContain('w-full')
+    expect(inner?.className).not.toContain('max-w-[1142px]')
     expect(inner?.className).toContain('px-4')
   })
 
@@ -26,9 +26,9 @@ describe('PageContainer', () => {
   })
 
   it('lets an extra className override a conflicting default', () => {
-    const { container } = render(<PageContainer className="lg:max-w-xl"><p>Hi</p></PageContainer>)
+    const { container } = render(<PageContainer className="px-0"><p>Hi</p></PageContainer>)
     const inner = container.firstElementChild?.firstElementChild
-    expect(inner?.className).toContain('lg:max-w-xl')
-    expect(inner?.className).not.toContain('lg:max-w-[1142px]')
+    expect(inner?.className).toContain('px-0')
+    expect(inner?.className).not.toContain('px-4')
   })
 })

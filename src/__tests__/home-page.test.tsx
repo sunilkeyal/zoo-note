@@ -72,8 +72,8 @@ describe('HomePage', () => {
     expect(outer).not.toBeNull()
     const inner = outer?.firstElementChild
     expect(inner?.className).toContain('px-4')
-    expect(inner?.className).toContain('md:max-w-[900px]')
-    expect(inner?.className).toContain('lg:max-w-[1142px]')
+    expect(inner?.className).toContain('w-full')
+    expect(inner?.className).not.toContain('max-w-[1142px]')
     const content = inner?.firstElementChild
     expect(content?.className).toContain('space-y-6')
   })
