@@ -15,7 +15,7 @@ export default function ContentCard({
         data-slot="content-card"
         className={cn(
           "floating-card-surface flex w-full max-w-[1142px] flex-col bg-card text-card-foreground ring-1 ring-sidebar-border",
-          fill ? "h-full overflow-hidden" : "min-h-full",
+          fill ? "h-full overflow-hidden" : "flex-1",
           className
         )}
       >

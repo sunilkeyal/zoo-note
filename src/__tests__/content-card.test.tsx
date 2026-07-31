@@ -22,7 +22,7 @@ describe('ContentCard', () => {
   it('grows (no internal clip) by default and fills height when fill is set', () => {
     const { container, rerender } = render(<ContentCard><p>Hi</p></ContentCard>)
     const grow = container.querySelector('[data-slot="content-card"]')!
-    expect(grow).toHaveClass('min-h-full')
+    expect(grow).toHaveClass('flex-1')
     expect(grow).not.toHaveClass('overflow-hidden')
 
     rerender(<ContentCard fill><p>Hi</p></ContentCard>)
