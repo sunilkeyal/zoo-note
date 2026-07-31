@@ -14,7 +14,7 @@ describe('ContentCard', () => {
     const card = container.querySelector('[data-slot="content-card"]')!
     const outer = card.parentElement!
     expect(card).toHaveClass('floating-card-surface', 'bg-card', 'text-card-foreground', 'ring-1', 'ring-sidebar-border')
-    expect(card).toHaveClass('max-w-[1142px]')
+    expect(card).not.toHaveClass('max-w-[1142px]')
     expect(card).not.toHaveClass('rounded-2xl')
     expect(outer).toHaveClass('p-2')
   })
