@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog"
+import PageContainer from "@/components/PageContainer"
 import { useNotes } from "@/contexts/NoteContext"
 import { Note } from "@/types"
 import { stripHtml } from "@/lib/utils"
@@ -147,7 +148,7 @@ export default function RecentPage() {
   const [hero, ...rest] = filteredNotes
 
   return (
-    <div>
+    <PageContainer>
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
@@ -308,6 +309,6 @@ export default function RecentPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
       />
-    </div>
+    </PageContainer>
   )
 }
