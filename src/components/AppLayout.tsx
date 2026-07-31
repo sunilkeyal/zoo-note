@@ -264,7 +264,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             <NotesSidebar resizable />
           </ResizablePanel>
-          <ResizableHandle withHandle />
+          <ResizableHandle />
           <ResizablePanel id="content" className="h-full">
             <SidebarInset className={cn("h-full", isEditor ? "overflow-hidden" : "overflow-auto")}>
               <ContentCard fill={isEditor}>

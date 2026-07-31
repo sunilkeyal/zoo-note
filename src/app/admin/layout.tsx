@@ -57,7 +57,7 @@ export default function AdminLayout({
         >
           <NotesSidebar resizable />
         </ResizablePanel>
-        <ResizableHandle withHandle />
+        <ResizableHandle />
         <ResizablePanel id="content" className="h-full">
           <SidebarInset className="h-full overflow-auto">
             <ContentCard>
