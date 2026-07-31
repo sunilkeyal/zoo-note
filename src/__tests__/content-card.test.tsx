@@ -9,13 +9,12 @@ describe('ContentCard', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('wraps children in a rounded floating card with a p-3.5 outer gap', () => {
+  it('wraps children in a floating card with a p-3.5 outer gap', () => {
     const { container } = render(<ContentCard><p>Hi</p></ContentCard>)
     const card = container.querySelector('[data-slot="content-card"]')!
     const outer = card.parentElement!
-    expect(card).toHaveClass('rounded-2xl', 'bg-card', 'text-card-foreground', 'ring-1', 'ring-sidebar-border')
-    expect(card).toHaveClass('shadow-[0_10px_28px_rgba(15,23,42,0.10)]')
-    expect(card).toHaveClass('dark:shadow-[0_12px_32px_rgba(0,0,0,0.5)]')
+    expect(card).toHaveClass('floating-card-surface', 'bg-card', 'text-card-foreground', 'ring-1', 'ring-sidebar-border')
+    expect(card).not.toHaveClass('rounded-2xl')
     expect(outer).toHaveClass('p-3.5')
   })
 
