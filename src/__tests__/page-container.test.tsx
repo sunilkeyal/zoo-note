@@ -24,4 +24,11 @@ describe('PageContainer', () => {
     const inner = container.firstElementChild?.firstElementChild
     expect(inner?.className).toContain('custom-class')
   })
+
+  it('lets an extra className override a conflicting default', () => {
+    const { container } = render(<PageContainer className="lg:max-w-xl"><p>Hi</p></PageContainer>)
+    const inner = container.firstElementChild?.firstElementChild
+    expect(inner?.className).toContain('lg:max-w-xl')
+    expect(inner?.className).not.toContain('lg:max-w-[1140px]')
+  })
 })
