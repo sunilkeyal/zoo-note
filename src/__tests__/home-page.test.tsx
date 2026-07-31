@@ -74,5 +74,7 @@ describe('HomePage', () => {
     expect(inner?.className).toContain('px-4')
     expect(inner?.className).toContain('md:max-w-[900px]')
     expect(inner?.className).toContain('lg:max-w-[1140px]')
+    const content = inner?.firstElementChild
+    expect(content?.className).toContain('space-y-6')
   })
 })
