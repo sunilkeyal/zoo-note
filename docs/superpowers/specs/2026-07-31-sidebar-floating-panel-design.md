@@ -134,8 +134,16 @@ Remove the explicit `bg-background` from the outer root of each of these so the 
 - `src/components/PageContainer.tsx:13` — `flex-1 overflow-auto bg-background` → `flex-1 overflow-auto`
 - `src/components/MainArea.tsx:1034` — `flex-1 flex flex-col overflow-hidden bg-background` → `flex-1 flex flex-col overflow-hidden`
 - `src/components/MainArea.tsx:164` — desktop toolbar bar `hidden md:block px-4 ... bg-background` → drop `bg-background`
+- `src/components/HomePage.tsx:150,158` — the loading and error empty states `flex-1 flex items-center justify-center bg-background` → drop `bg-background`
 
 Mobile is unaffected: `MainArea`'s transparent root falls back to the mobile `AppLayout` container which already sets `bg-background` (line 282), and the desktop toolbar bar is `hidden md:block` (never rendered on mobile).
+
+### 6. Page alignment follow-ups
+
+After the initial rollout, two alignment issues surfaced once every page rendered inside the content card:
+
+- **Trash page wrapper.** `src/app/trash/page.tsx` rendered its content in a bare `<div>`, so it lacked the horizontal padding and max-width that `favorites` and `recent` get from `PageContainer`. Wrap the page body in `<PageContainer>` (import from `@/components/PageContainer`) so all list pages share the same gutters and `md:max-w-[900px] lg:max-w-[1140px]` constraint.
+- **Top padding parity with admin.** `PageContainer` used `pt-2 sm:pt-3` (8–12px), noticeably tighter than the admin layout's `<main>` `py-6` (24px). Bump `PageContainer` to `pt-6 pb-4 sm:pb-6` so Trash, Favorites, Recent, and Home headers line up vertically with the admin dashboard, import jobs, and user management headers.
 
 ## Testing
 

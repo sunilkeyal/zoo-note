@@ -337,3 +337,37 @@ Run: `npm run dev`, open the app at desktop width, and confirm:
 - [ ] **Step 4: Commit any fixes**
 
 If any check in Steps 1-3 revealed an issue, fix it and commit; otherwise no commit is needed for this task.
+
+---
+
+## Part 3 — Page alignment follow-ups
+
+### Task 7: Align list pages inside the content card
+
+Once every page rendered inside the `ContentCard`, two alignment issues surfaced.
+
+**Files:**
+- Modify: `src/app/trash/page.tsx`
+- Modify: `src/components/PageContainer.tsx`
+
+**Status: DONE**
+
+- [x] **Step 1: Wrap the Trash page in `PageContainer`**
+
+The Trash page rendered its body in a bare `<div>`, so it lacked the gutters and max-width that Favorites/Recent get from `PageContainer`. In `src/app/trash/page.tsx`, import `PageContainer` from `@/components/PageContainer`, and replace the outer `<div>` / closing `</div>` around the page body with `<PageContainer>` / `</PageContainer>`.
+
+- [x] **Step 2: Match admin top padding**
+
+`PageContainer` used `pt-2 sm:pt-3` (8–12px), tighter than the admin layout `<main>` `py-6` (24px). In `src/components/PageContainer.tsx`, change the inner container padding from `pt-2 pb-4 sm:pt-3 sm:pb-6` to `pt-6 pb-4 sm:pb-6` so Trash, Favorites, Recent, and Home headers line up with the admin dashboard, import jobs, and user management headers.
+
+- [x] **Step 3: Run the affected tests**
+
+Run: `npx vitest run src/__tests__/trash-page-buttons.test.tsx src/__tests__/trash-context-menu.test.tsx src/__tests__/page-container.test.tsx`
+Expected: PASS — no test asserts the outer wrapper element or top-padding classes.
+
+- [x] **Step 4: Commit**
+
+```bash
+git add src/app/trash/page.tsx src/components/PageContainer.tsx
+git commit -m "fix(sidebar): align list pages inside content card"
+```
