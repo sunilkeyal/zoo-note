@@ -26,7 +26,7 @@ describe('Sidebar floating variant', () => {
     expect(card).toHaveClass('floating-card-surface', 'bg-sidebar', 'ring-1', 'ring-sidebar-border')
     expect(card).not.toHaveClass('rounded-2xl')
     expect(outer).toHaveAttribute('data-slot', 'sidebar')
-    expect(outer).toHaveClass('p-3.5')
+    expect(outer).toHaveClass('p-2')
   })
 
   it('keeps the flat layout when variant is not floating', () => {
@@ -35,6 +35,6 @@ describe('Sidebar floating variant', () => {
     const outer = content.parentElement!
     expect(outer).toHaveAttribute('data-slot', 'sidebar')
     expect(outer).toHaveClass('bg-sidebar')
-    expect(outer).not.toHaveClass('p-3.5')
+    expect(outer).not.toHaveClass('p-2')
   })
 })

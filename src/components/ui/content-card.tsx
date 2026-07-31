@@ -12,7 +12,7 @@ export default function ContentCard({
       <div
         data-slot="content-card"
         className={cn(
-          "floating-card-surface flex size-full flex-col overflow-hidden bg-card text-card-foreground ring-1 ring-sidebar-border",
+          "floating-card-surface flex h-full w-full max-w-[1142px] flex-col overflow-hidden bg-card text-card-foreground ring-1 ring-sidebar-border",
           className
         )}
       >
